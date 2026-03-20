@@ -1,3 +1,4 @@
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
+import notificationRoutes from './routes/notifications';
 import authRoutes from './routes/auth';
 import nodeRoutes from './routes/nodes';
 import spaceRoutes from './routes/spaces';
@@ -201,6 +203,8 @@ app.use('/archives', archiveRoutes);
 app.use('/mediations', mediationRoutes);
 app.use('/flags', flagRoutes);
 app.use('/governance', governanceRoutes);
+
+app.use('/notifications', notificationRoutes);
 
 app.use(errorHandler);
 

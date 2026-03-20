@@ -7,8 +7,8 @@ import { ChainNode } from '../models/Node';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 import { addBlock } from '../services/chain';
+import { validateObjectId } from '../utils/validateObjectId';
 import {
-  applyGovernanceChanges,
   closeProposalAndExecute,
   computeComplexityLevel,
   getDiscussEndsAt,
@@ -18,14 +18,6 @@ import {
 } from '../services/governance';
 
 const router = Router();
-
-function assertActiveVotingWindow(proposal: any): void {
-  if (proposal.status !== 'voting') return;
-  if (!proposal.votingEndsAt) throw new AppError('Voting window not initialised');
-  if (new Date() > new Date(proposal.votingEndsAt)) {
-    // handled by close path
-  }
-}
 
 /**
  * POST /proposals
@@ -41,7 +33,6 @@ router.post(
 
     const complexityLevel = computeComplexityLevel(scope);
     const now = new Date();
-
     const discussEndsAt = getDiscussEndsAt(complexityLevel, now);
 
     const proposal = await GovernanceProposal.create({
@@ -71,7 +62,8 @@ router.post(
 
 /**
  * POST /proposals/:id/vote
- * Submit a vote. If discussion time-lock ended, automatically transition to voting and record the vote.
+ * Submit a vote. If discussion time-lock ended, automatically transition
+ * to voting and record the vote in the same operation.
  */
 router.post(
   '/proposals/:id/vote',
@@ -82,8 +74,10 @@ router.post(
     const { approve } = req.body;
     const proposalId = req.params.id;
 
-    // Check node is active
-    const node = await ChainNode.findOne({ alias: req.node!.alias });
+    validateObjectId(proposalId, 'proposalId');
+
+    // Only active nodes can vote
+    const node = await ChainNode.findOne({ alias });
     if (!node || node.status !== 'active') {
       throw new ForbiddenError('Only active nodes can participate in governance');
     }
@@ -91,19 +85,24 @@ router.post(
     const proposal = await GovernanceProposal.findById(proposalId);
     if (!proposal) throw new NotFoundError('GovernanceProposal');
 
-    if (proposal.status === 'passed' || proposal.status === 'failed_quorum' || proposal.status === 'rejected') {
+    if (
+      proposal.status === 'passed' ||
+      proposal.status === 'failed_quorum' ||
+      proposal.status === 'rejected' ||
+      proposal.status === 'closing'
+    ) {
       throw new AppError('Proposal already closed');
     }
 
     const now = new Date();
 
-    // If in voting and voting window is already over, close on this attempt then reject this vote.
+    // If voting window already over, close and reject this vote
     if (proposal.status === 'voting' && isVotingOver(proposal, now)) {
       await closeProposalAndExecute(proposal);
       throw new AppError('Voting period ended — proposal closed');
     }
 
-    // Transition discussion -> voting if discuss window ended.
+    // Transition discussion -> voting if discuss window ended
     if (proposal.status === 'discussion') {
       if (now < proposal.discussEndsAt) {
         throw new AppError('Cannot vote yet — discussion period still active');
@@ -111,12 +110,11 @@ router.post(
       await startVotingIfNeeded(proposal, now);
     }
 
-    // A node should not be able to vote during the discussion period.
     if (proposal.status !== 'voting') {
       throw new AppError(`Invalid proposal status for voting: ${proposal.status}`);
     }
 
-    // Enforce one vote per node.
+    // One vote per node
     const alreadyVoted = proposal.votes.some((v) => v.alias === alias);
     if (alreadyVoted) throw new AppError('You have already voted');
 
@@ -144,7 +142,8 @@ router.post(
 
 /**
  * POST /proposals/:id/close
- * Close the proposal after voting ends and execute changes if passed.
+ * Close the proposal after voting ends and execute if passed.
+ * Uses atomic findOneAndUpdate to prevent race condition double-close.
  */
 router.post(
   '/proposals/:id/close',
@@ -153,8 +152,10 @@ router.post(
     const alias = req.node!.alias;
     const proposalId = req.params.id;
 
-    // Check node is active
-    const node = await ChainNode.findOne({ alias: req.node!.alias });
+    validateObjectId(proposalId, 'proposalId');
+
+    // Only active nodes can close
+    const node = await ChainNode.findOne({ alias });
     if (!node || node.status !== 'active') {
       throw new ForbiddenError('Only active nodes can participate in governance');
     }
@@ -162,8 +163,13 @@ router.post(
     const proposal = await GovernanceProposal.findById(proposalId);
     if (!proposal) throw new NotFoundError('GovernanceProposal');
 
-    if (proposal.status === 'passed' || proposal.status === 'failed_quorum' || proposal.status === 'rejected') {
-      return res.json({ proposal, message: 'Proposal already closed' });
+    if (
+      proposal.status === 'passed' ||
+      proposal.status === 'failed_quorum' ||
+      proposal.status === 'rejected' ||
+      proposal.status === 'closing'
+    ) {
+      return res.json({ proposal, message: 'Proposal already closed or being closed' });
     }
 
     if (proposal.status !== 'voting') {
@@ -178,20 +184,37 @@ router.post(
       throw new AppError('Voting period has not ended yet');
     }
 
+    // Atomic close — prevents two simultaneous requests both executing
+    const locked = await GovernanceProposal.findOneAndUpdate(
+      { _id: proposal._id, status: 'voting' },
+      { $set: { status: 'closing' } },
+      { new: false },
+    );
+
+    if (!locked) {
+      // Another request already grabbed the lock
+      const updated = await GovernanceProposal.findById(proposal._id);
+      return res.json({
+        proposal: updated,
+        message: 'Proposal already closed or being closed',
+      });
+    }
+
     const result = await closeProposalAndExecute(proposal);
 
-    // closeProposalAndExecute already appended governance_result block.
     res.json({ proposal, result, message: 'Proposal closed' });
   },
 );
 
 /**
  * GET /proposals/:id
+ * Public — no auth required (spec: all Tier 3 proceedings are fully transparent).
  */
 router.get(
   '/proposals/:id',
   async (req: AuthRequest, res: Response) => {
     const proposalId = req.params.id;
+    validateObjectId(proposalId, 'proposalId');
     const proposal = await GovernanceProposal.findById(proposalId).lean();
     if (!proposal) throw new NotFoundError('GovernanceProposal');
     res.json({ proposal });
@@ -199,4 +222,3 @@ router.get(
 );
 
 export default router;
-

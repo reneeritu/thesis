@@ -537,6 +537,19 @@ router.post(
     const alias = req.node!.alias;
     const { reason, newEvidence } = req.body;
 
+    // Only parties involved in the flag can appeal
+    // For dispute flags, check mediation parties too
+    let isParty = flag.raisedBy === alias;
+    if (!isParty && flag.mediationId) {
+      const mediation = await Mediation.findById(flag.mediationId);
+      if (mediation && mediation.parties.includes(alias)) {
+        isParty = true;
+      }
+    }
+    if (!isParty) {
+      throw new ForbiddenError('Only parties involved in this flag can appeal');
+    }
+
     if (flag.appealCount >= 1 && !newEvidence) {
       throw new AppError('Second appeal requires new evidence');
     }
@@ -562,7 +575,8 @@ router.post(
 
 /**
  * POST /flags/:id/slash
- * Report moderator bad faith. Creates a separate governance flag.
+ * Report moderator bad faith. Only parties of the original flag can slash.
+ * Requires evidence of bad faith.
  */
 router.post(
   '/:id/slash',
@@ -572,6 +586,29 @@ router.post(
     if (!flag) throw new NotFoundError('Flag');
 
     const alias = req.node!.alias;
+    const { evidence } = req.body;
+
+    // Only parties of the original flag can raise a slash
+    let isParty = flag.raisedBy === alias;
+    if (!isParty && flag.mediationId) {
+      const mediation = await Mediation.findById(flag.mediationId);
+      if (mediation && mediation.parties.includes(alias)) {
+        isParty = true;
+      }
+    }
+    if (!isParty) {
+      throw new ForbiddenError('Only parties involved in this flag can report moderator bad faith');
+    }
+
+    // Evidence is required for slash
+    if (!evidence || typeof evidence !== 'string' || evidence.trim().length < 20) {
+      throw new AppError('Evidence of bad faith is required (minimum 20 characters)');
+    }
+
+    // Flag must have been ruled before slashing
+    if (flag.status !== 'ruled' && flag.status !== 'closed' && flag.status !== 'appealed') {
+      throw new AppError('Can only report bad faith after a ruling has been issued');
+    }
 
     const panels = await ModerationPanel.find({ flagId: flag._id });
     const allModAliases = new Set<string>();
@@ -579,11 +616,16 @@ router.post(
       for (const m of p.acceptedModerators) allModAliases.add(m.alias);
     }
 
+    if (allModAliases.size === 0) {
+      throw new AppError('No moderators found on this flag to report');
+    }
+
     const blockIndex = await recordFlagBlock(alias, {
       flagCategory: 'governance',
       flagType: 'moderator_bad_faith',
       targetType: 'node',
       relatedFlagId: flag._id,
+      evidence: evidence.trim(),
       action: 'slash_report',
     });
 
@@ -598,7 +640,7 @@ router.post(
       complexityLevel: 4,
       status: 'open',
       mediationId: null,
-      reason: `Moderator bad faith reported on flag ${flag._id}`,
+      reason: `Moderator bad faith reported on flag ${flag._id}: ${evidence.trim()}`,
       blockIndex,
       emergencyActionTaken: false,
       appealCount: 0,
@@ -606,10 +648,12 @@ router.post(
 
     await assignPanel(slashFlag, 0, 4, Array.from(allModAliases));
 
-    res.status(201).json({ slashFlag, message: 'Slashing flag created — separate panel assigned excluding original moderators' });
+    res.status(201).json({
+      slashFlag,
+      message: 'Slashing flag created — separate panel assigned excluding original moderators',
+    });
   },
 );
-
 /**
  * GET /flags/my-panels
  * List flags where the current node is an invited or accepted moderator.

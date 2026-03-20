@@ -9,6 +9,7 @@ export type GovernanceComplexityLevel = (typeof GOVERNANCE_COMPLEXITY_LEVELS)[nu
 export const GOVERNANCE_STATUSES = [
   'discussion',
   'voting',
+  'closing',
   'passed',
   'failed_quorum',
   'rejected',

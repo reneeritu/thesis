@@ -3,11 +3,13 @@ import { config } from './config';
 import { connectDatabase } from './config/database';
 import { ensureGenesis } from './services/chain';
 import { ensureUploadDir } from './services/media';
+import { startScheduler } from './services/scheduler';
 
 async function start() {
   await connectDatabase();
   await ensureGenesis();
   ensureUploadDir();
+  startScheduler();
 
   app.listen(config.port, () => {
     console.log(
