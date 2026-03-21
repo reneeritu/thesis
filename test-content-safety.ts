@@ -94,7 +94,9 @@ async function acceptPanelUntilReview(flagId: string) {
   // To focus on content-safety outcomes, we force the panel into a `reviewing` state and
   // mark a set of our test nodes as accepted moderators.
   const needed = panel.requiredModerators;
-  const ourAliases = aliases.slice(0, Math.max(needed, 1));
+  // Avoid using `aliases[0]` as a forced moderator: emergency actions
+  // (CSAM/NCII) can suspend the uploader node created at index 0.
+  const ourAliases = aliases.slice(1, 1 + Math.max(needed, 1));
   if (ourAliases.length < needed) {
     throw new Error(`Not enough local test aliases to fill requiredModerators=${needed}`);
   }
@@ -563,7 +565,7 @@ async function testDisputeRegression() {
     flagCategory: 'dispute', flagType: 'credit_dispute',
     targetType: 'project', targetId: projectId,
     spaceId, reason: 'Regression check',
-  }, tokens[0]);
+  }, tokens[1]);
   if (r.status === 201 && r.data.mediation) pass(t);
   else fail(t, `status=${r.status}`);
 }

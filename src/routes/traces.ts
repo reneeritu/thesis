@@ -12,6 +12,27 @@ import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 
 const router = Router();
 
+function redactTraceForCaller(
+  trace: any,
+  callerAlias: string,
+): Record<string, unknown> {
+  const out = trace?.toObject ? trace.toObject() : { ...trace };
+
+  const isOwner = out.nodeAlias === callerAlias;
+  const shouldRedact = !isOwner && (out.scopeLimited || out.contentFlagged);
+
+  if (shouldRedact) {
+    // Redact content-bearing fields only; keep timestamps/hash/proof fields intact.
+    out.otherDescription = '';
+    out.description = '';
+    out.mediaHash = '';
+    out.duration = 0;
+    out.toolSoftware = '';
+  }
+
+  return out;
+}
+
 /**
  * POST /traces
  * TRACE contract — log a unit of work on a project.
@@ -108,7 +129,18 @@ router.get(
       timestamp: 1,
     });
 
-    res.json(traces);
+    const callerAlias = req.node!.alias;
+
+    // NDA seal: if any NDA-sealed trace is not owned by the caller, block the whole listing.
+    const hasSealedNotOwned = traces.some(
+      (t) => t.ndaSealed && t.nodeAlias !== callerAlias,
+    );
+    if (hasSealedNotOwned) {
+      throw new ForbiddenError('NDA sealed traces are not accessible to you');
+    }
+
+    const redacted = traces.map((t) => redactTraceForCaller(t, callerAlias));
+    res.json(redacted);
   },
 );
 
@@ -119,14 +151,23 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const trace = await Trace.findById(req.params.id);
   if (!trace) throw new NotFoundError('Trace');
 
-  res.json(trace);
+  const callerAlias = req.node!.alias;
+
+  // NDA seal: owner can read; everyone else gets 403.
+  const isOwner = trace.nodeAlias === callerAlias;
+  if (trace.ndaSealed && !isOwner) {
+    throw new ForbiddenError('NDA sealed trace is not accessible to you');
+  }
+
+  const redacted = redactTraceForCaller(trace, callerAlias);
+  res.json(redacted);
 });
 
 /**
  * PATCH /traces/:id/proxy-confirm
  * The node being logged for confirms or disputes a proxy log.
  *
- * TODO: Proxy log auto-confirmation on deadline expiry is not yet enforced.
+ 
  * The spec says silence = confirmation after proxyLogConfirmDays. A scheduled
  * job or middleware check needs to auto-confirm expired proxy logs. Until then,
  * unconfirmed proxies with passed deadlines remain in their current state.

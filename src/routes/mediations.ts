@@ -25,10 +25,6 @@ function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
 
-/**
- * Auto-classify dispute complexity (BACKEND.md § Auto-Classification).
- * Criteria: number of nodes, cross-space, NFT minted, trigger type.
- */
 function classifyComplexity(
   triggerType: MediationTriggerType,
   project: IProject,
@@ -47,7 +43,6 @@ function getTimeLockHours(level: ComplexityLevel): number {
 
 /**
  * POST /mediations
- * Trigger a new mediation case. Any project contributor can trigger.
  */
 router.post(
   '/',
@@ -75,7 +70,7 @@ router.post(
     }
 
     const hasNFT = await NFT.exists({ projectId });
-    const crossSpace = false; // TODO: detect cross-space disputes (Moderation System — Phase 3B)
+    const crossSpace = false; // TODO: detect cross-space disputes
     const level = classifyComplexity(triggerType, project, !!hasNFT, crossSpace);
     const timeLockHours = getTimeLockHours(level);
 
@@ -113,8 +108,6 @@ router.post(
 
 /**
  * POST /mediations/:id/propose
- * Submit a resolution proposal. Only during peer_to_peer or space_escalated.
- * For credit disputes, an optional weightMap can specify revised contributor weights.
  */
 router.post(
   '/:id/propose',
@@ -176,8 +169,6 @@ router.post(
 
 /**
  * POST /mediations/:id/respond
- * Accept or reject a specific proposal. If ALL parties accept, the mediation
- * can be finalized via the /resolve endpoint.
  */
 router.post(
   '/:id/respond',
@@ -228,10 +219,6 @@ router.post(
 
 /**
  * POST /mediations/:id/escalate
- * Escalate to the next level: peer_to_peer -> space_escalated -> chain_escalated.
- * Escalation from peer_to_peer requires the peerDeadline to have passed OR
- * at least one proposal to have been fully rejected.
- * Escalation from space_escalated requires the spaceDeadline to have passed.
  */
 router.post(
   '/:id/escalate',
@@ -288,7 +275,12 @@ router.post(
 
       const panel = await assignPanel(spaceFlag, 0);
 
-      return res.json({ mediation, flag: spaceFlag, panel, message: 'Escalated to space level — moderator panel assigned' });
+      return res.json({
+        mediation,
+        flag: spaceFlag,
+        panel,
+        message: 'Escalated to space level — moderator panel assigned',
+      });
     }
 
     if (mediation.status === 'space_escalated') {
@@ -315,7 +307,11 @@ router.post(
         }
 
         const chainPanel = await assignPanel(existingFlag, 1, chainComplexity, previousPanelMods);
-        return res.json({ mediation, panel: chainPanel, message: 'Escalated to chain level — new panel assigned' });
+        return res.json({
+          mediation,
+          panel: chainPanel,
+          message: 'Escalated to chain level — new panel assigned',
+        });
       }
 
       return res.json({ mediation, message: 'Escalated to chain level' });
@@ -327,13 +323,6 @@ router.post(
 
 /**
  * POST /mediations/:id/resolve
- * Finalize the mediation with a revised agreement. Requires all parties
- * to have accepted the proposal at proposalIndex.
- *
- * Side-effects by trigger type:
- * - credit_dispute: updates NFT weights and ContributorTokens, project -> completed
- * - veto_dispute: upholds or reverses the veto based on proposal description
- * - space_ban_dispute / classification_appeal: stub (Phase 3B)
  */
 router.post(
   '/:id/resolve',
@@ -417,9 +406,33 @@ router.post(
           }
         }
       }
+    } else if (mediation.triggerType === 'space_ban_dispute') {
+      const { Space } = await import('../models/Space');
+      const space = await Space.findById(mediation.spaceId);
+      if (space) {
+        const descLower = proposal.description.toLowerCase();
+        if (descLower.includes('reinstate') || descLower.includes('reverse')) {
+          const bannedAlias = mediation.parties.find(
+            (p) => p !== mediation.triggeredBy,
+          );
+          if (bannedAlias && !space.members.includes(bannedAlias)) {
+            space.members.push(bannedAlias);
+            await space.save();
+          }
+        }
+      }
+    } else if (mediation.triggerType === 'classification_appeal') {
+      const flag = await Flag.findById(mediation.relatedEntityId);
+      if (flag) {
+        const descLower = proposal.description.toLowerCase();
+        const levelMatch = descLower.match(/level\s([1-4])/);
+        if (levelMatch) {
+          const newLevel = parseInt(levelMatch[1]) as 1 | 2 | 3 | 4;
+          flag.complexityLevel = newLevel;
+          await flag.save();
+        }
+      }
     }
-    // TODO: space_ban_dispute and classification_appeal resolution
-    // side-effects will be implemented with the Moderation System (Phase 3B)
 
     await mediation.save();
 
@@ -429,10 +442,6 @@ router.post(
 
 /**
  * POST /mediations/:id/fail
- * Mark mediation as failed. Only from chain_escalated status.
- *
- * For credit disputes: enforces equal split across all contributors,
- * marks NFT as permanently disputed, project stays disputed.
  */
 router.post(
   '/:id/fail',
@@ -474,9 +483,21 @@ router.post(
           );
         }
       }
+    } else if (mediation.triggerType === 'veto_dispute') {
+      // Failed veto dispute: veto stands, project stays halted — no action needed
+    } else if (mediation.triggerType === 'space_ban_dispute') {
+      const flag = await Flag.findOne({ mediationId: mediation._id });
+      if (flag) {
+        flag.status = 'disputed_closed';
+        await flag.save();
+      }
+    } else if (mediation.triggerType === 'classification_appeal') {
+      const flag = await Flag.findOne({ mediationId: mediation._id });
+      if (flag) {
+        flag.status = 'disputed_closed';
+        await flag.save();
+      }
     }
-    // TODO: veto_dispute, space_ban_dispute, classification_appeal failure
-    // side-effects will be implemented with the Moderation System (Phase 3B)
 
     await mediation.save();
 
@@ -489,7 +510,6 @@ router.post(
  */
 router.get(
   '/project/:projectId',
-  requireAuth,
   async (req: AuthRequest, res: Response) => {
     const mediations = await Mediation.find({ projectId: req.params.projectId }).sort({
       createdAt: -1,
@@ -503,7 +523,6 @@ router.get(
  */
 router.get(
   '/:id',
-  requireAuth,
   async (req: AuthRequest, res: Response) => {
     const mediation = await Mediation.findById(req.params.id);
     if (!mediation) throw new NotFoundError('Mediation');

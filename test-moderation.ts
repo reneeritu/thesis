@@ -5,6 +5,10 @@
  *       (server must be running on BASE_URL)
  */
 
+import mongoose from 'mongoose';
+import { connectDatabase } from './src/config/database';
+import { ModerationPanel } from './src/models/ModerationPanel';
+
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 
 interface TestResult { name: string; passed: boolean; detail: string }
@@ -33,6 +37,7 @@ let aliases: string[] = [];
 let spaceId = '';
 let projectId = '';
 let nodeIdA = '';
+let ruleModeratorIdx: number | null = null;
 
 async function setup() {
   const count = 8;
@@ -224,6 +229,7 @@ async function testRuleBeforeTimeLock() {
   }
 
   const idx = aliases.indexOf(modAlias);
+  ruleModeratorIdx = idx;
   const r = await api('POST', `/flags/${contentFlagId}/rule`, {
     decision: 'uphold',
     statement: 'Test ruling',
@@ -235,6 +241,45 @@ async function testRuleBeforeTimeLock() {
   } else {
     fail(t, `Expected 400 (time lock), got ${r.status}`);
   }
+}
+
+async function forceContentFlagTimeLockPastForSlash() {
+  if (!contentFlagId) throw new Error('No contentFlagId set');
+
+  await ModerationPanel.updateOne(
+    { flagId: contentFlagId },
+    {
+      $set: {
+        status: 'reviewing',
+        timeLockExpiry: new Date(Date.now() - 1000),
+      },
+    },
+  );
+}
+
+async function testRuleAfterTimeLockForSlash() {
+  const t = '7.1b Rule succeeds after time lock expiry (prep for slash)';
+
+  if (ruleModeratorIdx === null) {
+    fail(t, 'No ruleModeratorIdx captured');
+    return;
+  }
+
+  await forceContentFlagTimeLockPastForSlash();
+
+  const r = await api(
+    'POST',
+    `/flags/${contentFlagId}/rule`,
+    {
+      decision: 'uphold',
+      statement: 'Test ruling after time lock',
+      actions: [],
+    },
+    tokens[ruleModeratorIdx],
+  );
+
+  if (r.status === 200) pass(t);
+  else fail(t, `Expected 200, got ${r.status} data=${JSON.stringify(r.data)}`);
 }
 
 // ──────────────────────────────────────────────
@@ -454,7 +499,12 @@ async function testAppealNotYetRuled() {
 // ──────────────────────────────────────────────
 async function testSlash() {
   const t = '8.1 Slash creates governance flag';
-  const r = await api('POST', `/flags/${contentFlagId}/slash`, undefined, tokens[2]);
+  const r = await api(
+    'POST',
+    `/flags/${contentFlagId}/slash`,
+    { evidence: 'This is sufficient evidence of bad faith' },
+    tokens[2],
+  );
 
   if (r.status === 201 && r.data.slashFlag?.flagType === 'moderator_bad_faith') {
     pass(t);
@@ -532,6 +582,7 @@ async function main() {
   console.log(' MODERATION SYSTEM — INTEGRATION TESTS');
   console.log('='.repeat(65));
 
+  await connectDatabase();
   await setup();
 
   // 1. Raise flags
@@ -564,6 +615,9 @@ async function main() {
   // 7. Appeal guards
   await testAppealSetup();
   await testAppealNotYetRuled();
+
+  // Ensure content flag is ruled before slash (slash requires ruled status)
+  await testRuleAfterTimeLockForSlash();
 
   // 8. Slash
   await testSlash();
@@ -605,6 +659,12 @@ async function main() {
     console.log(`  ${passed}/${total} PASSED, ${failed} FAILED`);
   }
   console.log('='.repeat(65) + '\n');
+
+  try {
+    await mongoose.disconnect();
+  } catch {
+    // ignore
+  }
 
   process.exit(failed > 0 ? 1 : 0);
 }

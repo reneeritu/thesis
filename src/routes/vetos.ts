@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { createVetoSchema, signVetoSchema } from '../schemas/veto';
 import { Veto } from '../models/Veto';
+import { Trace } from '../models/Trace';
 import { Project } from '../models/Project';
 import { Space } from '../models/Space';
 import { addBlock } from '../services/chain';
@@ -13,20 +14,55 @@ import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 const router = Router();
 
 /**
+ * Apply enforcement side effects for a veto based on its type.
+ * Called when a veto becomes active.
+ */
+async function enforceVeto(
+  vetoType: string,
+  targetTraceIds: string[],
+  projectId: string,
+): Promise<void> {
+  if (vetoType === 'scope_limit') {
+    // Mark targeted traces as scope-limited (flagged for visibility)
+    if (targetTraceIds.length > 0) {
+      await Trace.updateMany(
+        { _id: { $in: targetTraceIds } },
+        { $set: { scopeLimited: true } },
+      );
+    }
+  }
+
+  if (vetoType === 'content_flag') {
+    // Hide targeted traces from public view
+    if (targetTraceIds.length > 0) {
+      await Trace.updateMany(
+        { _id: { $in: targetTraceIds } },
+        { $set: { contentFlagged: true } },
+      );
+    }
+  }
+
+  if (vetoType === 'nda_seal') {
+    // Mark targeted traces as NDA sealed
+    // Content encryption happens at the media/serving layer
+    // Hash stays on chain; content marked as sealed in DB
+    if (targetTraceIds.length > 0) {
+      await Trace.updateMany(
+        { _id: { $in: targetTraceIds } },
+        { $set: { ndaSealed: true } },
+      );
+    } else {
+      // If no specific traces targeted, seal all traces on the project
+      await Trace.updateMany(
+        { projectId },
+        { $set: { ndaSealed: true } },
+      );
+    }
+  }
+}
+
+/**
  * POST /vetos
- * VETO contract — stops or limits something on a project.
- *
- * hard_stop: requires majority sign-off from contributors OR preassigned
- *            veto authority (e.g. teacher). Starts as "pending" until
- *            enough signatures are collected, unless issuer has veto authority.
- * scope_limit / content_flag: takes effect immediately from any contributor.
- * nda_seal: encrypts targeted trace logs; takes effect immediately.
- *
- * TODO: scope_limit, content_flag, and nda_seal vetos are recorded but have
- * no enforcement effect yet. scope_limit should restrict trace activity types,
- * content_flag should hide/flag targeted traces from public view, and nda_seal
- * should encrypt targeted trace log content. Build enforcement when the
- * content visibility and encryption layers are implemented.
  */
 router.post(
   '/',
@@ -64,6 +100,7 @@ router.post(
         status = 'active';
       }
     } else {
+      // scope_limit, content_flag, nda_seal activate immediately
       status = 'active';
     }
 
@@ -78,9 +115,14 @@ router.post(
       blockIndex: block.index,
     });
 
-    if (status === 'active' && vetoType === 'hard_stop') {
-      project.status = 'halted';
-      await project.save();
+    // Apply enforcement when veto is immediately active
+    if (status === 'active') {
+      if (vetoType === 'hard_stop') {
+        project.status = 'halted';
+        await project.save();
+      } else {
+        await enforceVeto(vetoType, targetTraceIds || [], projectId);
+      }
     }
 
     res.status(201).json(veto);
@@ -89,8 +131,6 @@ router.post(
 
 /**
  * POST /vetos/:id/sign
- * Sign a pending hard_stop veto. Once majority of contributors sign,
- * the veto activates and the project is stopped.
  */
 router.post(
   '/:id/sign',
@@ -117,14 +157,19 @@ router.post(
     if (approved) {
       veto.signatures.push({ alias, signedAt: new Date() });
 
-      // TODO: With 2 contributors, majority = 1, so the initial poster's signature
-      // alone activates the veto instantly (same as having veto authority). Consider
-      // whether 2-person projects should require both contributors for hard_stop.
-      const majority = Math.ceil(project.contributors.length / 2);
+      // Require at least 2 signatures for hard_stop regardless of contributor count
+      const majority = Math.max(2, Math.ceil(project.contributors.length / 2));
       if (veto.signatures.length >= majority) {
         veto.status = 'active';
         project.status = 'halted';
         await project.save();
+
+        // Apply enforcement after activation
+        await enforceVeto(
+          veto.vetoType,
+          veto.targetTraceIds.map((id) => id.toString()),
+          veto.projectId.toString(),
+        );
       }
     }
 

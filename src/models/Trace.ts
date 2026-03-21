@@ -36,6 +36,9 @@ export interface ITrace extends Document {
   mode: LogMode;
   blockIndex: number;
   createdAt: Date;
+  scopeLimited: boolean;
+  contentFlagged: boolean;
+  ndaSealed: boolean;
 }
 
 const traceSchema = new Schema<ITrace>(
@@ -46,6 +49,9 @@ const traceSchema = new Schema<ITrace>(
       type: String,
       required: true,
       enum: ACTIVITY_TYPES,
+      scopeLimited: { type: Boolean, default: false },
+    contentFlagged: { type: Boolean, default: false },
+    ndaSealed: { type: Boolean, default: false },
     },
     otherDescription: { type: String, default: '' },
     timestamp: { type: Date, required: true },

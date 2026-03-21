@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import mongoose from 'mongoose';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import {
   createFlagSchema,
@@ -693,7 +694,7 @@ router.get(
  */
 router.get(
   '/target/:targetType/:targetId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     const targetType = req.params.targetType as string;
     const targetId = req.params.targetId as string;
@@ -711,21 +712,53 @@ router.get(
  */
 router.get(
   '/:id',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     const flag = await Flag.findById(req.params.id);
     if (!flag) throw new NotFoundError('Flag');
 
-    const alias = req.node!.alias;
     const panels = await ModerationPanel.find({ flagId: flag._id }).sort({ panelLevel: 1 }).lean();
 
     const isRuled = flag.status === 'ruled' || flag.status === 'closed' || flag.status === 'disputed_closed';
 
+    const flagObj = flag.toObject();
+
+    // Public / unauthenticated visibility rules (per docs/BACKEND.md).
+    // - Level 4: full disclosure
+    // - Level 3: both parties + moderators are anonymous until ruled
+    // - Level 1–2: public hides moderator aliases (treated like party visibility limits)
+    if (!req.node) {
+      const publicPanels = panels.map((p) => {
+        if (flag.complexityLevel === 4) return p;
+
+        const anonInvited = (p.invitedModerators as unknown[]).map(() => ({ alias: 'anonymous' }));
+        const anonAccepted = (p.acceptedModerators as unknown[]).map(() => ({ alias: 'anonymous' }));
+        return {
+          ...p,
+          invitedModerators: anonInvited,
+          acceptedModerators: anonAccepted,
+        };
+      });
+
+      if (flag.complexityLevel === 3 && !isRuled) {
+        flagObj.raisedBy = 'anonymous';
+      }
+
+      res.json({ flag: flagObj, panels: publicPanels });
+      return;
+    }
+
+    const alias = req.node.alias;
     const filteredPanels = panels.map((p) =>
-      filterPanelForCaller(p as unknown as Record<string, unknown>, flag.complexityLevel, alias, flag.raisedBy, isRuled),
+      filterPanelForCaller(
+        p as unknown as Record<string, unknown>,
+        flag.complexityLevel,
+        alias,
+        flag.raisedBy,
+        isRuled,
+      ),
     );
 
-    const flagObj = flag.toObject();
     if (flag.complexityLevel === 3 && !isRuled) {
       const isMod = panels.some((p) =>
         (p.acceptedModerators as { alias: string }[]).some((m) => m.alias === alias),
