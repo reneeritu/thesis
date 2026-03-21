@@ -24,6 +24,8 @@ ambiguity review.
 
 ## Setup
 
+**Deploy (Render + MongoDB Atlas):** see [docs/DEPLOY_RENDER_ATLAS.md](docs/DEPLOY_RENDER_ATLAS.md). After deploy, open `/demo.html` on the same host for a minimal HTML demo.
+
 ```bash
 # 1. Install dependencies
 npm install

@@ -1,4 +1,4 @@
-
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -33,6 +33,8 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+/** Static demo UI (e.g. https://your-service.onrender.com/demo.html) */
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/', (_req, res) => {
   res.send(`

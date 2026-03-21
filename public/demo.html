@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>aura2 — demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: ui-monospace, monospace; background: #fff; color: #111; max-width: 52rem; margin: 0 auto; padding: 1rem; line-height: 1.45; }
+    h1 { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid #111; padding-bottom: 0.35rem; }
+    h2 { font-size: 0.95rem; margin-top: 1.25rem; }
+    label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.5rem; color: #333; }
+    input, select, textarea, button { width: 100%; font: inherit; padding: 0.35rem 0.5rem; border: 1px solid #111; background: #fff; margin-top: 0.15rem; }
+    textarea { min-height: 4rem; font-size: 0.85rem; }
+    button { cursor: pointer; font-weight: 700; margin-top: 0.75rem; }
+    button:hover { background: #111; color: #fff; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    pre#log { background: #f4f4f4; border: 1px solid #111; padding: 0.75rem; font-size: 0.8rem; overflow: auto; max-height: 14rem; white-space: pre-wrap; word-break: break-word; }
+    .hint { font-size: 0.8rem; color: #444; margin-top: 0.25rem; }
+    code { background: #eee; padding: 0 0.2rem; }
+  </style>
+</head>
+<body>
+  <h1>aura2 — minimal demo (matches API / Zod)</h1>
+  <p class="hint">Host this page on the <strong>same origin</strong> as the API (e.g. deploy API on Render, then open <code>/demo.html</code>). Or set API base to your Render URL — CORS is open by default.</p>
+
+  <label for="apiBase">API base URL (no trailing slash)</label>
+  <input id="apiBase" type="url" placeholder="https://your-service.onrender.com" />
+
+  <h2>1 — Register (POST /auth/register)</h2>
+  <p class="hint"><code>alias</code>: 3–30 chars, lowercase letters, numbers, <code>_</code> <code>-</code> only. <code>password</code>: 8–128 chars.</p>
+  <label for="regAlias">alias</label>
+  <input id="regAlias" autocomplete="username" />
+  <label for="regPassword">password</label>
+  <input id="regPassword" type="password" autocomplete="new-password" />
+  <button type="button" id="btnRegister">Register</button>
+
+  <h2>2 — Login (POST /auth/login)</h2>
+  <label for="loginAlias">alias</label>
+  <input id="loginAlias" autocomplete="username" />
+  <label for="loginPassword">password</label>
+  <input id="loginPassword" type="password" autocomplete="current-password" />
+  <button type="button" id="btnLogin">Login → save token</button>
+
+  <label for="token">JWT (Authorization: Bearer …)</label>
+  <textarea id="token" placeholder="Paste token after register/login"></textarea>
+
+  <h2>3 — Space (POST /spaces)</h2>
+  <label for="spaceName">name</label>
+  <input id="spaceName" value="Demo Space" />
+  <label for="spaceDesc">description (optional)</label>
+  <input id="spaceDesc" />
+  <label for="projectAccess">settings.projectAccess</label>
+  <select id="projectAccess">
+    <option value="open" selected>open</option>
+    <option value="invite_only">invite_only</option>
+    <option value="application">application (join will fail — not implemented)</option>
+  </select>
+  <label for="privacyDefault">settings.privacyDefault</label>
+  <select id="privacyDefault">
+    <option value="public">public</option>
+    <option value="space_specific" selected>space_specific</option>
+    <option value="private">private</option>
+  </select>
+  <button type="button" id="btnSpace">Create space</button>
+  <label for="spaceId">spaceId (from response)</label>
+  <input id="spaceId" placeholder="_id from POST /spaces" />
+
+  <h2>4 — Join space (POST /spaces/:id/join) — second user</h2>
+  <p class="hint">Use a <strong>second</strong> account’s token above. Open space must be <code>open</code>, or provide invite code.</p>
+  <label for="inviteCode">inviteCode (optional, for invite_only)</label>
+  <input id="inviteCode" />
+  <button type="button" id="btnJoin">Join space</button>
+
+  <h2>5 — Project / START (POST /projects)</h2>
+  <label for="projTitle">title</label>
+  <input id="projTitle" value="Demo Project" />
+  <label for="contributorAlias">contributors[0].alias (must be space member)</label>
+  <input id="contributorAlias" placeholder="other user’s alias" />
+  <label><input type="checkbox" id="contribPrimary" /> contributors[0].isPrimary (creator is already primary in API)</label>
+  <button type="button" id="btnProject">Create project</button>
+  <label for="projectId">projectId</label>
+  <input id="projectId" placeholder="_id from POST /projects" />
+
+  <h2>6 — Trace (POST /traces)</h2>
+  <label for="activityType">activityType</label>
+  <select id="activityType">
+    <option value="brainstorm">brainstorm</option>
+    <option value="iterate">iterate</option>
+    <option value="skillwork">skillwork</option>
+    <option value="review">review</option>
+    <option value="other">other (requires otherDescription)</option>
+  </select>
+  <label for="otherDescription">otherDescription (required if activityType = other)</label>
+  <input id="otherDescription" />
+  <label for="traceDesc">description (optional)</label>
+  <input id="traceDesc" value="Logged from demo.html" />
+  <label for="duration">duration (optional, minutes)</label>
+  <input id="duration" type="number" value="30" min="0" />
+  <label for="mode">mode</label>
+  <select id="mode">
+    <option value="micro" selected>micro</option>
+    <option value="memo">memo</option>
+    <option value="reflection">reflection</option>
+    <option value="proxy">proxy (needs proxyForAlias)</option>
+  </select>
+  <label for="proxyForAlias">proxyForAlias (required if mode = proxy)</label>
+  <input id="proxyForAlias" />
+  <button type="button" id="btnTrace">Post trace</button>
+
+  <h2>Log</h2>
+  <pre id="log"></pre>
+
+  <script>
+    const logEl = document.getElementById('log');
+    function log(msg, obj) {
+      const line = typeof obj !== 'undefined' ? msg + '\n' + JSON.stringify(obj, null, 2) : msg;
+      logEl.textContent = line + '\n\n' + logEl.textContent;
+    }
+
+    function base() {
+      const b = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+      if (!b) {
+        if (location.origin && location.origin !== 'null') return location.origin;
+        throw new Error('Set API base URL (or open this file from the deployed server).');
+      }
+      return b;
+    }
+
+    function authHeaders() {
+      const t = document.getElementById('token').value.trim();
+      if (!t) throw new Error('No JWT — register or login first.');
+      return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t };
+    }
+
+    async function api(method, path, body, useAuth) {
+      const url = base() + path;
+      const headers = { 'Content-Type': 'application/json' };
+      if (useAuth) Object.assign(headers, authHeaders());
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: body != null ? JSON.stringify(body) : undefined,
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      return { status: res.status, data };
+    }
+
+    document.getElementById('btnRegister').onclick = async () => {
+      try {
+        const body = {
+          alias: document.getElementById('regAlias').value.trim(),
+          password: document.getElementById('regPassword').value,
+        };
+        const r = await api('POST', '/auth/register', body, false);
+        log('POST /auth/register → ' + r.status, r.data);
+        if (r.data.token) document.getElementById('token').value = r.data.token;
+        if (r.data.alias) document.getElementById('loginAlias').value = r.data.alias;
+      } catch (e) { log('Error: ' + e.message); }
+    };
+
+    document.getElementById('btnLogin').onclick = async () => {
+      try {
+        const body = {
+          alias: document.getElementById('loginAlias').value.trim(),
+          password: document.getElementById('loginPassword').value,
+        };
+        const r = await api('POST', '/auth/login', body, false);
+        log('POST /auth/login → ' + r.status, r.data);
+        if (r.data.token) document.getElementById('token').value = r.data.token;
+      } catch (e) { log('Error: ' + e.message); }
+    };
+
+    document.getElementById('btnSpace').onclick = async () => {
+      try {
+        const body = {
+          name: document.getElementById('spaceName').value.trim(),
+          description: document.getElementById('spaceDesc').value.trim() || undefined,
+          settings: {
+            projectAccess: document.getElementById('projectAccess').value,
+            privacyDefault: document.getElementById('privacyDefault').value,
+          },
+        };
+        const r = await api('POST', '/spaces', body, true);
+        log('POST /spaces → ' + r.status, r.data);
+        if (r.data._id) document.getElementById('spaceId').value = r.data._id;
+      } catch (e) { log('Error: ' + e.message); }
+    };
+
+    document.getElementById('btnJoin').onclick = async () => {
+      try {
+        const sid = document.getElementById('spaceId').value.trim();
+        if (!sid) throw new Error('Set spaceId');
+        const invite = document.getElementById('inviteCode').value.trim();
+        const body = invite ? { inviteCode: invite } : {};
+        const r = await api('POST', '/spaces/' + encodeURIComponent(sid) + '/join', body, true);
+        log('POST /spaces/:id/join → ' + r.status, r.data);
+      } catch (e) { log('Error: ' + e.message); }
+    };
+
+    document.getElementById('btnProject').onclick = async () => {
+      try {
+        const sid = document.getElementById('spaceId').value.trim();
+        if (!sid) throw new Error('Set spaceId');
+        const other = document.getElementById('contributorAlias').value.trim();
+        const contributors = other
+          ? [{ alias: other, isPrimary: document.getElementById('contribPrimary').checked }]
+          : [];
+        const body = {
+          title: document.getElementById('projTitle').value.trim(),
+          spaceId: sid,
+          contributors,
+        };
+        const r = await api('POST', '/projects', body, true);
+        log('POST /projects → ' + r.status, r.data);
+        if (r.data._id) document.getElementById('projectId').value = r.data._id;
+      } catch (e) { log('Error: ' + e.message); }
+    };
+
+    document.getElementById('btnTrace').onclick = async () => {
+      try {
+        const pid = document.getElementById('projectId').value.trim();
+        if (!pid) throw new Error('Set projectId');
+        const activityType = document.getElementById('activityType').value;
+        const mode = document.getElementById('mode').value;
+        const body = {
+          projectId: pid,
+          activityType,
+          mode,
+          description: document.getElementById('traceDesc').value.trim() || undefined,
+          duration: Number(document.getElementById('duration').value) || 0,
+        };
+        if (activityType === 'other') {
+          body.otherDescription = document.getElementById('otherDescription').value.trim();
+        }
+        if (mode === 'proxy') {
+          body.proxyForAlias = document.getElementById('proxyForAlias').value.trim();
+        }
+        const r = await api('POST', '/traces', body, true);
+        log('POST /traces → ' + r.status, r.data);
+      } catch (e) { log('Error: ' + e.message); }
+    };
+
+    if (location.origin && location.origin !== 'null') {
+      document.getElementById('apiBase').placeholder = location.origin;
+    }
+  </script>
+</body>
+</html>

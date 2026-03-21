@@ -23,6 +23,13 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^25.5.0",
+    "@types/uuid": "^10.0.0",
     "bcryptjs": "^3.0.3",
     "bip39": "^3.1.0",
     "cors": "^2.8.6",
@@ -34,24 +41,17 @@
     "mongoose": "^9.3.0",
     "multer": "^2.1.1",
     "sharp": "^0.34.5",
+    "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/multer": "^2.1.0",
-    "@types/node": "^25.5.0",
-    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "ts-node": "^10.9.2"
   }
 }
