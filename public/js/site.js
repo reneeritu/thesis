@@ -183,10 +183,13 @@
     container.appendChild(d);
   }
 
+  /** Default cap so the UI never spins forever (cold starts / slow DB). Override per call with opts.timeoutMs (0 = no timeout). */
+  var DEFAULT_FETCH_TIMEOUT_MS = 90000;
+
   /**
    * @param {string} method
    * @param {string} path
-   * @param {{ body?: object, auth?: boolean }} [opts]
+   * @param {{ body?: object, auth?: boolean, timeoutMs?: number }} [opts]
    */
   function apiFetch(method, path, opts) {
     opts = opts || {};
@@ -200,42 +203,75 @@
       if (!t) return Promise.reject(new Error('Not signed in.'));
       headers.Authorization = 'Bearer ' + t;
     }
-    return fetch(url, {
+
+    var timeoutMs =
+      opts.timeoutMs !== undefined ? opts.timeoutMs : DEFAULT_FETCH_TIMEOUT_MS;
+    var timerId = null;
+    var abortCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    if (abortCtrl && timeoutMs > 0) {
+      timerId = setTimeout(function () {
+        abortCtrl.abort();
+      }, timeoutMs);
+    }
+
+    var fetchInit = {
       method: method,
       headers: headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-    }).then(function (res) {
-      return res.text().then(function (text) {
-        var data;
-        if (text && !looksLikeHtml(text)) {
-          try {
-            data = JSON.parse(text);
-          } catch (e) {
-            data = { error: text || res.statusText, httpStatus: res.status };
-          }
-        } else if (text && looksLikeHtml(text)) {
-          data = htmlGatewayPayload(res, text);
-        } else {
-          data = { error: res.statusText || 'Empty response', httpStatus: res.status };
-        }
-        if (!res.ok) {
-          var err = new Error(formatError(data));
-          err.data = data;
-          err.status = res.status;
-          return Promise.reject(err);
-        }
-        return data;
-      });
-    }).catch(function (err) {
-      if (err instanceof TypeError && err.message && err.message.indexOf('fetch') !== -1) {
-        return Promise.reject(
-          new Error(
-            'Network error: could not reach the API. Check your connection and DevTools → Network.',
-          ),
-        );
+    };
+    if (abortCtrl) fetchInit.signal = abortCtrl.signal;
+
+    function clearTimer() {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
       }
-      return Promise.reject(err);
-    });
+    }
+
+    return fetch(url, fetchInit)
+      .then(function (res) {
+        return res.text().then(function (text) {
+          var data;
+          if (text && !looksLikeHtml(text)) {
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              data = { error: text || res.statusText, httpStatus: res.status };
+            }
+          } else if (text && looksLikeHtml(text)) {
+            data = htmlGatewayPayload(res, text);
+          } else {
+            data = { error: res.statusText || 'Empty response', httpStatus: res.status };
+          }
+          if (!res.ok) {
+            var err = new Error(formatError(data));
+            err.data = data;
+            err.status = res.status;
+            return Promise.reject(err);
+          }
+          return data;
+        });
+      })
+      .finally(clearTimer)
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') {
+          return Promise.reject(
+            new Error(
+              'Request timed out after ' +
+                Math.round(timeoutMs / 1000) +
+                's. On Render free tier the service may be waking up or MongoDB may be slow — open /health in another tab, wait 30s, then try again.',
+            ),
+          );
+        }
+        if (err instanceof TypeError && err.message && err.message.indexOf('fetch') !== -1) {
+          return Promise.reject(
+            new Error(
+              'Network error: could not reach the API. Check your connection and DevTools → Network.',
+            ),
+          );
+        }
+        return Promise.reject(err);
+      });
   }
 
   function parseRoute() {
