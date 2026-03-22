@@ -5,3 +5,7 @@ uploads/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local API test payloads (do not commit)
+register.json
+tmp-register-body.json
