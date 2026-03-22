@@ -189,16 +189,8 @@ router.post(
 );
 
 /**
- * GET /archives/:id
- */
-router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
-  const archive = await Archive.findById(req.params.id);
-  if (!archive) throw new NotFoundError('Archive');
-  res.json(archive);
-});
-
-/**
  * GET /archives/space/:spaceId
+ * Must be before GET /:id so "space" is not captured as id.
  */
 router.get(
   '/space/:spaceId',
@@ -215,5 +207,14 @@ router.get(
     res.json(archives);
   },
 );
+
+/**
+ * GET /archives/:id
+ */
+router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const archive = await Archive.findById(req.params.id);
+  if (!archive) throw new NotFoundError('Archive');
+  res.json(archive);
+});
 
 export default router;

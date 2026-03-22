@@ -3,89 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- On Render, leave empty to use this page’s origin (same as API). Or set your API URL if the UI is hosted elsewhere. -->
   <meta name="aura-api-base" content="" />
-  <title>aura2 — Sign in</title>
+  <title>AURA2</title>
   <link rel="stylesheet" href="/css/site.css" />
 </head>
 <body>
   <header class="top-bar">
-    <div class="top-bar__brand">aura2</div>
-    <nav class="top-bar__nav">
-      <button type="button" id="btn-back" class="btn btn--ghost" aria-label="Go back">← Back</button>
-      <button type="button" id="btn-sign-out" class="btn btn--ghost">Sign out</button>
-    </nav>
+    <a href="#/" class="top-bar__brand">AURA2</a>
+    <div class="top-bar__right" id="top-bar-right"></div>
   </header>
 
-  <main class="main">
-    <!-- SCREEN 1 — Auth (default) -->
-    <section id="screen-auth" class="screen screen--active" aria-labelledby="auth-heading">
-      <h1 id="auth-heading">Welcome</h1>
-      <p class="hint">
-        Alias: lowercase letters, numbers, <code>_</code> and <code>-</code> only (3–30 characters). Password: at least 8 characters.
-      </p>
+  <div id="global-error" class="global-error hidden" role="alert"></div>
 
-      <div id="auth-session-banner" class="banner banner--info hidden" role="status">
-        <span id="auth-session-text"></span>
-        <button type="button" id="btn-continue-session" class="btn btn--small">Continue to dashboard</button>
-      </div>
-
-      <div class="card">
-        <h2>Create account</h2>
-        <form id="form-register" novalidate>
-          <label for="reg-alias">Alias</label>
-          <input id="reg-alias" name="alias" autocomplete="username" required minlength="3" maxlength="30" placeholder="my_alias" />
-
-          <label for="reg-password">Password</label>
-          <input id="reg-password" name="password" type="password" autocomplete="new-password" required minlength="8" />
-
-          <button type="submit" id="btn-register" class="btn btn--primary">Register</button>
-        </form>
-        <div id="register-error" class="alert alert--error hidden" role="alert"></div>
-        <pre id="register-response" class="response-block hidden"></pre>
-      </div>
-
-      <div class="card">
-        <h2>Log in</h2>
-        <form id="form-login" novalidate>
-          <label for="login-alias">Alias</label>
-          <input id="login-alias" name="alias" autocomplete="username" required />
-
-          <label for="login-password">Password</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-
-          <button type="submit" id="btn-login" class="btn btn--primary">Log in</button>
-        </form>
-        <div id="login-error" class="alert alert--error hidden" role="alert"></div>
-        <pre id="login-response" class="response-block hidden"></pre>
-      </div>
-    </section>
-
-    <!-- Post-register: seed phrase (before localStorage token) -->
-    <section id="screen-seed" class="screen hidden" aria-labelledby="seed-heading">
-      <h1 id="seed-heading">Save your seed phrase</h1>
-      <p class="alert alert--warn">
-        <strong>Save this — you will never see it again.</strong> Write it down or store it in a password manager. Anyone with this phrase can recover your account.
-      </p>
-      <div class="seed-box" id="seed-phrase-box" aria-live="polite"></div>
-      <label class="checkbox-row">
-        <input type="checkbox" id="seed-saved-check" />
-        <span>I have saved my seed phrase</span>
-      </label>
-      <div class="row">
-        <button type="button" id="btn-seed-confirm" class="btn btn--primary" disabled>Confirm &amp; continue</button>
-      </div>
-      <pre id="seed-response" class="response-block hidden"></pre>
-    </section>
-
-    <!-- Placeholder until Screen 2 — proves login / register-confirm worked -->
-    <section id="screen-dashboard" class="screen hidden" aria-labelledby="dash-heading">
-      <h1 id="dash-heading">Dashboard</h1>
-      <p class="hint">Screen 2 will add spaces, projects, and reputation. Your session is active.</p>
-      <p>Logged in as <strong id="dash-alias">—</strong></p>
-      <pre id="dashboard-response" class="response-block"></pre>
-    </section>
-  </main>
+  <main id="app" class="app"></main>
 
   <script src="/js/site.js"></script>
 </body>

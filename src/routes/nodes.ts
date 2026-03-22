@@ -8,6 +8,9 @@ import {
   blockNodeSchema,
 } from '../schemas/node';
 import { ChainNode } from '../models/Node';
+import { Space } from '../models/Space';
+import { Project } from '../models/Project';
+import { NFT } from '../models/NFT';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 
@@ -35,15 +38,46 @@ router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
 
   const isSelf = req.node?.alias === alias;
 
+  let spacesWithNames: { id: string; name: string }[] = [];
+  if (node.spaces && node.spaces.length > 0) {
+    const spaceDocs = await Space.find({ _id: { $in: node.spaces } }).select('name').lean();
+    const nameById = new Map(spaceDocs.map((s) => [String(s._id), s.name as string]));
+    spacesWithNames = node.spaces.map((id) => ({
+      id: String(id),
+      name: nameById.get(String(id)) || String(id),
+    }));
+  }
+
+  const portfolioProjects = await Project.find({
+    status: { $in: ['completed', 'archived'] },
+    $or: [{ creatorAlias: alias }, { 'contributors.alias': alias }],
+  })
+    .select('title _id')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const pids = portfolioProjects.map((p) => p._id);
+  const nftsForProjects =
+    pids.length > 0 ? await NFT.find({ projectId: { $in: pids } }).select('projectId _id').lean() : [];
+  const nftIdByProject = new Map(nftsForProjects.map((n) => [String(n.projectId), String(n._id)]));
+
+  const completedProjects = portfolioProjects.map((p) => ({
+    title: p.title,
+    projectId: String(p._id),
+    nftId: nftIdByProject.get(String(p._id)) || null,
+  }));
+
   res.json({
     alias: node.alias,
     interests: node.interests,
     portfolioUrl: node.portfolioUrl,
     keywords: node.keywords,
     spaces: node.spaces,
+    spacesWithNames,
     reputationCategories: node.reputationCategories,
     badges: node.badges,
     status: node.status,
+    completedProjects,
     ...(isSelf && { reputationScore: node.reputationScore }),
   });
 });

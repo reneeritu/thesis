@@ -73,18 +73,8 @@ router.post(
 );
 
 /**
- * GET /projects/:id
- */
-router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
-  const project = await Project.findById(req.params.id);
-  if (!project) throw new NotFoundError('Project');
-
-  res.json(project);
-});
-
-/**
  * GET /projects/space/:spaceId
- * List projects in a space.
+ * List projects in a space. (Must be registered before GET /:id so "space" is not captured as id.)
  */
 router.get(
   '/space/:spaceId',
@@ -100,6 +90,16 @@ router.get(
     res.json(projects);
   },
 );
+
+/**
+ * GET /projects/:id
+ */
+router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const project = await Project.findById(req.params.id);
+  if (!project) throw new NotFoundError('Project');
+
+  res.json(project);
+});
 
 /**
  * POST /projects/:id/contributors
