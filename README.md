@@ -48,6 +48,8 @@ npm run build
 npm start
 
 **Render:** set **Build** to `npm install && npm run build` (or rely on `postinstall` after `npm install`). **Start** must be `npm start` so `dist/server.js` exists.
+
+**Public site:** with the server running, open **`/`** for the guided flow (register → space → project → trace). **`/demo.html`** is a compact API-oriented tester.
 ```
 
 ### Generate an ENCRYPTION_KEY

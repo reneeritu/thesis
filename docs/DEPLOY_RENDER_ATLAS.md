@@ -2,9 +2,10 @@
 
 This matches your `.env.example` and Zod schemas. After deploy, open:
 
-`https://<your-render-service>.onrender.com/demo.html`
+- **Main guided site:** `https://<your-render-service>.onrender.com/`  
+- **Technical demo:** `https://<your-render-service>.onrender.com/demo.html`
 
-(same origin as the API — no CORS setup needed for the demo page.)
+(same origin as the API — no CORS setup needed.)
 
 ---
 
