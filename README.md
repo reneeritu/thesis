@@ -46,6 +46,8 @@ npm run dev
 # 5. Build for production
 npm run build
 npm start
+
+**Render:** set **Build** to `npm install && npm run build` (or rely on `postinstall` after `npm install`). **Start** must be `npm start` so `dist/server.js` exists.
 ```
 
 ### Generate an ENCRYPTION_KEY

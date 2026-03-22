@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
 import { sha256Buffer } from '../utils/hash';
 import { config } from '../config';
 
@@ -26,6 +25,8 @@ export async function createThumbnail(
   inputPath: string,
   maxWidth = 400,
 ): Promise<string> {
+  // Lazy-load sharp so a missing/broken native binary does not crash server boot (e.g. Node 25 on some hosts).
+  const sharp = (await import('sharp')).default;
   const parsed = path.parse(inputPath);
   const thumbName = `${parsed.name}_thumb${parsed.ext}`;
   const thumbPath = path.join(parsed.dir, thumbName);

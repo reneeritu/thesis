@@ -3,7 +3,10 @@ import { config } from './index';
 
 export async function connectDatabase(): Promise<void> {
   try {
-    await mongoose.connect(config.mongoUri);
+    console.log('[aura2] connecting to MongoDB…');
+    await mongoose.connect(config.mongoUri, {
+      serverSelectionTimeoutMS: 15_000,
+    });
     console.log(`MongoDB connected: ${mongoose.connection.host}`);
   } catch (error) {
     console.error('MongoDB connection failed:', error);

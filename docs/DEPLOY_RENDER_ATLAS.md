@@ -45,12 +45,14 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ## 3. Render — Web Service
 
 1. **New** → **Web Service** → connect this Git repo (or deploy from your fork).
-2. **Runtime:** Node  
-3. **Build command:**
+2. **Runtime:** Node **20 LTS** (repo includes `.nvmrc` with `20`). Avoid **Node 25** on Render if `sharp` fails to load — the app now lazy-loads `sharp`, but Node 20 is still the safest default.
+3. **Build command** — must produce `dist/server.js`. Use either:
 
    ```bash
    npm install && npm run build
    ```
+
+   Or, if you only run `npm install`, this repo’s **`postinstall`** script runs **`npm run build`** automatically so `dist/` exists. (If your Render build is **only** `npm install`, you still get a compile — as long as `postinstall` is not disabled.)
 
 4. **Start command:**
 
@@ -58,20 +60,28 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    npm start
    ```
 
+   (`npm start` runs `node dist/server.js`.)
+
 5. **Health check path:** `/health`
 
-6. **Environment variables** (Render → Environment):
+### “Cannot find module …/dist/server.js”
+
+Render ran **`npm install` only** and never **`npm run build`**, so TypeScript was not compiled. Fix: set the build command to **`npm install && npm run build`**, or **pull the latest repo** that includes **`postinstall`** so install triggers the build.
+
+6. **Environment variables** (Render → **Environment** — required or the app exits on boot):
 
    | Key | Value | Notes |
    |-----|--------|--------|
-   | `NODE_ENV` | `production` | Enables stricter rate limits on `/auth/*`. |
+   | `NODE_ENV` | `production` | Recommended; also triggers stricter rate limits on `/auth/*`. |
    | `PORT` | *(leave default)* | Render sets this automatically. |
-   | `MONGODB_URI` | Your Atlas URI | From step 1. |
-   | `JWT_SECRET` | Random hex/string | From above. |
-   | `ENCRYPTION_KEY` | 64 hex chars | From above. |
+   | **`MONGODB_URI`** | **Your Atlas URI** | **Required on Render.** If unset, the app tries `localhost` and **crashes**. |
+   | **`JWT_SECRET`** | Long random string | **Required** (not the dev default). |
+   | **`ENCRYPTION_KEY`** | **Exactly 64 hex chars** | **Required** for registration / seed encryption. |
    | `JWT_EXPIRES_IN` | `7d` | Optional; default in code is `7d`. |
    | `UPLOAD_DIR` | `uploads` | Optional. |
    | `MAX_FILE_SIZE_MB` | `10` | Optional. |
+
+   **Symptom:** Build succeeds, then `npm start` exits immediately after dotenv — almost always **missing/wrong `MONGODB_URI`** or Atlas **Network Access** blocking Render (use `0.0.0.0/0` for demos).
 
 7. **Plan note:** On Render’s free tier, the filesystem is **ephemeral**. Uploaded files under `uploads/` can disappear after a restart. Fine for a small demo; use persistent disk or S3-style storage later if you need retention.
 
