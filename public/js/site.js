@@ -30,6 +30,30 @@
       .toLowerCase();
   }
 
+  function looksLikeHtml(t) {
+    if (!t || typeof t !== 'string') return false;
+    var s = t.slice(0, 256).trim().toLowerCase();
+    return s.indexOf('<!doctype') === 0 || s.indexOf('<html') === 0;
+  }
+
+  /** When CDN/proxy returns HTML (e.g. Render 502), avoid stuffing the whole page into errors. */
+  function htmlGatewayPayload(res, text) {
+    var titleMatch = text.match(/<title>([^<]{0,120})<\/title>/i);
+    var pageTitle = titleMatch ? titleMatch[1].trim() : '';
+    var hint =
+      res.status === 502
+        ? '502 Bad Gateway: Render could not reach your Node app. Open Render → your service → Logs. Check startup crashes, MONGODB_URI, build/start command, and that the server listens on 0.0.0.0 and process.env.PORT. Free-tier services sleep until the first request.'
+        : res.status === 503 || res.status === 504
+          ? 'Service temporarily unavailable — try again shortly.'
+          : 'The API URL may be wrong, or only static files are served (no backend on that host).';
+    return {
+      error: 'Server returned an HTML page instead of JSON.',
+      httpStatus: res.status,
+      pageTitle: pageTitle || undefined,
+      hint: hint,
+    };
+  }
+
   function formatError(data) {
     if (!data || typeof data !== 'object') return String(data);
     if (data.error === 'Validation failed' && Array.isArray(data.details)) {
@@ -39,7 +63,12 @@
         })
         .join('\n');
     }
-    return data.error || data.message || JSON.stringify(data);
+    var parts = [];
+    if (data.error) parts.push(data.error);
+    if (data.pageTitle) parts.push('Page title: ' + data.pageTitle);
+    if (data.hint) parts.push(data.hint);
+    if (parts.length) return parts.join('\n');
+    return data.message || JSON.stringify(data);
   }
 
   /**
@@ -64,12 +93,28 @@
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
     var text = await res.text();
+    var contentType = (res.headers.get('content-type') || '').toLowerCase();
+    var isHtml = looksLikeHtml(text) || contentType.indexOf('text/html') >= 0;
+
+    if (isHtml) {
+      var htmlData = htmlGatewayPayload(res, text);
+      var htmlErr = new Error(formatError(htmlData) + ' (HTTP ' + res.status + ')');
+      htmlErr.status = res.status;
+      htmlErr.data = htmlData;
+      throw htmlErr;
+    }
+
     var data;
     try {
       data = text ? JSON.parse(text) : {};
     } catch (e) {
-      data = { raw: text };
+      var snippet = text ? text.slice(0, 200) + (text.length > 200 ? '…' : '') : '(empty body)';
+      var parseErr = new Error('Response was not valid JSON (HTTP ' + res.status + ').\n' + snippet);
+      parseErr.status = res.status;
+      parseErr.data = { error: 'Invalid JSON', snippet: snippet };
+      throw parseErr;
     }
+
     if (!res.ok) {
       var err = new Error(formatError(data) + ' (HTTP ' + res.status + ')');
       err.status = res.status;
@@ -169,11 +214,28 @@
     show(el, true);
   }
 
+  function sanitizeErrDataForDisplay(d) {
+    if (!d || typeof d !== 'object') return d;
+    var out = {};
+    for (var k in d) {
+      if (!Object.prototype.hasOwnProperty.call(d, k)) continue;
+      var v = d[k];
+      if (typeof v === 'string' && v.length > 800) {
+        out[k] = '[truncated — ' + v.length + ' chars; see message above]';
+      } else {
+        out[k] = v;
+      }
+    }
+    return out;
+  }
+
   function setPreError(id, err) {
     var el = $(id);
     if (!el) return;
     var body = err && err.message ? err.message : String(err);
-    if (err && err.data) body += '\n\n' + JSON.stringify(err.data, null, 2);
+    if (err && err.data) {
+      body += '\n\n' + JSON.stringify(sanitizeErrDataForDisplay(err.data), null, 2);
+    }
     el.textContent = body;
     el.classList.add('response-block--error');
     show(el, true);
