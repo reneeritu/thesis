@@ -3,158 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>aura2 — get started</title>
+  <!-- On Render, leave empty to use this page’s origin (same as API). Or set your API URL if the UI is hosted elsewhere. -->
+  <meta name="aura-api-base" content="" />
+  <title>aura2 — Sign in</title>
   <link rel="stylesheet" href="/css/site.css" />
 </head>
 <body>
-  <header class="site-header">
-    <strong>aura2</strong>
-    <div class="links">
-      <span id="sessionStatus" class="hint" style="margin:0;">Not signed in</span>
-      <a href="/health" target="_blank" rel="noopener">API health</a>
-      <a href="/demo.html">Technical demo</a>
-      <button type="button" class="btn secondary" id="btnLogout" hidden style="margin:0;padding:0.35rem 0.65rem;">Sign out</button>
-    </div>
+  <header class="top-bar">
+    <div class="top-bar__brand">aura2</div>
+    <nav class="top-bar__nav">
+      <button type="button" id="btn-back" class="btn btn--ghost" aria-label="Go back">← Back</button>
+      <button type="button" id="btn-sign-out" class="btn btn--ghost">Sign out</button>
+    </nav>
   </header>
 
-  <main>
-    <h1>Document your process</h1>
-    <p class="lead">
-      Create an account, a <strong>space</strong>, a <strong>project</strong>, then log <strong>traces</strong> of your work.
-      Takes a few minutes. If this page is on the same site as the API, you can leave the API URL blank.
-    </p>
+  <main class="main">
+    <!-- SCREEN 1 — Auth (default) -->
+    <section id="screen-auth" class="screen screen--active" aria-labelledby="auth-heading">
+      <h1 id="auth-heading">Welcome</h1>
+      <p class="hint">
+        Alias: lowercase letters, numbers, <code>_</code> and <code>-</code> only (3–30 characters). Password: at least 8 characters.
+      </p>
 
-    <label for="apiBase">API URL (optional if you’re already on your server)</label>
-    <input id="apiBase" type="url" autocomplete="off" placeholder="https://your-app.onrender.com" />
-    <p class="hint">Status: <span id="healthPill" class="status-pill">…</span>
-      <button type="button" class="btn secondary" id="btnCheckHealth" style="margin-top:0.5rem;">Check again</button>
-    </p>
+      <div id="auth-session-banner" class="banner banner--info hidden" role="status">
+        <span id="auth-session-text"></span>
+        <button type="button" id="btn-continue-session" class="btn btn--small">Continue to dashboard</button>
+      </div>
 
-    <nav class="steps" aria-label="Steps">
-      <button type="button" id="stepBtn0">1 · Start</button>
-      <button type="button" id="stepBtn1">2 · Account</button>
-      <button type="button" id="stepBtn2">3 · Space</button>
-      <button type="button" id="stepBtn3">4 · Project</button>
-      <button type="button" id="stepBtn4">5 · Trace</button>
-    </nav>
+      <div class="card">
+        <h2>Create account</h2>
+        <form id="form-register" novalidate>
+          <label for="reg-alias">Alias</label>
+          <input id="reg-alias" name="alias" autocomplete="username" required minlength="3" maxlength="30" placeholder="my_alias" />
 
-    <section id="panel0" class="panel active">
-      <h2>Welcome</h2>
-      <p class="hint">You’ll get a <strong>seed phrase</strong> when you register — save it somewhere safe. It’s the backup way to recover your account.</p>
-      <div id="alertWelcome" class="alert" hidden></div>
-      <div class="btn-row">
-        <button type="button" class="btn" id="btnStart">Begin</button>
+          <label for="reg-password">Password</label>
+          <input id="reg-password" name="password" type="password" autocomplete="new-password" required minlength="8" />
+
+          <button type="submit" id="btn-register" class="btn btn--primary">Register</button>
+        </form>
+        <div id="register-error" class="alert alert--error hidden" role="alert"></div>
+        <pre id="register-response" class="response-block hidden"></pre>
+      </div>
+
+      <div class="card">
+        <h2>Log in</h2>
+        <form id="form-login" novalidate>
+          <label for="login-alias">Alias</label>
+          <input id="login-alias" name="alias" autocomplete="username" required />
+
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+
+          <button type="submit" id="btn-login" class="btn btn--primary">Log in</button>
+        </form>
+        <div id="login-error" class="alert alert--error hidden" role="alert"></div>
+        <pre id="login-response" class="response-block hidden"></pre>
       </div>
     </section>
 
-    <section id="panel1" class="panel">
-      <h2>Your account</h2>
-      <p class="hint">Alias: 3–30 characters, lowercase letters, numbers, <code>_</code> and <code>-</code> only. Password: at least 8 characters.</p>
-      <div id="alertAccount" class="alert" hidden></div>
-
-      <h3 style="font-size:0.95rem;margin:1rem 0 0;">New here</h3>
-      <label for="regAlias">Choose an alias</label>
-      <input id="regAlias" autocomplete="username" placeholder="e.g. river_sketch" />
-      <label for="regPassword">Password</label>
-      <input id="regPassword" type="password" autocomplete="new-password" />
-      <button type="button" class="btn" id="btnRegister">Create account</button>
-
-      <div id="seedReveal" hidden>
-        <p class="hint" style="margin-top:1rem;"><strong>Write this down</strong> — it won’t be shown again.</p>
-        <div class="seed-box" id="seedText"></div>
-        <button type="button" class="btn" id="btnSavedSeed">I saved my seed phrase — continue</button>
+    <!-- Post-register: seed phrase (before localStorage token) -->
+    <section id="screen-seed" class="screen hidden" aria-labelledby="seed-heading">
+      <h1 id="seed-heading">Save your seed phrase</h1>
+      <p class="alert alert--warn">
+        <strong>Save this — you will never see it again.</strong> Write it down or store it in a password manager. Anyone with this phrase can recover your account.
+      </p>
+      <div class="seed-box" id="seed-phrase-box" aria-live="polite"></div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="seed-saved-check" />
+        <span>I have saved my seed phrase</span>
+      </label>
+      <div class="row">
+        <button type="button" id="btn-seed-confirm" class="btn btn--primary" disabled>Confirm &amp; continue</button>
       </div>
-
-      <h3 style="font-size:0.95rem;margin:1.5rem 0 0;">Already have an account</h3>
-      <label for="loginAlias">Alias</label>
-      <input id="loginAlias" autocomplete="username" />
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" />
-      <button type="button" class="btn secondary" id="btnLogin">Log in</button>
-
-      <h3 style="font-size:0.95rem;margin:1.5rem 0 0;">Joining someone else’s space</h3>
-      <p class="hint">Log in (or register), then paste the space ID they shared.</p>
-      <label for="joinSpaceId">Their space ID</label>
-      <input id="joinSpaceId" placeholder="MongoDB id string" />
-      <label for="inviteCode">Invite code (only if their space is invite-only)</label>
-      <input id="inviteCode" />
-      <button type="button" class="btn secondary" id="btnJoin">Join this space</button>
-      <div id="alertJoin" class="alert" hidden></div>
+      <pre id="seed-response" class="response-block hidden"></pre>
     </section>
 
-    <section id="panel2" class="panel">
-      <h2>Create a space</h2>
-      <p class="hint">A space is a community or classroom. Use <strong>open</strong> so friends can join with the flow above.</p>
-      <div id="alertSpace" class="alert" hidden></div>
-      <label for="spaceName">Space name</label>
-      <input id="spaceName" value="My studio" />
-      <label for="spaceDesc">Description (optional)</label>
-      <input id="spaceDesc" />
-      <label for="projectAccess">Who can join</label>
-      <select id="projectAccess">
-        <option value="open" selected>Open — anyone with the link can join</option>
-        <option value="invite_only">Invite only</option>
-      </select>
-      <label for="privacyDefault">Default privacy</label>
-      <select id="privacyDefault">
-        <option value="space_specific" selected>Space-specific</option>
-        <option value="public">Public</option>
-        <option value="private">Private</option>
-      </select>
-      <button type="button" class="btn" id="btnSpace">Create space</button>
-      <label for="spaceId">Your space ID (filled automatically)</label>
-      <input id="spaceId" readonly class="id" />
-    </section>
-
-    <section id="panel3" class="panel">
-      <h2>Start a project</h2>
-      <p class="hint">A project is where you log traces. To add a collaborator, they must <strong>join your space</strong> first; then enter their alias below.</p>
-      <div id="alertProject" class="alert" hidden></div>
-      <label for="projTitle">Project title</label>
-      <input id="projTitle" value="Untitled work" />
-      <label for="contributorAlias">Collaborator alias (optional)</label>
-      <input id="contributorAlias" placeholder="leave empty if it’s just you" />
-      <label><input type="checkbox" id="contribPrimary" /> Mark collaborator as primary (optional)</label>
-      <button type="button" class="btn" id="btnProject">Create project</button>
-      <label for="projectId">Project ID (filled automatically)</label>
-      <input id="projectId" readonly class="id" />
-    </section>
-
-    <section id="panel4" class="panel">
-      <h2>Log a trace</h2>
-      <p class="hint">A trace is one unit of work on your project — brainstorm, skill work, review, etc.</p>
-      <div id="alertTrace" class="alert" hidden></div>
-      <label for="activityType">What kind of work?</label>
-      <select id="activityType">
-        <option value="brainstorm">Brainstorm</option>
-        <option value="iterate">Iterate</option>
-        <option value="skillwork">Skill work</option>
-        <option value="fabrication">Fabrication</option>
-        <option value="review">Review</option>
-        <option value="pedagogy">Pedagogy</option>
-        <option value="other">Other (describe below)</option>
-      </select>
-      <label for="otherDescription">If you chose “Other”, describe it</label>
-      <input id="otherDescription" />
-      <label for="traceDesc">Short note (optional)</label>
-      <textarea id="traceDesc" placeholder="What did you do?"></textarea>
-      <label for="duration">Minutes spent (optional)</label>
-      <input id="duration" type="number" min="0" value="30" />
-      <label for="mode">Log mode</label>
-      <select id="mode">
-        <option value="micro" selected>Micro — quick log</option>
-        <option value="memo">Memo</option>
-        <option value="reflection">Reflection</option>
-        <option value="proxy">Proxy — logging for someone else</option>
-      </select>
-      <label for="proxyForAlias">Their alias (only for proxy mode)</label>
-      <input id="proxyForAlias" />
-      <button type="button" class="btn" id="btnTrace">Save trace</button>
-      <p class="hint" style="margin-top:1rem;">You’re done with the guided flow. You can log more traces here or sign out and try again.</p>
+    <!-- Placeholder until Screen 2 — proves login / register-confirm worked -->
+    <section id="screen-dashboard" class="screen hidden" aria-labelledby="dash-heading">
+      <h1 id="dash-heading">Dashboard</h1>
+      <p class="hint">Screen 2 will add spaces, projects, and reputation. Your session is active.</p>
+      <p>Logged in as <strong id="dash-alias">—</strong></p>
+      <pre id="dashboard-response" class="response-block"></pre>
     </section>
   </main>
 
-  <footer>aura2 · process documentation</footer>
   <script src="/js/site.js"></script>
 </body>
 </html>
