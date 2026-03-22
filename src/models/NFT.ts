@@ -59,8 +59,6 @@ const nftSchema = new Schema<INFT>(
   },
 );
 
-nftSchema.index({ projectId: 1 });
-
 const contributorTokenSchema = new Schema<IContributorToken>(
   {
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },

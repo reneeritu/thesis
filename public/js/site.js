@@ -13,6 +13,11 @@
 
   var SS_PENDING_SEED = 'aura2_pending_seed';
 
+  var ALIAS_MIN = 3;
+  var ALIAS_MAX = 30;
+  var ALIAS_RE = /^[a-z0-9_-]+$/;
+  var formUid = 0;
+
   var ACTIVITY_TYPES = [
     'brainstorm',
     'primary_research',
@@ -128,10 +133,38 @@
     if (!el) return;
     el.textContent = msg || '';
     el.classList.toggle('hidden', !msg);
+    if (msg) {
+      try {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } catch (e) {
+        el.scrollIntoView();
+      }
+    }
   }
 
   function clearError() {
     showError('');
+  }
+
+  /** @returns {string|null} error message or null if ok */
+  function validateRegisterAlias(alias) {
+    if (!alias || alias.length < ALIAS_MIN) {
+      return 'Alias must be at least ' + ALIAS_MIN + ' characters (lowercase, no spaces).';
+    }
+    if (alias.length > ALIAS_MAX) {
+      return 'Alias must be at most ' + ALIAS_MAX + ' characters.';
+    }
+    if (!ALIAS_RE.test(alias)) {
+      return 'Alias may only contain lowercase letters, numbers, hyphens, and underscores.';
+    }
+    return null;
+  }
+
+  function validateRegisterPassword(password) {
+    if (!password || password.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    return null;
   }
 
   function appendApiDetails(container, data, summaryText) {
@@ -193,6 +226,15 @@
         }
         return data;
       });
+    }).catch(function (err) {
+      if (err instanceof TypeError && err.message && err.message.indexOf('fetch') !== -1) {
+        return Promise.reject(
+          new Error(
+            'Network error: could not reach the API. Check your connection and DevTools → Network.',
+          ),
+        );
+      }
+      return Promise.reject(err);
     });
   }
 
@@ -437,27 +479,28 @@
 
   function buildRegisterForm(singleColumn) {
     var form = document.createElement('form');
+    form.setAttribute('novalidate', 'novalidate');
+    var uid = 'r' + ++formUid;
+    var idA = 'reg-alias-' + uid;
+    var idP = 'reg-password-' + uid;
     var lblA = document.createElement('label');
-    lblA.htmlFor = 'reg-alias';
+    lblA.htmlFor = idA;
     lblA.textContent = 'Alias';
     var inA = document.createElement('input');
-    inA.id = 'reg-alias';
+    inA.id = idA;
     inA.name = 'alias';
     inA.autocomplete = 'username';
-    inA.required = true;
     var lblP = document.createElement('label');
-    lblP.htmlFor = 'reg-password';
+    lblP.htmlFor = idP;
     lblP.textContent = 'Password';
     var inP = document.createElement('input');
-    inP.id = 'reg-password';
+    inP.id = idP;
     inP.type = 'password';
     inP.autocomplete = 'new-password';
-    inP.required = true;
-    inP.minLength = 8;
     var btn = document.createElement('button');
     btn.type = 'submit';
     btn.className = 'btn';
-    btn.textContent = 'Register';
+    btn.textContent = 'REGISTER';
     form.appendChild(lblA);
     form.appendChild(inA);
     form.appendChild(lblP);
@@ -468,6 +511,19 @@
       clearError();
       var alias = inA.value.trim().toLowerCase();
       var password = inP.value;
+      var errA = validateRegisterAlias(alias);
+      if (errA) {
+        showError(errA);
+        return;
+      }
+      var errP = validateRegisterPassword(password);
+      if (errP) {
+        showError(errP);
+        return;
+      }
+      btn.disabled = true;
+      var prevLabel = btn.textContent;
+      btn.textContent = 'REGISTERING…';
       apiFetch('POST', '/auth/register', {
         body: { alias: alias, password: password },
       })
@@ -480,7 +536,9 @@
           render();
         })
         .catch(function (err) {
-          showError(err.message || String(err));
+          showError((err && err.message) || String(err));
+          btn.disabled = false;
+          btn.textContent = prevLabel;
         });
     });
     return form;
@@ -488,25 +546,27 @@
 
   function buildLoginForm(singleColumn) {
     var form = document.createElement('form');
+    form.setAttribute('novalidate', 'novalidate');
+    var uid = 'l' + ++formUid;
+    var idA = 'login-alias-' + uid;
+    var idP = 'login-password-' + uid;
     var lblA = document.createElement('label');
-    lblA.htmlFor = 'login-alias';
+    lblA.htmlFor = idA;
     lblA.textContent = 'Alias';
     var inA = document.createElement('input');
-    inA.id = 'login-alias';
+    inA.id = idA;
     inA.autocomplete = 'username';
-    inA.required = true;
     var lblP = document.createElement('label');
-    lblP.htmlFor = 'login-password';
+    lblP.htmlFor = idP;
     lblP.textContent = 'Password';
     var inP = document.createElement('input');
-    inP.id = 'login-password';
+    inP.id = idP;
     inP.type = 'password';
     inP.autocomplete = 'current-password';
-    inP.required = true;
     var btn = document.createElement('button');
     btn.type = 'submit';
     btn.className = 'btn';
-    btn.textContent = 'Login';
+    btn.textContent = 'LOGIN';
     form.appendChild(lblA);
     form.appendChild(inA);
     form.appendChild(lblP);
@@ -515,8 +575,21 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       clearError();
+      var alias = inA.value.trim().toLowerCase();
+      var password = inP.value;
+      if (!alias) {
+        showError('Enter your alias.');
+        return;
+      }
+      if (!password) {
+        showError('Enter your password.');
+        return;
+      }
+      btn.disabled = true;
+      var prevLabel = btn.textContent;
+      btn.textContent = 'SIGNING IN…';
       apiFetch('POST', '/auth/login', {
-        body: { alias: inA.value.trim().toLowerCase(), password: inP.value },
+        body: { alias: alias, password: password },
       })
         .then(function (data) {
           localStorage.setItem(LS.token, data.token);
@@ -527,7 +600,9 @@
           render();
         })
         .catch(function (err) {
-          showError(err.message || String(err));
+          showError((err && err.message) || String(err));
+          btn.disabled = false;
+          btn.textContent = prevLabel;
         });
     });
     return form;
