@@ -6,6 +6,7 @@ import { Trace } from '../models/Trace';
 import { Project } from '../models/Project';
 import { ChainNode } from '../models/Node';
 import { addBlock } from '../services/chain';
+import { onTraceCreated } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
@@ -66,13 +67,14 @@ router.post(
 
     const isProxy = mode === 'proxy';
     let proxyDeadline: Date | null = null;
+    let proxyTarget: InstanceType<typeof ChainNode> | null = null;
 
     if (isProxy) {
-      const target = await ChainNode.findOne({
+      proxyTarget = await ChainNode.findOne({
         alias: proxyForAlias,
         status: 'active',
       });
-      if (!target) throw new NotFoundError(`Proxy target "${proxyForAlias}"`);
+      if (!proxyTarget) throw new NotFoundError(`Proxy target "${proxyForAlias}"`);
 
       proxyDeadline = new Date();
       proxyDeadline.setDate(
@@ -112,6 +114,12 @@ router.post(
       { alias },
       { $set: { lastActiveAt: new Date() } },
     );
+
+    const reputationSubjectNodeId =
+      isProxy && proxyTarget ? String(proxyTarget._id) : req.node!.nodeId;
+    const reputationSubjectAlias =
+      isProxy && proxyForAlias ? proxyForAlias : alias;
+    await onTraceCreated(reputationSubjectNodeId, reputationSubjectAlias, activityType);
 
     res.status(201).json(trace);
   },

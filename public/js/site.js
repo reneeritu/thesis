@@ -1,2258 +1,1682 @@
-/**
- * AURA2 — vanilla SPA (hash router, no frameworks)
- */
+/* AURA2 — vanilla front-end, hash router, real API */
 (function () {
   'use strict';
 
-  var LS = {
-    token: 'aura2_token',
-    alias: 'aura2_alias',
-    spaceId: 'aura2_spaceId',
-    projectId: 'aura2_projectId',
-  };
-
-  var SS_PENDING_SEED = 'aura2_pending_seed';
-
-  var ALIAS_MIN = 3;
-  var ALIAS_MAX = 30;
-  var ALIAS_RE = /^[a-z0-9_-]+$/;
-  var formUid = 0;
+  var LS_TOKEN = 'aura2_token';
+  var LS_ALIAS = 'aura2_alias';
+  var LS_SPACE = 'aura2_spaceId';
+  var LS_PROJECT = 'aura2_projectId';
 
   var ACTIVITY_TYPES = [
-    'brainstorm',
-    'primary_research',
-    'secondary_research',
-    'iterate',
-    'skillwork',
-    'fabrication',
-    'pedagogy',
-    'admin',
-    'review',
-    'ai_tool',
-    'other',
+    'brainstorm', 'primary_research', 'secondary_research', 'iterate', 'skillwork',
+    'fabrication', 'pedagogy', 'admin', 'review', 'ai_tool', 'other',
   ];
-
-  var RELATIONSHIP_TYPES = [
-    'inspired_by',
-    'built_on',
-    'forked_from',
-    'in_response_to',
-    'pedagogical_source',
-    'ai_generated',
-    'other',
+  var REL_TYPES = [
+    'inspired_by', 'built_on', 'forked_from', 'in_response_to', 'pedagogical_source', 'ai_generated', 'other',
   ];
-
-  var EVIDENCE_TYPES = [
-    'photos_of_work',
-    'process_photos',
-    'sketches',
-    'dated_files',
-    'social_post',
-    'videos',
-    'voice_recordings',
-    'audio',
-    'exhibit_record',
-    'institution_record',
-    'url',
-    'portfolio_link',
-    'other',
-  ];
-
   var VETO_TYPES = ['hard_stop', 'scope_limit', 'content_flag', 'nda_seal'];
-
-  var RADAR_AXES = [
-    'craft',
-    'research',
-    'collaboration',
-    'pedagogy',
-    'consistency',
-    'community',
+  var EVIDENCE_TYPES = [
+    'photos_of_work', 'process_photos', 'sketches', 'dated_files', 'social_post', 'videos',
+    'voice_recordings', 'audio', 'exhibit_record', 'institution_record', 'url', 'portfolio_link', 'other',
   ];
+
+  /* registration wizard transient state */
+  var reg = { step: 1, seedWords: [], token: '', alias: '', password: '' };
+
+  /* space create wizard */
+  var spc = { step: 1, data: {} };
 
   function apiBase() {
-    var meta = document.querySelector('meta[name="aura-api-base"]');
-    var fromMeta = meta && meta.getAttribute('content');
-    fromMeta = (fromMeta || '').trim().replace(/\/$/, '');
-    if (fromMeta) return fromMeta;
-    if (typeof location !== 'undefined' && location.origin && location.origin !== 'null') {
-      return location.origin.replace(/\/$/, '');
-    }
-    throw new Error('Cannot determine API URL. Set meta aura-api-base or open from the server origin.');
+    var m = document.querySelector('meta[name="aura-api-base"]');
+    var b = m && m.getAttribute('content');
+    if (b && b.trim()) return b.replace(/\/$/, '');
+    return window.location.origin.replace(/\/$/, '');
   }
 
   function getToken() {
-    return localStorage.getItem(LS.token);
+    return localStorage.getItem(LS_TOKEN) || '';
   }
-
   function getAlias() {
-    return localStorage.getItem(LS.alias);
+    return localStorage.getItem(LS_ALIAS) || '';
+  }
+  function setSession(token, alias) {
+    if (token) localStorage.setItem(LS_TOKEN, token);
+    else localStorage.removeItem(LS_TOKEN);
+    if (alias) localStorage.setItem(LS_ALIAS, alias);
+    else localStorage.removeItem(LS_ALIAS);
+  }
+  function clearSession() {
+    localStorage.removeItem(LS_TOKEN);
+    localStorage.removeItem(LS_ALIAS);
   }
 
-  function looksLikeHtml(t) {
-    if (!t || typeof t !== 'string') return false;
-    var s = t.slice(0, 256).trim().toLowerCase();
-    return s.indexOf('<!doctype') === 0 || s.indexOf('<html') === 0;
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
-  function htmlGatewayPayload(res, text) {
-    var titleMatch = text.match(/<title>([^<]{0,120})<\/title>/i);
-    var pageTitle = titleMatch ? titleMatch[1].trim() : '';
-    var hint =
-      res.status === 502
-        ? '502 Bad Gateway: the host could not reach the API. Check server logs, env, and that the app listens on PORT.'
-        : res.status === 503 || res.status === 504
-          ? 'Service temporarily unavailable — try again shortly.'
-          : 'The API URL may be wrong, or only static files are served on that host.';
-    return {
-      error: 'Server returned an HTML page instead of JSON.',
-      httpStatus: res.status,
-      pageTitle: pageTitle || undefined,
-      hint: hint,
+  function tagClass(status) {
+    var m = {
+      active: 'tag--active',
+      completed: 'tag--completed',
+      halted: 'tag--halted',
+      disputed: 'tag--disputed',
+      archived: 'tag--archived',
     };
+    return m[status] || '';
   }
 
-  function formatError(data) {
-    if (!data || typeof data !== 'object') return String(data);
-    if (data.error === 'Validation failed' && Array.isArray(data.details)) {
-      return data.details
-        .map(function (d) {
-          return (Array.isArray(d.path) ? d.path.join('.') : d.path || '?') + ': ' + d.message;
-        })
-        .join('\n');
-    }
-    var parts = [];
-    if (data.error) parts.push(data.error);
-    if (data.pageTitle) parts.push('Page title: ' + data.pageTitle);
-    if (data.hint) parts.push(data.hint);
-    if (parts.length) return parts.join('\n');
-    return data.message || JSON.stringify(data);
+  function iconNode() {
+    return '<svg class="icon-pixel" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="#000" stroke-width="2"/><line x1="8" y1="1" x2="8" y2="4" stroke="#000" stroke-width="2"/><line x1="8" y1="12" x2="8" y2="15" stroke="#000" stroke-width="2"/><line x1="1" y1="8" x2="4" y2="8" stroke="#000" stroke-width="2"/><line x1="12" y1="8" x2="15" y2="8" stroke="#000" stroke-width="2"/></svg>';
+  }
+  function iconChain() {
+    return '<svg class="icon-pixel" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="5" width="5" height="6" fill="none" stroke="#000" stroke-width="2"/><rect x="10" y="5" width="5" height="6" fill="none" stroke="#000" stroke-width="2"/><line x1="6" y1="8" x2="10" y2="8" stroke="#000" stroke-width="2"/></svg>';
+  }
+  function iconBlock() {
+    return '<svg class="icon-pixel" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" fill="#000"/><rect x="5" y="5" width="6" height="6" fill="#fff"/></svg>';
   }
 
-  function showError(msg) {
-    var el = document.getElementById('global-error');
-    if (!el) return;
-    el.textContent = msg || '';
-    el.classList.toggle('hidden', !msg);
-    if (msg) {
-      try {
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      } catch (e) {
-        el.scrollIntoView();
-      }
-    }
-  }
-
-  function clearError() {
-    showError('');
-  }
-
-  /** @returns {string|null} error message or null if ok */
-  function validateRegisterAlias(alias) {
-    if (!alias || alias.length < ALIAS_MIN) {
-      return 'Alias must be at least ' + ALIAS_MIN + ' characters (lowercase, no spaces).';
-    }
-    if (alias.length > ALIAS_MAX) {
-      return 'Alias must be at most ' + ALIAS_MAX + ' characters.';
-    }
-    if (!ALIAS_RE.test(alias)) {
-      return 'Alias may only contain lowercase letters, numbers, hyphens, and underscores.';
-    }
-    return null;
-  }
-
-  function validateRegisterPassword(password) {
-    if (!password || password.length < 8) {
-      return 'Password must be at least 8 characters.';
-    }
-    return null;
-  }
-
-  function appendApiDetails(container, data, summaryText) {
-    var d = document.createElement('details');
-    d.className = 'api-details';
-    var s = document.createElement('summary');
-    s.textContent = summaryText || 'Raw API response';
-    var pre = document.createElement('pre');
-    try {
-      pre.textContent = JSON.stringify(data, null, 2);
-    } catch (e) {
-      pre.textContent = String(data);
-    }
-    d.appendChild(s);
-    d.appendChild(pre);
-    container.appendChild(d);
-  }
-
-  /** Default cap so the UI never spins forever (cold starts / slow DB). Override per call with opts.timeoutMs (0 = no timeout). */
-  var DEFAULT_FETCH_TIMEOUT_MS = 90000;
-
-  /**
-   * @param {string} method
-   * @param {string} path
-   * @param {{ body?: object, auth?: boolean, timeoutMs?: number }} [opts]
-   */
-  function apiFetch(method, path, opts) {
-    opts = opts || {};
-    var url = apiBase() + path;
-    var headers = { Accept: 'application/json' };
-    if (opts.body !== undefined) {
-      headers['Content-Type'] = 'application/json';
-    }
-    if (opts.auth) {
-      var t = getToken();
-      if (!t) return Promise.reject(new Error('Not signed in.'));
-      headers.Authorization = 'Bearer ' + t;
-    }
-
-    var timeoutMs =
-      opts.timeoutMs !== undefined ? opts.timeoutMs : DEFAULT_FETCH_TIMEOUT_MS;
-    var timerId = null;
-    var abortCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    if (abortCtrl && timeoutMs > 0) {
-      timerId = setTimeout(function () {
-        abortCtrl.abort();
-      }, timeoutMs);
-    }
-
-    var fetchInit = {
-      method: method,
-      headers: headers,
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-    };
-    if (abortCtrl) fetchInit.signal = abortCtrl.signal;
-
-    function clearTimer() {
-      if (timerId !== null) {
-        clearTimeout(timerId);
-        timerId = null;
-      }
-    }
-
-    return fetch(url, fetchInit)
-      .then(function (res) {
-        return res.text().then(function (text) {
-          var data;
-          if (text && !looksLikeHtml(text)) {
-            try {
-              data = JSON.parse(text);
-            } catch (e) {
-              data = { error: text || res.statusText, httpStatus: res.status };
-            }
-          } else if (text && looksLikeHtml(text)) {
-            data = htmlGatewayPayload(res, text);
-          } else {
-            data = { error: res.statusText || 'Empty response', httpStatus: res.status };
-          }
-          if (!res.ok) {
-            var err = new Error(formatError(data));
-            err.data = data;
-            err.status = res.status;
-            return Promise.reject(err);
-          }
-          return data;
-        });
-      })
-      .finally(clearTimer)
-      .catch(function (err) {
-        if (err && err.name === 'AbortError') {
-          return Promise.reject(
-            new Error(
-              'Request timed out after ' +
-                Math.round(timeoutMs / 1000) +
-                's. On Render free tier the service may be waking up or MongoDB may be slow — open /health in another tab, wait 30s, then try again.',
-            ),
-          );
-        }
-        if (err instanceof TypeError && err.message && err.message.indexOf('fetch') !== -1) {
-          return Promise.reject(
-            new Error(
-              'Network error: could not reach the API. Check your connection and DevTools → Network.',
-            ),
-          );
-        }
-        return Promise.reject(err);
-      });
-  }
-
-  function parseRoute() {
-    var raw = (location.hash || '#/').replace(/^#\/?/, '').trim();
-    var segs = raw ? raw.split('/').filter(Boolean) : [];
-
-    if (segs.length === 0) return { name: 'home', params: {} };
-    if (segs[0] === 'register' && segs.length === 1) return { name: 'register', params: {} };
-    if (segs[0] === 'login' && segs.length === 1) return { name: 'login', params: {} };
-    if (segs[0] === 'me' && segs.length === 1) return { name: 'me', params: {} };
-    if (segs[0] === 'spaces' && segs.length === 1) return { name: 'spaces', params: {} };
-    if (segs[0] === 'spaces' && segs.length === 2) return { name: 'space', params: { id: segs[1] } };
-    if (segs[0] === 'projects' && segs[1] === 'new' && segs.length === 2) return { name: 'projectNew', params: {} };
-    if (segs[0] === 'projects' && segs.length === 2)
-      return { name: 'project', params: { id: segs[1] } };
-    if (segs[0] === 'projects' && segs.length === 3 && segs[2] === 'trace')
-      return { name: 'trace', params: { id: segs[1] } };
-    if (segs[0] === 'projects' && segs.length === 3 && segs[2] === 'reference')
-      return { name: 'reference', params: { id: segs[1] } };
-    if (segs[0] === 'projects' && segs.length === 3 && segs[2] === 'pivot')
-      return { name: 'pivot', params: { id: segs[1] } };
-    if (segs[0] === 'projects' && segs.length === 3 && segs[2] === 'credit')
-      return { name: 'credit', params: { id: segs[1] } };
-    if (segs[0] === 'archive' && segs[1] === 'new' && segs.length === 2) return { name: 'archiveNew', params: {} };
-    if (segs[0] === 'nfts' && segs.length === 2) return { name: 'nft', params: { id: segs[1] } };
-    if (segs[0] === 'nodes' && segs.length === 2) return { name: 'node', params: { alias: segs[1] } };
-
-    return { name: 'unknown', params: { raw: raw } };
-  }
-
-  function updateTopBar() {
-    var right = document.getElementById('top-bar-right');
-    if (!right) return;
-    right.innerHTML = '';
-    var alias = getAlias();
-    var token = getToken();
-    if (token && alias) {
-      var a = document.createElement('a');
-      a.href = '#/me';
-      a.className = 'top-bar__alias';
-      a.textContent = alias;
-      right.appendChild(a);
-      var sep = document.createTextNode(' | ');
-      right.appendChild(sep);
-      var out = document.createElement('button');
-      out.type = 'button';
-      out.className = 'btn btn--secondary';
-      out.textContent = 'SIGN OUT';
-      out.addEventListener('click', function () {
-        localStorage.removeItem(LS.token);
-        localStorage.removeItem(LS.alias);
-        sessionStorage.removeItem(SS_PENDING_SEED);
-        location.hash = '#/';
-        render();
-      });
-      right.appendChild(out);
-    }
-  }
-
-  function radarSvg(categories) {
-    categories = categories || {};
-    var values = RADAR_AXES.map(function (k) {
-      var v = Number(categories[k]) || 0;
-      return v;
-    });
-    var maxV = Math.max.apply(null, values.concat([1]));
-    var norm = values.map(function (v) {
-      var r = maxV > 0 ? v / maxV : 0;
-      return Math.max(0.1, r);
-    });
-
+  function radarSvg(rc, selfScore) {
+    rc = rc || {};
+    var keys = ['craft', 'research', 'collaboration', 'pedagogy', 'consistency', 'community'];
     var cx = 100;
     var cy = 100;
-    var R = 70;
+    var R = 72;
     var pts = [];
+    var axis = [];
+    var labels = ['CRAFT', 'RESEARCH', 'COLLAB', 'PEDAGOGY', 'CONSIST', 'COMMUNITY'];
     for (var i = 0; i < 6; i++) {
-      var angle = (-Math.PI / 2 + (i * 2 * Math.PI) / 6);
-      var r = R * norm[i];
-      pts.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+      var ang = -Math.PI / 2 + (i * 2 * Math.PI) / 6;
+      var v = Math.min(1, ((rc[keys[i]] != null ? rc[keys[i]] : 0)) / 1000);
+      pts.push(cx + R * v * Math.cos(ang) + ',' + (cy + R * v * Math.sin(ang)));
+      axis.push({ x: cx + R * Math.cos(ang), y: cy + R * Math.sin(ang), lx: cx + (R + 14) * Math.cos(ang), ly: cy + (R + 14) * Math.sin(ang), t: labels[i] });
     }
-    var pathD =
-      'M' +
-      pts
-        .map(function (p) {
-          return p[0].toFixed(2) + ',' + p[1].toFixed(2);
-        })
-        .join(' L') +
-      ' Z';
-
-    var lines = '';
-    for (var j = 0; j < 6; j++) {
-      var ang = (-Math.PI / 2 + (j * 2 * Math.PI) / 6);
-      var x2 = cx + R * Math.cos(ang);
-      var y2 = cy + R * Math.sin(ang);
-      lines +=
+    var poly = pts.join(' ');
+    var grid = [];
+    for (var g = 1; g <= 4; g++) {
+      var rr = (R * g) / 4;
+      var gp = [];
+      for (var j = 0; j < 6; j++) {
+        var a2 = -Math.PI / 2 + (j * 2 * Math.PI) / 6;
+        gp.push(cx + rr * Math.cos(a2) + ',' + (cy + rr * Math.sin(a2)));
+      }
+      grid.push('<polygon fill="none" stroke="#ccc" stroke-width="1" points="' + gp.join(' ') + '"/>');
+    }
+    var axLines = '';
+    for (var k = 0; k < 6; k++) {
+      var a3 = -Math.PI / 2 + (k * 2 * Math.PI) / 6;
+      axLines +=
         '<line x1="' +
         cx +
         '" y1="' +
         cy +
         '" x2="' +
-        x2.toFixed(2) +
+        (cx + R * Math.cos(a3)) +
         '" y2="' +
-        y2.toFixed(2) +
-        '" stroke="#000" stroke-width="0.5"/>';
+        (cy + R * Math.sin(a3)) +
+        '" stroke="#000" stroke-width="1"/>';
     }
-
-    var labels = '';
-    for (var k = 0; k < 6; k++) {
-      var ag = (-Math.PI / 2 + (k * 2 * Math.PI) / 6);
-      var lx = cx + (R + 18) * Math.cos(ag);
-      var ly = cy + (R + 18) * Math.sin(ag);
-      labels +=
+    var dots = '';
+    for (var p = 0; p < pts.length; p++) {
+      var xy = pts[p].split(',');
+      dots += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3" fill="#f5c400" stroke="#000" stroke-width="1"/>';
+    }
+    var lbl = '';
+    for (var q = 0; q < axis.length; q++) {
+      lbl +=
         '<text x="' +
-        lx.toFixed(1) +
+        axis[q].lx +
         '" y="' +
-        ly.toFixed(1) +
-        '" font-size="8" text-anchor="middle" fill="#000">' +
-        RADAR_AXES[k] +
+        axis[q].ly +
+        '" font-size="7" font-family="Courier New,monospace" text-anchor="middle">' +
+        axis[q].t +
         '</text>';
     }
-
+    var scoreNote =
+      selfScore != null
+        ? '<text x="100" y="195" font-size="9" font-family="Courier New,monospace" text-anchor="middle">score: ' +
+          escapeHtml(selfScore) +
+          '</text>'
+        : '';
     return (
-      '<div class="radar-wrap"><svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Reputation radar">' +
-      '<polygon points="' +
-      cx +
-      ',' +
-      cy +
-      ' ' +
-      (cx + R) +
-      ',' +
-      cy +
-      '" fill="none" stroke="transparent"/>' +
-      lines +
-      '<polygon fill="#6b21a8" fill-opacity="0.35" stroke="#6b21a8" stroke-width="1" d="' +
-      pathD +
-      '"/>' +
-      '<circle cx="' +
-      cx +
-      '" cy="' +
-      cy +
-      '" r="' +
-      R +
-      '" fill="none" stroke="#000" stroke-width="1"/>' +
-      labels +
+      '<div class="radar-wrap"><svg viewBox="0 0 200 200" role="img" aria-label="Reputation radar">' +
+      grid.join('') +
+      axLines +
+      '<polygon fill="rgba(204,0,0,0.25)" stroke="#cc0000" stroke-width="2" points="' +
+      poly +
+      '" />' +
+      dots +
+      lbl +
+      scoreNote +
       '</svg></div>'
     );
   }
 
-  function isMyProject(p, me) {
-    if (!p || !me) return false;
-    if (p.creatorAlias === me) return true;
-    return (p.contributors || []).some(function (c) {
-      return c.alias === me;
-    });
-  }
-
-  function statusTagClass(st) {
-    var s = (st || '').toLowerCase();
-    if (s === 'active') return 'tag tag--status-active';
-    if (s === 'completed' || s === 'archived') return 'tag tag--status-completed';
-    return 'tag';
-  }
-
-  function sha256HexUtf8(str) {
-    var enc = new TextEncoder();
-    return crypto.subtle.digest('SHA-256', enc.encode(str)).then(function (buf) {
-      var arr = Array.from(new Uint8Array(buf));
-      return arr.map(function (b) {
-        return b.toString(16).padStart(2, '0');
-      }).join('');
-    });
-  }
-
-  function fillSelect(sel, options) {
-    options.forEach(function (opt) {
-      var o = document.createElement('option');
-      o.value = opt;
-      o.textContent = opt.replace(/_/g, ' ');
-      sel.appendChild(o);
-    });
-  }
-
-  function renderAuthDual(app, routeName) {
-    var wrap = document.createElement('div');
-    if (routeName === 'register' || routeName === 'login') {
-      var single = document.createElement('div');
-      single.className = 'panel';
-      if (routeName === 'register') {
-        single.appendChild(document.createElement('h1')).textContent = 'Register';
-        single.appendChild(buildRegisterForm(true));
-        var p1 = document.createElement('p');
-        p1.className = 'hint';
-        p1.innerHTML =
-          'Already have an account? <a href="#/login">Login</a> · <a href="#/">Both forms</a>';
-        single.appendChild(p1);
-      } else {
-        single.appendChild(document.createElement('h1')).textContent = 'Login';
-        single.appendChild(buildLoginForm(true));
-        var p2 = document.createElement('p');
-        p2.className = 'hint';
-        p2.innerHTML =
-          'Need an account? <a href="#/register">Register</a> · <a href="#/">Both forms</a>';
-        single.appendChild(p2);
-      }
-      wrap.appendChild(single);
-      app.appendChild(wrap);
-      return;
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { Accept: 'application/json' };
+    if (opts.body != null && !(opts.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
     }
-
-    var h1 = document.createElement('h1');
-    h1.textContent = 'Sign in or register';
-    wrap.appendChild(h1);
-    var hint = document.createElement('p');
-    hint.className = 'hint';
-    hint.textContent =
-      'Alias: lowercase, no spaces (letters, numbers, _ and -). Password: at least 8 characters.';
-    wrap.appendChild(hint);
-
-    var grid = document.createElement('div');
-    grid.className = 'grid-2';
-    var left = document.createElement('div');
-    left.className = 'panel';
-    left.appendChild(document.createElement('h2')).textContent = 'Register';
-    left.appendChild(buildRegisterForm(false));
-    var right = document.createElement('div');
-    right.className = 'panel';
-    right.appendChild(document.createElement('h2')).textContent = 'Login';
-    right.appendChild(buildLoginForm(false));
-    grid.appendChild(left);
-    grid.appendChild(right);
-    wrap.appendChild(grid);
-
-    var foot = document.createElement('p');
-    foot.className = 'hint';
-    foot.innerHTML =
-      '<a href="#/register">Register only</a> · <a href="#/login">Login only</a>';
-    wrap.appendChild(foot);
-
-    app.appendChild(wrap);
-  }
-
-  function buildRegisterForm(singleColumn) {
-    var form = document.createElement('form');
-    form.setAttribute('novalidate', 'novalidate');
-    var uid = 'r' + ++formUid;
-    var idA = 'reg-alias-' + uid;
-    var idP = 'reg-password-' + uid;
-    var lblA = document.createElement('label');
-    lblA.htmlFor = idA;
-    lblA.textContent = 'Alias';
-    var inA = document.createElement('input');
-    inA.id = idA;
-    inA.name = 'alias';
-    inA.autocomplete = 'username';
-    var lblP = document.createElement('label');
-    lblP.htmlFor = idP;
-    lblP.textContent = 'Password';
-    var inP = document.createElement('input');
-    inP.id = idP;
-    inP.type = 'password';
-    inP.autocomplete = 'new-password';
-    var btn = document.createElement('button');
-    btn.type = 'submit';
-    btn.className = 'btn';
-    btn.textContent = 'REGISTER';
-    form.appendChild(lblA);
-    form.appendChild(inA);
-    form.appendChild(lblP);
-    form.appendChild(inP);
-    form.appendChild(btn);
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      var alias = inA.value.trim().toLowerCase();
-      var password = inP.value;
-      var errA = validateRegisterAlias(alias);
-      if (errA) {
-        showError(errA);
-        return;
-      }
-      var errP = validateRegisterPassword(password);
-      if (errP) {
-        showError(errP);
-        return;
-      }
-      btn.disabled = true;
-      var prevLabel = btn.textContent;
-      btn.textContent = 'REGISTERING…';
-      apiFetch('POST', '/auth/register', {
-        body: { alias: alias, password: password },
-      })
-        .then(function (data) {
-          localStorage.setItem(LS.token, data.token);
-          localStorage.setItem(LS.alias, data.alias);
-          if (data.seedPhrase) sessionStorage.setItem(SS_PENDING_SEED, data.seedPhrase);
-          appendApiDetails(form.parentElement || form, data, 'Raw API response');
-          location.hash = '#/';
-          render();
-        })
-        .catch(function (err) {
-          showError((err && err.message) || String(err));
-          btn.disabled = false;
-          btn.textContent = prevLabel;
-        });
+    var tok = opts.token != null ? opts.token : getToken();
+    if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    var res = await fetch(apiBase() + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body instanceof FormData ? opts.body : opts.body != null ? JSON.stringify(opts.body) : undefined,
     });
-    return form;
-  }
-
-  function buildLoginForm(singleColumn) {
-    var form = document.createElement('form');
-    form.setAttribute('novalidate', 'novalidate');
-    var uid = 'l' + ++formUid;
-    var idA = 'login-alias-' + uid;
-    var idP = 'login-password-' + uid;
-    var lblA = document.createElement('label');
-    lblA.htmlFor = idA;
-    lblA.textContent = 'Alias';
-    var inA = document.createElement('input');
-    inA.id = idA;
-    inA.autocomplete = 'username';
-    var lblP = document.createElement('label');
-    lblP.htmlFor = idP;
-    lblP.textContent = 'Password';
-    var inP = document.createElement('input');
-    inP.id = idP;
-    inP.type = 'password';
-    inP.autocomplete = 'current-password';
-    var btn = document.createElement('button');
-    btn.type = 'submit';
-    btn.className = 'btn';
-    btn.textContent = 'LOGIN';
-    form.appendChild(lblA);
-    form.appendChild(inA);
-    form.appendChild(lblP);
-    form.appendChild(inP);
-    form.appendChild(btn);
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      var alias = inA.value.trim().toLowerCase();
-      var password = inP.value;
-      if (!alias) {
-        showError('Enter your alias.');
-        return;
-      }
-      if (!password) {
-        showError('Enter your password.');
-        return;
-      }
-      btn.disabled = true;
-      var prevLabel = btn.textContent;
-      btn.textContent = 'SIGNING IN…';
-      apiFetch('POST', '/auth/login', {
-        body: { alias: alias, password: password },
-      })
-        .then(function (data) {
-          localStorage.setItem(LS.token, data.token);
-          localStorage.setItem(LS.alias, data.alias);
-          sessionStorage.removeItem(SS_PENDING_SEED);
-          appendApiDetails(form.parentElement || form, data, 'Raw API response');
-          location.hash = '#/';
-          render();
-        })
-        .catch(function (err) {
-          showError((err && err.message) || String(err));
-          btn.disabled = false;
-          btn.textContent = prevLabel;
-        });
-    });
-    return form;
-  }
-
-  function renderSeedTakeover(app) {
-    var phrase = sessionStorage.getItem(SS_PENDING_SEED) || '';
-    var words = phrase.split(/\s+/).filter(Boolean);
-    app.innerHTML = '';
-    var wrap = document.createElement('div');
-    wrap.className = 'takeover';
-    var h1 = document.createElement('h1');
-    h1.textContent = 'YOUR SEED PHRASE. WRITE THIS DOWN. YOU WILL NEVER SEE IT AGAIN.';
-    wrap.appendChild(h1);
-    var box = document.createElement('div');
-    box.className = 'seed-box mono';
-    box.textContent = words.length ? words.join(' ') : phrase;
-    wrap.appendChild(box);
-    var chkLbl = document.createElement('label');
-    chkLbl.className = 'checkbox-row';
-    var chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.id = 'seed-ack';
-    var span = document.createElement('span');
-    span.textContent = 'I have written down my seed phrase';
-    chkLbl.appendChild(chk);
-    chkLbl.appendChild(span);
-    wrap.appendChild(chkLbl);
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn';
-    btn.textContent = 'Continue';
-    btn.disabled = true;
-    chk.addEventListener('change', function () {
-      btn.disabled = !chk.checked;
-    });
-    btn.addEventListener('click', function () {
-      sessionStorage.removeItem(SS_PENDING_SEED);
-      location.hash = '#/';
-      render();
-    });
-    wrap.appendChild(btn);
-    app.appendChild(wrap);
-  }
-
-  function renderDashboard(app) {
-    var alias = getAlias();
-    clearError();
-    app.innerHTML = '<p class="hint">Loading…</p>';
-    apiFetch('GET', '/nodes/' + encodeURIComponent(alias), { auth: true })
-      .then(function (node) {
-        var spaceIds = (node.spaces || []).map(function (id) {
-          return String(id);
-        });
-        return Promise.all(
-          spaceIds.map(function (sid) {
-            return apiFetch('GET', '/spaces/' + encodeURIComponent(sid), { auth: true }).catch(function () {
-              return { _id: sid, name: sid, error: true };
-            });
-          }),
-        ).then(function (spaces) {
-          return Promise.all(
-            spaceIds.map(function (sid) {
-              return apiFetch('GET', '/projects/space/' + encodeURIComponent(sid), {
-                auth: true,
-              }).catch(function () {
-                return [];
-              });
-            }),
-          ).then(function (projectLists) {
-            var byId = {};
-            projectLists.forEach(function (list) {
-              (list || []).forEach(function (p) {
-                if (isMyProject(p, alias)) byId[p._id] = p;
-              });
-            });
-            var myProjects = Object.keys(byId).map(function (k) {
-              return byId[k];
-            });
-            myProjects.sort(function (a, b) {
-              return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
-            });
-
-            app.innerHTML = '';
-            var title = document.createElement('div');
-            title.style.fontSize = '2rem';
-            title.style.marginBottom = '1.5rem';
-            title.style.textTransform = 'uppercase';
-            title.style.letterSpacing = '0.08em';
-            title.textContent = alias;
-            app.appendChild(title);
-
-            app.insertAdjacentHTML('beforeend', radarSvg(node.reputationCategories));
-
-            var hBad = document.createElement('h2');
-            hBad.textContent = 'Affirmative badges';
-            app.appendChild(hBad);
-            if ((node.badges || []).length === 0) {
-              var nb = document.createElement('p');
-              nb.className = 'hint';
-              nb.textContent = 'None yet.';
-              app.appendChild(nb);
-            } else {
-              var ulb = document.createElement('ul');
-              ulb.className = 'list-plain';
-              node.badges.forEach(function (b) {
-                var li = document.createElement('li');
-                li.textContent = b;
-                ulb.appendChild(li);
-              });
-              app.appendChild(ulb);
-            }
-
-            var grid = document.createElement('div');
-            grid.className = 'grid-2';
-            var colS = document.createElement('div');
-            colS.className = 'panel';
-            colS.appendChild(document.createElement('h2')).textContent = 'My spaces';
-            var uls = document.createElement('ul');
-            uls.className = 'list-plain';
-            spaces.forEach(function (sp) {
-              var li = document.createElement('li');
-              var name = document.createTextNode((sp.name || sp._id) + ' ');
-              li.appendChild(name);
-              var va = document.createElement('a');
-              va.href = '#/spaces/' + encodeURIComponent(sp._id);
-              va.textContent = 'VIEW';
-              li.appendChild(va);
-              uls.appendChild(li);
-            });
-            if (spaces.length === 0) {
-              var es = document.createElement('p');
-              es.className = 'hint';
-              es.textContent = 'No spaces yet.';
-              colS.appendChild(es);
-            } else colS.appendChild(uls);
-
-            var colP = document.createElement('div');
-            colP.className = 'panel';
-            colP.appendChild(document.createElement('h2')).textContent = 'My projects';
-            var ulp = document.createElement('ul');
-            ulp.className = 'list-plain';
-            myProjects.forEach(function (p) {
-              var li = document.createElement('li');
-              li.appendChild(document.createTextNode(p.title + ' '));
-              var tg = document.createElement('span');
-              tg.className = statusTagClass(p.status);
-              tg.textContent = (p.status || '').toUpperCase();
-              li.appendChild(tg);
-              li.appendChild(document.createTextNode(' '));
-              var va = document.createElement('a');
-              va.href = '#/projects/' + encodeURIComponent(p._id);
-              va.textContent = 'VIEW';
-              li.appendChild(va);
-              ulp.appendChild(li);
-            });
-            if (myProjects.length === 0) {
-              var ep = document.createElement('p');
-              ep.className = 'hint';
-              ep.textContent = 'No projects yet.';
-              colP.appendChild(ep);
-            } else colP.appendChild(ulp);
-
-            grid.appendChild(colS);
-            grid.appendChild(colP);
-            app.appendChild(grid);
-
-            var actions = document.createElement('div');
-            actions.className = 'row-actions';
-            [
-              ['CREATE SPACE', '#/spaces'],
-              ['JOIN SPACE', '#/spaces'],
-              ['NEW PROJECT', '#/projects/new'],
-              ['ARCHIVE PAST WORK', '#/archive/new'],
-            ].forEach(function (pair) {
-              var b = document.createElement('a');
-              b.href = pair[1];
-              b.className = 'btn';
-              b.textContent = pair[0];
-              actions.appendChild(b);
-            });
-            app.appendChild(actions);
-
-            appendApiDetails(app, { node: node, spaces: spaces, myProjects: myProjects }, 'Raw API response');
-          });
-        });
-      })
-      .catch(function (err) {
-        app.innerHTML = '';
-        showError(err.message || String(err));
-      });
-  }
-
-  function renderSpaces(app) {
-    var alias = getAlias();
-    app.innerHTML = '';
-    var h1 = document.createElement('h1');
-    h1.textContent = 'My spaces';
-    app.appendChild(h1);
-
-    var createPanel = document.createElement('div');
-    createPanel.className = 'panel';
-    createPanel.appendChild(document.createElement('h2')).textContent = 'Create space';
-    var cform = document.createElement('form');
-    var l1 = document.createElement('label');
-    l1.htmlFor = 'sp-name';
-    l1.textContent = 'Name';
-    var i1 = document.createElement('input');
-    i1.id = 'sp-name';
-    i1.required = true;
-    cform.appendChild(l1);
-    cform.appendChild(i1);
-    var sub = document.createElement('button');
-    sub.type = 'submit';
-    sub.className = 'btn';
-    sub.textContent = 'Create';
-    cform.appendChild(sub);
-    cform.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      apiFetch('POST', '/spaces', { auth: true, body: { name: i1.value.trim() } })
-        .then(function (data) {
-          appendApiDetails(createPanel, data, 'Raw API response');
-          localStorage.setItem(LS.spaceId, data._id);
-          i1.value = '';
-          render();
-        })
-        .catch(function (err) {
-          showError(err.message || String(err));
-        });
-    });
-    createPanel.appendChild(cform);
-    app.appendChild(createPanel);
-
-    var joinPanel = document.createElement('div');
-    joinPanel.className = 'panel';
-    joinPanel.appendChild(document.createElement('h2')).textContent = 'Join space';
-    var jform = document.createElement('form');
-    var l2 = document.createElement('label');
-    l2.htmlFor = 'sp-id';
-    l2.textContent = 'Space ID';
-    var i2 = document.createElement('input');
-    i2.id = 'sp-id';
-    i2.required = true;
-    var l3 = document.createElement('label');
-    l3.htmlFor = 'sp-invite';
-    l3.textContent = 'Invite code (if required)';
-    var i3 = document.createElement('input');
-    i3.id = 'sp-invite';
-    jform.appendChild(l2);
-    jform.appendChild(i2);
-    jform.appendChild(l3);
-    jform.appendChild(i3);
-    var jsub = document.createElement('button');
-    jsub.type = 'submit';
-    jsub.className = 'btn';
-    jsub.textContent = 'Join';
-    jform.appendChild(jsub);
-    jform.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      var body = {};
-      if (i3.value.trim()) body.inviteCode = i3.value.trim();
-      apiFetch('POST', '/spaces/' + encodeURIComponent(i2.value.trim()) + '/join', {
-        auth: true,
-        body: body,
-      })
-        .then(function (data) {
-          appendApiDetails(joinPanel, data, 'Raw API response');
-          render();
-        })
-        .catch(function (err) {
-          showError(err.message || String(err));
-        });
-    });
-    joinPanel.appendChild(jform);
-    app.appendChild(joinPanel);
-
-    apiFetch('GET', '/nodes/' + encodeURIComponent(alias), { auth: true })
-      .then(function (node) {
-        var ids = (node.spaces || []).map(String);
-        return Promise.all(
-          ids.map(function (sid) {
-            return apiFetch('GET', '/spaces/' + encodeURIComponent(sid), { auth: true });
-          }),
-        ).then(function (spaces) {
-          var list = document.createElement('ul');
-          list.className = 'list-plain';
-          spaces.forEach(function (sp) {
-            var li = document.createElement('li');
-            li.appendChild(document.createTextNode(sp.name + ' '));
-            var a = document.createElement('a');
-            a.href = '#/spaces/' + encodeURIComponent(sp._id);
-            a.textContent = 'VIEW';
-            li.appendChild(a);
-            list.appendChild(li);
-          });
-          if (spaces.length === 0) {
-            var em = document.createElement('p');
-            em.className = 'hint';
-            em.textContent = 'You are not in any spaces yet.';
-            app.appendChild(em);
-          } else {
-            var h2 = document.createElement('h2');
-            h2.textContent = 'Your spaces';
-            app.appendChild(h2);
-            app.appendChild(list);
-          }
-          appendApiDetails(app, { spaces: spaces }, 'Raw API response');
-        });
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
-  }
-
-  function renderSpaceDetail(app, spaceId) {
-    app.innerHTML = '';
-    clearError();
-    Promise.all([
-      apiFetch('GET', '/spaces/' + encodeURIComponent(spaceId), { auth: true }),
-      apiFetch('GET', '/projects/space/' + encodeURIComponent(spaceId), { auth: true }),
-    ])
-      .then(function (pair) {
-        var space = pair[0];
-        var projects = pair[1] || [];
-        localStorage.setItem(LS.spaceId, spaceId);
-        var h1 = document.createElement('h1');
-        h1.textContent = space.name;
-        app.appendChild(h1);
-        var idRow = document.createElement('p');
-        idRow.className = 'mono';
-        idRow.textContent = 'Space ID: ' + space._id;
-        var copyBtn = document.createElement('button');
-        copyBtn.type = 'button';
-        copyBtn.className = 'btn btn--secondary';
-        copyBtn.textContent = 'COPY';
-        copyBtn.style.marginLeft = '0.75rem';
-        copyBtn.style.marginTop = '0';
-        copyBtn.addEventListener('click', function () {
-          navigator.clipboard.writeText(String(space._id)).then(
-            function () {
-              appendApiDetails(app, { copied: String(space._id) }, 'Copy result');
-            },
-            function () {
-              showError('Could not copy to clipboard.');
-            },
-          );
-        });
-        var idWrap = document.createElement('div');
-        idWrap.appendChild(idRow);
-        idWrap.appendChild(copyBtn);
-        app.appendChild(idWrap);
-        var mc = document.createElement('p');
-        mc.textContent = 'Members: ' + (space.members || []).length;
-        app.appendChild(mc);
-
-        var h2 = document.createElement('h2');
-        h2.textContent = 'Projects';
-        app.appendChild(h2);
-        var ul = document.createElement('ul');
-        ul.className = 'list-plain';
-        projects.forEach(function (p) {
-          var li = document.createElement('li');
-          li.appendChild(document.createTextNode(p.title + ' '));
-          var tg = document.createElement('span');
-          tg.className = statusTagClass(p.status);
-          tg.textContent = (p.status || '').toUpperCase();
-          li.appendChild(tg);
-          li.appendChild(document.createTextNode(' '));
-          var a = document.createElement('a');
-          a.href = '#/projects/' + encodeURIComponent(p._id);
-          a.textContent = 'VIEW';
-          li.appendChild(a);
-          ul.appendChild(li);
-        });
-        if (projects.length === 0) {
-          var em = document.createElement('p');
-          em.className = 'hint';
-          em.textContent = 'No projects in this space.';
-          app.appendChild(em);
-        } else app.appendChild(ul);
-
-        var np = document.createElement('a');
-        np.href = '#/projects/new';
-        np.className = 'btn';
-        np.textContent = 'NEW PROJECT IN THIS SPACE';
-        np.addEventListener('click', function () {
-          localStorage.setItem(LS.spaceId, spaceId);
-        });
-        app.appendChild(np);
-
-        appendApiDetails(app, { space: space, projects: projects }, 'Raw API response');
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
-  }
-
-  function mergeTimeline(traces, refs, pivots, vetos) {
-    var items = [];
-    (traces || []).forEach(function (t) {
-      items.push({
-        sort: new Date(t.createdAt || t.timestamp).getTime(),
-        type: 'TRACE',
-        alias: t.nodeAlias,
-        ts: t.createdAt || t.timestamp,
-        text:
-          (t.activityType || '') +
-          (t.description ? ' — ' + t.description : '') +
-          (t.otherDescription ? ' — ' + t.otherDescription : ''),
-      });
-    });
-    (refs || []).forEach(function (r) {
-      items.push({
-        sort: new Date(r.createdAt).getTime(),
-        type: 'REFERENCE',
-        alias: r.nodeAlias,
-        ts: r.createdAt,
-        text: (r.externalUrl || r.citation || r.sourceProjectId || '').slice(0, 200),
-      });
-    });
-    (pivots || []).forEach(function (p) {
-      items.push({
-        sort: new Date(p.createdAt).getTime(),
-        type: 'PIVOT',
-        alias: p.nodeAlias || '—',
-        ts: p.createdAt,
-        text: p.reason || '',
-      });
-    });
-    (vetos || []).forEach(function (v) {
-      items.push({
-        sort: new Date(v.createdAt).getTime(),
-        type: 'VETO',
-        alias: v.nodeAlias,
-        ts: v.createdAt,
-        text: (v.vetoType || '') + ' — reason stored on chain as hash: ' + (v.reasonHash || '').slice(0, 16) + '…',
-      });
-    });
-    items.sort(function (a, b) {
-      return a.sort - b.sort;
-    });
-    return items;
-  }
-
-  function renderProject(app, projectId) {
-    app.innerHTML = '';
-    clearError();
-    localStorage.setItem(LS.projectId, projectId);
-    Promise.all([
-      apiFetch('GET', '/projects/' + encodeURIComponent(projectId), { auth: true }),
-      apiFetch('GET', '/traces/project/' + encodeURIComponent(projectId), { auth: true }),
-      apiFetch('GET', '/references/project/' + encodeURIComponent(projectId), { auth: true }),
-      apiFetch('GET', '/pivots/project/' + encodeURIComponent(projectId), { auth: true }),
-      apiFetch('GET', '/vetos/project/' + encodeURIComponent(projectId), { auth: true }),
-    ])
-      .then(function (res) {
-        var project = res[0];
-        var traces = res[1] || [];
-        var refs = res[2] || [];
-        var pivots = res[3] || [];
-        var vetos = res[4] || [];
-        var me = getAlias();
-
-        var h1 = document.createElement('h1');
-        h1.textContent = project.title;
-        app.appendChild(h1);
-        var st = document.createElement('span');
-        st.className = statusTagClass(project.status);
-        st.textContent = (project.status || '').toUpperCase();
-        st.style.marginBottom = '1rem';
-        st.style.display = 'inline-block';
-        app.appendChild(st);
-
-        var hC = document.createElement('h2');
-        hC.textContent = 'Contributors';
-        app.appendChild(hC);
-        var ulp = document.createElement('ul');
-        ulp.className = 'list-plain';
-        (project.contributors || []).forEach(function (c) {
-          var li = document.createElement('li');
-          li.textContent = c.alias + ' — ' + (c.role || 'contributor');
-          ulp.appendChild(li);
-        });
-        app.appendChild(ulp);
-
-        if (project.status === 'active') {
-          var bar = document.createElement('div');
-          bar.className = 'row-actions';
-          var links = [
-            ['LOG WORK', '#/projects/' + projectId + '/trace'],
-            ['ADD REFERENCE', '#/projects/' + projectId + '/reference'],
-            ['RECORD PIVOT', '#/projects/' + projectId + '/pivot'],
-          ];
-          links.forEach(function (L) {
-            var a = document.createElement('a');
-            a.href = L[1];
-            a.className = 'btn btn--secondary';
-            a.textContent = L[0];
-            bar.appendChild(a);
-          });
-          var vetoBtn = document.createElement('button');
-          vetoBtn.type = 'button';
-          vetoBtn.className = 'btn btn--secondary';
-          vetoBtn.textContent = 'RAISE VETO';
-          bar.appendChild(vetoBtn);
-          var endBtn = document.createElement('a');
-          endBtn.href = '#/projects/' + projectId + '/credit';
-          endBtn.className = 'btn';
-          endBtn.textContent = 'END PROJECT';
-          bar.appendChild(endBtn);
-          app.appendChild(bar);
-
-          var vetoPanel = document.createElement('div');
-          vetoPanel.className = 'panel hidden';
-          vetoPanel.id = 'veto-panel';
-          vetoPanel.appendChild(document.createElement('h2')).textContent = 'Raise veto';
-          var vform = document.createElement('form');
-          var vl1 = document.createElement('label');
-          vl1.textContent = 'Veto type';
-          var vsel = document.createElement('select');
-          vsel.required = true;
-          fillSelect(vsel, VETO_TYPES);
-          var vl2 = document.createElement('label');
-          vl2.textContent = 'Reason';
-          var vreason = document.createElement('textarea');
-          vreason.required = true;
-          var vl3 = document.createElement('label');
-          vl3.textContent = 'Target traces (optional, multi-select)';
-          var vtr = document.createElement('select');
-          vtr.multiple = true;
-          vtr.size = Math.min(8, Math.max(3, traces.length));
-          traces.forEach(function (t) {
-            var o = document.createElement('option');
-            o.value = t._id;
-            o.textContent = (t._id || '') + ' — ' + (t.activityType || '') + ' — ' + (t.description || '').slice(0, 40);
-            vtr.appendChild(o);
-          });
-          vform.appendChild(vl1);
-          vform.appendChild(vsel);
-          vform.appendChild(vl2);
-          vform.appendChild(vreason);
-          vform.appendChild(vl3);
-          vform.appendChild(vtr);
-          var vsub = document.createElement('button');
-          vsub.type = 'submit';
-          vsub.className = 'btn';
-          vsub.textContent = 'SUBMIT VETO';
-          vform.appendChild(vsub);
-          vetoBtn.addEventListener('click', function () {
-            vetoPanel.classList.toggle('hidden');
-          });
-          vform.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            var selected = Array.prototype.slice.call(vtr.selectedOptions).map(function (o) {
-              return o.value;
-            });
-            var body = {
-              projectId: projectId,
-              vetoType: vsel.value,
-              reason: vreason.value,
-            };
-            if (selected.length) body.targetTraceIds = selected;
-            apiFetch('POST', '/vetos', { auth: true, body: body })
-              .then(function (data) {
-                appendApiDetails(vetoPanel, data, 'Raw API response');
-                location.hash = '#/projects/' + projectId;
-                render();
-              })
-              .catch(function (err) {
-                showError(err.message || String(err));
-              });
-          });
-          vetoPanel.appendChild(vform);
-          app.appendChild(vetoPanel);
-        }
-
-        var nftLinkRow = document.createElement('p');
-        nftLinkRow.className = 'hint';
-        if (project.status === 'completed' || project.status === 'archived') {
-          apiFetch('GET', '/credits/project/' + encodeURIComponent(projectId), { auth: true })
-            .then(function (cr) {
-              if (cr && cr.nft && cr.nft._id) {
-                var na = document.createElement('a');
-                na.href = '#/nfts/' + encodeURIComponent(cr.nft._id);
-                na.textContent = 'VIEW NFT';
-                nftLinkRow.appendChild(document.createTextNode('Credit: '));
-                nftLinkRow.appendChild(na);
-              }
-            })
-            .catch(function () {});
-          app.appendChild(nftLinkRow);
-        }
-
-        var hT = document.createElement('h2');
-        hT.textContent = 'Timeline';
-        app.appendChild(hT);
-        var merged = mergeTimeline(traces, refs, pivots, vetos);
-        if (merged.length === 0) {
-          var em = document.createElement('p');
-          em.className = 'hint';
-          em.textContent = 'No events yet.';
-          app.appendChild(em);
-        } else {
-          merged.forEach(function (ev) {
-            var div = document.createElement('div');
-            div.className = 'timeline-item';
-            var tag = document.createElement('span');
-            tag.className = 'tag';
-            tag.textContent = ev.type;
-            div.appendChild(tag);
-            div.appendChild(document.createTextNode(' ' + ev.alias + ' — ' + formatTs(ev.ts)));
-            var br = document.createElement('div');
-            br.className = 'small';
-            br.style.marginTop = '0.35rem';
-            br.style.textTransform = 'none';
-            br.style.letterSpacing = 'normal';
-            br.textContent = ev.text || '—';
-            div.appendChild(br);
-            app.appendChild(div);
-          });
-        }
-
-        appendApiDetails(app, { project: project, timeline: merged }, 'Raw API response');
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
-  }
-
-  function formatTs(ts) {
-    try {
-      return new Date(ts).toISOString();
-    } catch (e) {
-      return String(ts);
-    }
-  }
-
-  function renderTrace(app, projectId) {
-    app.innerHTML = '';
-    clearError();
-    var h1 = document.createElement('h1');
-    h1.textContent = 'Log work';
-    app.appendChild(h1);
-    var form = document.createElement('form');
-    form.className = 'panel';
-
-    var l1 = document.createElement('label');
-    l1.textContent = 'Activity type';
-    var s1 = document.createElement('select');
-    s1.required = true;
-    fillSelect(s1, ACTIVITY_TYPES);
-    var otherWrap = document.createElement('div');
-    otherWrap.className = 'hidden';
-    var lOther = document.createElement('label');
-    lOther.textContent = 'Other description';
-    var iOther = document.createElement('input');
-    otherWrap.appendChild(lOther);
-    otherWrap.appendChild(iOther);
-    s1.addEventListener('change', function () {
-      otherWrap.classList.toggle('hidden', s1.value !== 'other');
-    });
-
-    var l2 = document.createElement('label');
-    l2.textContent = 'Description (optional)';
-    var i2 = document.createElement('textarea');
-    var l3 = document.createElement('label');
-    l3.textContent = 'Duration minutes (optional)';
-    var i3 = document.createElement('input');
-    i3.type = 'number';
-    i3.min = '0';
-    var l4 = document.createElement('label');
-    l4.textContent = 'Tool / software (optional)';
-    var i4 = document.createElement('input');
-    var proxyRow = document.createElement('label');
-    proxyRow.className = 'checkbox-row';
-    var proxyChk = document.createElement('input');
-    proxyChk.type = 'checkbox';
-    proxyChk.id = 'proxy-toggle';
-    proxyRow.appendChild(proxyChk);
-    proxyRow.appendChild(document.createTextNode('PROXY LOG'));
-    var proxyWrap = document.createElement('div');
-    proxyWrap.className = 'hidden';
-    var l5 = document.createElement('label');
-    l5.textContent = 'Proxy for alias';
-    var i5 = document.createElement('input');
-    proxyWrap.appendChild(l5);
-    proxyWrap.appendChild(i5);
-    proxyChk.addEventListener('change', function () {
-      proxyWrap.classList.toggle('hidden', !proxyChk.checked);
-    });
-
-    form.appendChild(l1);
-    form.appendChild(s1);
-    form.appendChild(otherWrap);
-    form.appendChild(l2);
-    form.appendChild(i2);
-    form.appendChild(l3);
-    form.appendChild(i3);
-    form.appendChild(l4);
-    form.appendChild(i4);
-    form.appendChild(proxyRow);
-    form.appendChild(proxyWrap);
-    var sub = document.createElement('button');
-    sub.type = 'submit';
-    sub.className = 'btn';
-    sub.textContent = 'LOG WORK';
-    form.appendChild(sub);
-    app.appendChild(form);
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      var body = {
-        projectId: projectId,
-        activityType: s1.value,
-        description: i2.value.trim() || undefined,
-        duration: i3.value ? Number(i3.value) : undefined,
-        toolSoftware: i4.value.trim() || undefined,
-      };
-      if (s1.value === 'other') body.otherDescription = iOther.value.trim();
-      if (proxyChk.checked) {
-        body.mode = 'proxy';
-        body.proxyForAlias = i5.value.trim();
-      } else {
-        body.mode = 'micro';
-      }
-      apiFetch('POST', '/traces', { auth: true, body: body })
-        .then(function (data) {
-          appendApiDetails(form, data, 'Raw API response');
-          var p = document.createElement('p');
-          p.className = 'hint';
-          p.textContent = 'Trace id: ' + (data._id || '');
-          form.appendChild(p);
-          var back = document.createElement('a');
-          back.href = '#/projects/' + projectId;
-          back.className = 'btn btn--secondary';
-          back.textContent = 'Back to project';
-          form.appendChild(back);
-        })
-        .catch(function (err) {
-          showError(err.message || String(err));
-        });
-    });
-  }
-
-  function renderReference(app, projectId) {
-    app.innerHTML = '';
-    clearError();
-    var h1 = document.createElement('h1');
-    h1.textContent = 'Add reference';
-    app.appendChild(h1);
-    var form = document.createElement('form');
-    form.className = 'panel';
-    var l1 = document.createElement('label');
-    l1.textContent = 'External URL or citation';
-    var i1 = document.createElement('input');
-    i1.required = true;
-    var l2 = document.createElement('label');
-    l2.textContent = 'Relationship type';
-    var s1 = document.createElement('select');
-    s1.required = true;
-    fillSelect(s1, RELATIONSHIP_TYPES);
-    var otherWrap = document.createElement('div');
-    otherWrap.className = 'hidden';
-    var lo = document.createElement('label');
-    lo.textContent = 'Explanation (required for other)';
-    var io = document.createElement('textarea');
-    otherWrap.appendChild(lo);
-    otherWrap.appendChild(io);
-    s1.addEventListener('change', function () {
-      otherWrap.classList.toggle('hidden', s1.value !== 'other');
-    });
-    form.appendChild(l1);
-    form.appendChild(i1);
-    form.appendChild(l2);
-    form.appendChild(s1);
-    form.appendChild(otherWrap);
-    var sub = document.createElement('button');
-    sub.type = 'submit';
-    sub.className = 'btn';
-    sub.textContent = 'ADD REFERENCE';
-    form.appendChild(sub);
-    app.appendChild(form);
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      var raw = i1.value.trim();
-      var body = {
-        projectId: projectId,
-        relationshipType: s1.value,
-      };
+    var text = await res.text();
+    var data = null;
+    if (text) {
       try {
-        new URL(raw);
-        body.externalUrl = raw;
-      } catch (err) {
-        body.citation = raw;
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { raw: text };
       }
-      if (s1.value === 'other') body.otherExplanation = io.value.trim();
-      apiFetch('POST', '/references', { auth: true, body: body })
-        .then(function (data) {
-          appendApiDetails(form, data, 'Raw API response');
-          location.hash = '#/projects/' + projectId;
-          render();
-        })
-        .catch(function (err) {
-          showError(err.message || String(err));
-        });
-    });
+    }
+    if (!res.ok) {
+      var msg = (data && (data.error || data.message)) || text || res.statusText;
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+    return data;
   }
 
-  function renderPivot(app, projectId) {
-    app.innerHTML = '';
-    clearError();
-    app.appendChild(document.createElement('h1')).textContent = 'Record pivot';
-    var form = document.createElement('form');
-    form.className = 'panel';
-    var l = document.createElement('label');
-    l.textContent = 'Reason';
-    var ta = document.createElement('textarea');
-    ta.required = true;
-    var sub = document.createElement('button');
-    sub.type = 'submit';
-    sub.className = 'btn';
-    sub.textContent = 'RECORD PIVOT';
-    form.appendChild(l);
-    form.appendChild(ta);
-    form.appendChild(sub);
-    app.appendChild(form);
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      clearError();
-      apiFetch('POST', '/pivots', {
-        auth: true,
-        body: { projectId: projectId, reason: ta.value.trim() },
-      })
-        .then(function (data) {
-          appendApiDetails(form, data, 'Raw API response');
-          location.hash = '#/projects/' + projectId;
-          render();
-        })
-        .catch(function (err) {
-          showError(err.message || String(err));
-        });
-    });
+  function parseRoute() {
+    var raw = (location.hash || '#/').replace(/^#\/?/, '');
+    var parts = raw.split('/').filter(Boolean);
+    if (parts.length === 0) return { view: 'landing', parts: parts };
+    var a = parts[0];
+    if (a === 'register') return { view: 'register', parts: parts };
+    if (a === 'recover') return { view: 'recover', parts: parts };
+    if (a === 'login') return { view: 'login', parts: parts };
+    if (a === 'dashboard') return { view: 'dashboard', parts: parts };
+    if (a === 'me') return { view: 'me', parts: parts };
+    if (a === 'discover') return { view: 'discover', parts: parts };
+    if (a === 'archive' && parts[1] === 'new') return { view: 'archive-new', parts: parts };
+    if (a === 'nodes' && parts[1]) return { view: 'node-public', alias: parts[1], parts: parts };
+    if (a === 'nfts' && parts[1]) return { view: 'nft', id: parts[1], parts: parts };
+    if (a === 'spaces') {
+      if (parts[1] === 'new') return { view: 'spaces-new', parts: parts };
+      if (parts[1] === 'join') return { view: 'spaces-join', parts: parts };
+      if (parts[1] && parts[2] === 'settings') return { view: 'space-settings', id: parts[1], parts: parts };
+      if (parts[1]) return { view: 'space', id: parts[1], parts: parts };
+      return { view: 'spaces', parts: parts };
+    }
+    if (a === 'projects') {
+      if (parts[1] === 'new') return { view: 'project-new', parts: parts };
+      if (parts[1]) {
+        var pid = parts[1];
+        var sub = parts[2] || 'view';
+        var map = {
+          view: 'project',
+          trace: 'project-trace',
+          reference: 'project-reference',
+          pivot: 'project-pivot',
+          veto: 'project-veto',
+          fork: 'project-fork',
+          credit: 'project-credit',
+          nft: 'project-nft',
+        };
+        return { view: map[sub] || 'project', projectId: pid, parts: parts };
+      }
+    }
+    return { view: 'landing', parts: parts };
   }
 
-  function renderCredit(app, projectId) {
-    app.innerHTML = '';
-    clearError();
-    apiFetch('GET', '/projects/' + encodeURIComponent(projectId), { auth: true })
-      .then(function (project) {
-        var h1 = document.createElement('h1');
-        h1.textContent = 'End project / credit';
-        app.appendChild(h1);
-
-        var panel = document.createElement('div');
-        panel.className = 'panel';
-        panel.appendChild(document.createElement('h2')).textContent = 'Contributors';
-        var tbl = document.createElement('div');
-        var weightInputs = {};
-        (project.contributors || []).forEach(function (c) {
-          var row = document.createElement('div');
-          row.style.marginBottom = '0.75rem';
-          row.textContent = c.alias + ' — ' + (c.role || '') + ' — weight (0–1, leave blank for equal split)';
-          var inp = document.createElement('input');
-          inp.type = 'text';
-          inp.placeholder = 'equal split';
-          inp.dataset.alias = c.alias;
-          weightInputs[c.alias] = inp;
-          row.appendChild(inp);
-          tbl.appendChild(row);
-        });
-        panel.appendChild(tbl);
-        var lD = document.createElement('label');
-        lD.className = 'checkbox-row';
-        var chD = document.createElement('input');
-        chD.type = 'checkbox';
-        chD.id = 'dispute';
-        lD.appendChild(chD);
-        lD.appendChild(document.createTextNode('Dispute flag'));
-        panel.appendChild(lD);
-        var sub = document.createElement('button');
-        sub.type = 'button';
-        sub.className = 'btn';
-        sub.textContent = 'MINT NFT';
-        panel.appendChild(sub);
-
-        var signSection = document.createElement('div');
-        signSection.className = 'panel hidden';
-        signSection.id = 'credit-sign-section';
-        app.appendChild(panel);
-        app.appendChild(signSection);
-
-        sub.addEventListener('click', function () {
-          clearError();
-          var contributors = [];
-          var aliases = Object.keys(weightInputs);
-          var any = aliases.some(function (a) {
-            return weightInputs[a].value.trim() !== '';
-          });
-          if (any) {
-            var sum = 0;
-            for (var wi = 0; wi < aliases.length; wi++) {
-              var a = aliases[wi];
-              var rawW = weightInputs[a].value.trim();
-              if (rawW === '') {
-                showError('If using weights, every contributor needs a numeric weight.');
-                return;
-              }
-              var v = parseFloat(rawW);
-              if (isNaN(v)) {
-                showError('Invalid weight for ' + a);
-                return;
-              }
-              sum += v;
-              contributors.push({ alias: a, weight: v });
-            }
-            if (Math.abs(sum - 1) > 0.001) {
-              showError('Weights must sum to 1.');
-              return;
-            }
-          }
-          var body = {
-            projectId: projectId,
-            disputeFlag: !!chD.checked,
-          };
-          if (contributors.length) body.contributors = contributors;
-          apiFetch('POST', '/credits', { auth: true, body: body })
-            .then(function (data) {
-              appendApiDetails(panel, data, 'Raw API response');
-              var nftId = data.nft && data.nft._id;
-              var msg = document.createElement('p');
-              msg.className = 'hint';
-              msg.textContent =
-                'NFT id: ' +
-                nftId +
-                ' — contributor tokens: ' +
-                (data.contributorTokens != null ? data.contributorTokens : '') +
-                ' — ';
-              var prov = document.createElement('a');
-              prov.href = '#/nfts/' + encodeURIComponent(nftId);
-              prov.textContent = 'Provenance';
-              msg.appendChild(prov);
-              panel.appendChild(msg);
-              signSection.classList.remove('hidden');
-              signSection.innerHTML = '';
-              signSection.appendChild(document.createElement('h2')).textContent = 'Sign credit';
-              var hint = document.createElement('p');
-              hint.className = 'hint';
-              hint.textContent =
-                'All on-chain contributors must POST sign before the credit is finalized. Use the button below if you are a contributor.';
-              signSection.appendChild(hint);
-              var signBtn = document.createElement('button');
-              signBtn.type = 'button';
-              signBtn.className = 'btn';
-              signBtn.textContent = 'SIGN CREDIT (accept)';
-              signSection.appendChild(signBtn);
-              signBtn.addEventListener('click', function () {
-                clearError();
-                apiFetch('POST', '/credits/' + encodeURIComponent(nftId) + '/sign', {
-                  auth: true,
-                  body: { accepted: true },
-                })
-                  .then(function (sig) {
-                    appendApiDetails(signSection, sig, 'Raw API response');
-                  })
-                  .catch(function (err) {
-                    showError(err.message || String(err));
-                  });
-              });
-            })
-            .catch(function (err) {
-              showError(err.message || String(err));
-            });
-        });
-
-        appendApiDetails(app, { project: project }, 'Raw API response');
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
+  function requireAuth(route) {
+    var authViews = {
+      dashboard: 1,
+      me: 1,
+      spaces: 1,
+      'spaces-new': 1,
+      'spaces-join': 1,
+      space: 1,
+      'space-settings': 1,
+      'project-new': 1,
+      project: 1,
+      'project-trace': 1,
+      'project-reference': 1,
+      'project-pivot': 1,
+      'project-veto': 1,
+      'project-fork': 1,
+      'project-credit': 1,
+      'project-nft': 1,
+      'archive-new': 1,
+      discover: 1,
+    };
+    if (authViews[route.view] && !getToken()) {
+      location.hash = '#/login';
+      return false;
+    }
+    return true;
   }
 
-  function renderArchiveNew(app) {
-    app.innerHTML = '';
-    clearError();
+  function topbar(crumb, showAuth) {
     var alias = getAlias();
-    var h1 = document.createElement('h1');
-    h1.textContent = 'Archive past work';
-    app.appendChild(h1);
-    var form = document.createElement('form');
-    form.className = 'panel';
-
-    apiFetch('GET', '/nodes/' + encodeURIComponent(alias), { auth: true })
-      .then(function (node) {
-        var ids = (node.spaces || []).map(String);
-        return Promise.all(
-          ids.map(function (sid) {
-            return apiFetch('GET', '/spaces/' + encodeURIComponent(sid), { auth: true });
-          }),
-        ).then(function (spaces) {
-          if (!spaces.length) {
-            var em = document.createElement('p');
-            em.className = 'field-error';
-            em.textContent = 'Join or create a space first.';
-            var ax = document.createElement('a');
-            ax.href = '#/spaces';
-            ax.className = 'btn btn--secondary';
-            ax.textContent = 'Go to spaces';
-            app.appendChild(em);
-            app.appendChild(ax);
-            return;
-          }
-          var l0 = document.createElement('label');
-          l0.textContent = 'Space';
-          var s0 = document.createElement('select');
-          s0.required = true;
-          spaces.forEach(function (sp) {
-            var o = document.createElement('option');
-            o.value = sp._id;
-            o.textContent = sp.name;
-            s0.appendChild(o);
-          });
-          var saved = localStorage.getItem(LS.spaceId);
-          if (saved) s0.value = saved;
-          form.appendChild(l0);
-          form.appendChild(s0);
-
-          var l1 = document.createElement('label');
-          l1.textContent = 'Title';
-          var i1 = document.createElement('input');
-          i1.required = true;
-          var l2 = document.createElement('label');
-          l2.textContent = 'Medium';
-          var i2 = document.createElement('input');
-          i2.required = true;
-          var l3 = document.createElement('label');
-          l3.textContent = 'Approximate date';
-          var i3 = document.createElement('input');
-          i3.required = true;
-          var l4 = document.createElement('label');
-          l4.textContent = 'Evidence type';
-          var s1 = document.createElement('select');
-          s1.required = true;
-          fillSelect(s1, EVIDENCE_TYPES);
-          var otherEv = document.createElement('div');
-          otherEv.className = 'hidden';
-          var lo = document.createElement('label');
-          lo.textContent = 'Other description';
-          var io = document.createElement('input');
-          otherEv.appendChild(lo);
-          otherEv.appendChild(io);
-          s1.addEventListener('change', function () {
-            otherEv.classList.toggle('hidden', s1.value !== 'other');
-          });
-          var l5 = document.createElement('label');
-          l5.textContent = 'Evidence hash or URL (will be hashed)';
-          var i5 = document.createElement('input');
-          i5.required = true;
-          var l6 = document.createElement('label');
-          l6.textContent = 'Context note (optional)';
-          var i6 = document.createElement('textarea');
-          var c1 = document.createElement('label');
-          c1.className = 'checkbox-row';
-          var ch1 = document.createElement('input');
-          ch1.type = 'checkbox';
-          ch1.required = true;
-          c1.appendChild(ch1);
-          c1.appendChild(document.createTextNode('I declare this is my original work'));
-          var c2 = document.createElement('label');
-          c2.className = 'checkbox-row';
-          var ch2 = document.createElement('input');
-          ch2.type = 'checkbox';
-          ch2.id = 'recon';
-          var span2 = document.createElement('span');
-          span2.textContent = 'This is a reconstruction';
-          c2.appendChild(ch2);
-          c2.appendChild(span2);
-
-          form.appendChild(l1);
-          form.appendChild(i1);
-          form.appendChild(l2);
-          form.appendChild(i2);
-          form.appendChild(l3);
-          form.appendChild(i3);
-          form.appendChild(l4);
-          form.appendChild(s1);
-          form.appendChild(otherEv);
-          form.appendChild(l5);
-          form.appendChild(i5);
-          form.appendChild(l6);
-          form.appendChild(i6);
-          form.appendChild(c1);
-          form.appendChild(c2);
-          var sub = document.createElement('button');
-          sub.type = 'submit';
-          sub.className = 'btn';
-          sub.textContent = 'ARCHIVE';
-          form.appendChild(sub);
-          app.appendChild(form);
-
-          form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            if (!ch1.checked) {
-              showError('You must confirm original work.');
-              return;
-            }
-            sha256HexUtf8(i5.value.trim()).then(function (hash) {
-              var ev = {
-                evidenceType: s1.value,
-                evidenceHash: hash,
-              };
-              if (s1.value === 'other') ev.otherDescription = io.value.trim();
-              var body = {
-                title: i1.value.trim(),
-                medium: i2.value.trim(),
-                approxDate: i3.value.trim(),
-                spaceId: s0.value,
-                evidence: [ev],
-                reconstructionFlag: !!ch2.checked,
-                originalWorkDeclaration: true,
-              };
-              if (i6.value.trim()) body.contextNote = i6.value.trim();
-              apiFetch('POST', '/archives', { auth: true, body: body })
-                .then(function (data) {
-                  appendApiDetails(form, data, 'Raw API response');
-                  var p = document.createElement('p');
-                  p.className = 'hint';
-                  p.textContent =
-                    'Archive id: ' +
-                    (data.archive && data.archive._id) +
-                    ' — NFT id: ' +
-                    (data.nft && data.nft._id);
-                  form.appendChild(p);
-                })
-                .catch(function (err) {
-                  showError(err.message || String(err));
-                });
-            });
-          });
-        });
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
+    if (!showAuth) return '';
+    return (
+      '<header class="topbar"><a class="topbar__brand" href="#/dashboard">AURA2</a><div class="topbar__crumb mono">' +
+      escapeHtml(crumb) +
+      '</div><div class="topbar__user"><a href="#/me">[' +
+      escapeHtml(alias) +
+      ']</a> <button type="button" class="btn btn--secondary" id="btn-signout">SIGN OUT</button></div></header>'
+    );
   }
 
-  function renderNft(app, nftId) {
-    app.innerHTML = '';
-    clearError();
-    apiFetch('GET', '/nfts/' + encodeURIComponent(nftId), { auth: true })
-      .then(function (data) {
-        var nft = data.nft;
-        var project = data.project;
-        var archive = data.archive;
-        var isArchive = !!(archive || (nft.title && nft.title.indexOf('[ARCHIVE]') === 0));
-
-        var h1 = document.createElement('h1');
-        h1.style.fontSize = '1.75rem';
-        h1.textContent = nft.title || 'NFT';
-        app.appendChild(h1);
-        if (isArchive) {
-          var ar = document.createElement('span');
-          ar.className = 'tag';
-          ar.textContent = '[ARCHIVE]';
-          app.appendChild(ar);
-        }
-        var meta = document.createElement('p');
-        meta.textContent = (nft.medium || '') + (project && project.createdAt ? ' — ' + formatTs(project.createdAt) : '');
-        app.appendChild(meta);
-
-        var hC = document.createElement('h2');
-        hC.textContent = 'Creators';
-        app.appendChild(hC);
-        var ulc = document.createElement('ul');
-        ulc.className = 'list-plain';
-        (nft.creators || []).forEach(function (a) {
-          var li = document.createElement('li');
-          var la = document.createElement('a');
-          la.href = '#/nodes/' + encodeURIComponent(a);
-          la.textContent = a;
-          li.appendChild(la);
-          ulc.appendChild(li);
-        });
-        app.appendChild(ulc);
-
-        var hCo = document.createElement('h2');
-        hCo.textContent = 'Contributors';
-        app.appendChild(hCo);
-        var ult = document.createElement('ul');
-        ult.className = 'list-plain';
-        (nft.contributors || []).forEach(function (c) {
-          var li = document.createElement('li');
-          li.textContent =
-            c.alias + ' — ' + (c.role || '') + ' — weight ' + (c.weight != null ? c.weight : '');
-          ult.appendChild(li);
-        });
-        app.appendChild(ult);
-
-        var hP = document.createElement('h2');
-        hP.textContent = 'Process (block indices)';
-        app.appendChild(hP);
-        var pp = document.createElement('p');
-        pp.className = 'mono';
-        pp.textContent = (nft.processBlockIndices || []).join(', ') || '—';
-        app.appendChild(pp);
-
-        var hPr = document.createElement('h2');
-        hPr.textContent = 'Provenance';
-        app.appendChild(hPr);
-        var pr = document.createElement('p');
-        pr.textContent =
-          'Project: ' +
-          (project && project._id) +
-          ' — Space: ' +
-          (project && project.spaceId) +
-          ' — Created: ' +
-          (project && project.createdAt ? formatTs(project.createdAt) : '—');
-        app.appendChild(pr);
-        if (nft.disputed) {
-          var dis = document.createElement('p');
-          dis.className = 'field-error';
-          dis.textContent = 'DISPUTED';
-          app.appendChild(dis);
-        }
-
-        var share = document.createElement('button');
-        share.type = 'button';
-        share.className = 'btn btn--secondary';
-        share.textContent = 'SHARE (copy public URL)';
-        share.addEventListener('click', function () {
-          var url = location.origin + location.pathname + '#/nfts/' + encodeURIComponent(nftId);
-          navigator.clipboard.writeText(url).then(
-            function () {
-              appendApiDetails(app, { copied: url }, 'Clipboard');
-            },
-            function () {
-              showError('Could not copy.');
-            },
-          );
-        });
-        app.appendChild(share);
-
-        appendApiDetails(app, data, 'Raw API response');
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
+  function flashErr(msg) {
+    return '<div class="flash flash--err" role="alert">' + escapeHtml(msg) + '</div>';
+  }
+  function flashOk(msg) {
+    return '<div class="flash flash--ok">' + escapeHtml(msg) + '</div>';
+  }
+  function rawApi(data) {
+    return (
+      '<details class="raw-api"><summary>API response (raw)</summary><pre class="mono">' +
+      escapeHtml(JSON.stringify(data, null, 2)) +
+      '</pre></details>'
+    );
   }
 
-  function renderNodePublic(app, aliasParam) {
-    app.innerHTML = '';
-    clearError();
-    apiFetch('GET', '/nodes/' + encodeURIComponent(aliasParam), { auth: !!getToken() })
-      .then(function (node) {
-        var title = document.createElement('div');
-        title.style.fontSize = '2rem';
-        title.style.textTransform = 'uppercase';
-        title.style.letterSpacing = '0.08em';
-        title.textContent = node.alias;
-        app.appendChild(title);
-        app.insertAdjacentHTML('beforeend', radarSvg(node.reputationCategories));
-        var hB = document.createElement('h2');
-        hB.textContent = 'Badges';
-        app.appendChild(hB);
-        if (!(node.badges || []).length) {
-          var nb = document.createElement('p');
-          nb.className = 'hint';
-          nb.textContent = 'None.';
-          app.appendChild(nb);
-        } else {
-          var ul = document.createElement('ul');
-          ul.className = 'list-plain';
-          node.badges.forEach(function (b) {
-            var li = document.createElement('li');
-            li.textContent = b;
-            ul.appendChild(li);
-          });
-          app.appendChild(ul);
-        }
-        var hi = document.createElement('h2');
-        hi.textContent = 'Interests';
-        app.appendChild(hi);
-        var pi = document.createElement('p');
-        pi.textContent = (node.interests || []).join(', ') || '—';
-        app.appendChild(pi);
-        var hk = document.createElement('h2');
-        hk.textContent = 'Keywords';
-        app.appendChild(hk);
-        var pk = document.createElement('p');
-        pk.textContent = (node.keywords || []).join(', ') || '—';
-        app.appendChild(pk);
-        if (node.portfolioUrl) {
-          var hp = document.createElement('h2');
-          hp.textContent = 'Portfolio';
-          app.appendChild(hp);
-          var pa = document.createElement('a');
-          pa.href = node.portfolioUrl;
-          pa.textContent = node.portfolioUrl;
-          pa.target = '_blank';
-          pa.rel = 'noopener noreferrer';
-          app.appendChild(pa);
-        }
-        var hs = document.createElement('h2');
-        hs.textContent = 'Spaces';
-        app.appendChild(hs);
-        var spList =
-          node.spacesWithNames && node.spacesWithNames.length
-            ? node.spacesWithNames.map(function (x) {
-                return x.name;
-              })
-            : (node.spaces || []).map(String);
-        var ps = document.createElement('p');
-        ps.textContent = spList.join(', ') || '—';
-        app.appendChild(ps);
-        var hc = document.createElement('h2');
-        hc.textContent = 'Completed projects';
-        app.appendChild(hc);
-        var ulp = document.createElement('ul');
-        ulp.className = 'list-plain';
-        (node.completedProjects || []).forEach(function (cp) {
-          var li = document.createElement('li');
-          li.appendChild(document.createTextNode(cp.title + ' '));
-          if (cp.nftId) {
-            var a = document.createElement('a');
-            a.href = '#/nfts/' + encodeURIComponent(cp.nftId);
-            a.textContent = 'NFT';
-            li.appendChild(a);
-          }
-          ulp.appendChild(li);
-        });
-        if (!(node.completedProjects || []).length) {
-          var ep = document.createElement('p');
-          ep.className = 'hint';
-          ep.textContent = 'None listed.';
-          app.appendChild(ep);
-        } else app.appendChild(ulp);
-
-        appendApiDetails(app, node, 'Raw API response');
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
+  async function loadNodeProfile(alias) {
+    return api('/nodes/' + encodeURIComponent(alias), { token: getToken() || '' });
   }
 
-  function renderMe(app) {
-    app.innerHTML = '';
-    clearError();
-    var alias = getAlias();
-    apiFetch('GET', '/nodes/' + encodeURIComponent(alias), { auth: true })
-      .then(function (node) {
-        var h1 = document.createElement('h1');
-        h1.textContent = 'My profile';
-        app.appendChild(h1);
-        var p = document.createElement('p');
-        p.className = 'mono';
-        p.textContent = 'Alias: ' + alias;
-        app.appendChild(p);
-        var pub = document.createElement('a');
-        pub.href = '#/nodes/' + encodeURIComponent(alias);
-        pub.textContent = 'Public profile';
-        app.appendChild(pub);
-
-        var form = document.createElement('form');
-        form.className = 'panel';
-        form.style.marginTop = '2rem';
-        var l1 = document.createElement('label');
-        l1.textContent = 'Interests (comma-separated)';
-        var i1 = document.createElement('input');
-        i1.value = (node.interests || []).join(', ');
-        var l2 = document.createElement('label');
-        l2.textContent = 'Portfolio URL';
-        var i2 = document.createElement('input');
-        i2.type = 'url';
-        i2.value = node.portfolioUrl || '';
-        var l3 = document.createElement('label');
-        l3.textContent = 'Keywords (comma-separated)';
-        var i3 = document.createElement('input');
-        i3.value = (node.keywords || []).join(', ');
-        var sub = document.createElement('button');
-        sub.type = 'submit';
-        sub.className = 'btn';
-        sub.textContent = 'Save';
-        form.appendChild(l1);
-        form.appendChild(i1);
-        form.appendChild(l2);
-        form.appendChild(i2);
-        form.appendChild(l3);
-        form.appendChild(i3);
-        form.appendChild(sub);
-        app.appendChild(form);
-
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          clearError();
-          var interests = i1.value
-            .split(',')
-            .map(function (s) {
-              return s.trim();
-            })
-            .filter(Boolean);
-          var keywords = i3.value
-            .split(',')
-            .map(function (s) {
-              return s.trim();
-            })
-            .filter(Boolean);
-          var body = { interests: interests, keywords: keywords, portfolioUrl: i2.value.trim() };
-          apiFetch('PATCH', '/nodes/me', { auth: true, body: body })
-            .then(function (data) {
-              appendApiDetails(form, data, 'Raw API response');
-            })
-            .catch(function (err) {
-              showError(err.message || String(err));
-            });
-        });
-
-        appendApiDetails(app, node, 'Raw API response');
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
-  }
-
-  function renderProjectNew(app) {
-    app.innerHTML = '';
-    clearError();
-    var alias = getAlias();
-    var h1 = document.createElement('h1');
-    h1.textContent = 'Start new project';
-    app.appendChild(h1);
-    var form = document.createElement('form');
-    form.className = 'panel';
-    apiFetch('GET', '/nodes/' + encodeURIComponent(alias), { auth: true })
-      .then(function (node) {
-        var ids = (node.spaces || []).map(String);
-        return Promise.all(
-          ids.map(function (sid) {
-            return apiFetch('GET', '/spaces/' + encodeURIComponent(sid), { auth: true });
-          }),
-        ).then(function (spaces) {
-          if (!spaces.length) {
-            var em = document.createElement('p');
-            em.className = 'field-error';
-            em.textContent = 'Join or create a space first.';
-            var a = document.createElement('a');
-            a.href = '#/spaces';
-            a.className = 'btn btn--secondary';
-            a.textContent = 'Go to spaces';
-            app.appendChild(em);
-            app.appendChild(a);
-            return;
-          }
-          var l0 = document.createElement('label');
-          l0.textContent = 'Space';
-          var s0 = document.createElement('select');
-          s0.required = true;
-          spaces.forEach(function (sp) {
-            var o = document.createElement('option');
-            o.value = sp._id;
-            o.textContent = sp.name;
-            s0.appendChild(o);
-          });
-          var def = localStorage.getItem(LS.spaceId);
-          if (
-            def &&
-            Array.prototype.some.call(s0.options, function (o) {
-              return o.value === def;
-            })
-          )
-            s0.value = def;
-          var l1 = document.createElement('label');
-          l1.textContent = 'Title';
-          var i1 = document.createElement('input');
-          i1.required = true;
-          form.appendChild(l0);
-          form.appendChild(s0);
-          form.appendChild(l1);
-          form.appendChild(i1);
-          var sub = document.createElement('button');
-          sub.type = 'submit';
-          sub.className = 'btn';
-          sub.textContent = 'Create project';
-          form.appendChild(sub);
-          app.appendChild(form);
-          form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            apiFetch('POST', '/projects', {
-              auth: true,
-              body: { title: i1.value.trim(), spaceId: s0.value },
-            })
-              .then(function (data) {
-                appendApiDetails(form, data, 'Raw API response');
-                localStorage.setItem(LS.projectId, data._id);
-                location.hash = '#/projects/' + encodeURIComponent(data._id);
-                render();
-              })
-              .catch(function (err) {
-                showError(err.message || String(err));
-              });
-          });
-        });
-      })
-      .catch(function (err) {
-        showError(err.message || String(err));
-      });
-  }
-
-  function renderUnknown(app, raw) {
-    app.innerHTML = '';
-    var p = document.createElement('p');
-    p.className = 'field-error';
-    p.textContent = 'Unknown route: #' + (raw || '');
-    app.appendChild(p);
-    var a = document.createElement('a');
-    a.href = '#/';
-    a.textContent = 'Home';
-    app.appendChild(a);
-  }
-
-  function render() {
+  async function render() {
     var app = document.getElementById('app');
     if (!app) return;
-    updateTopBar();
-    clearError();
-    app.innerHTML = '';
-
-    if (getToken() && sessionStorage.getItem(SS_PENDING_SEED) != null) {
-      renderSeedTakeover(app);
-      return;
-    }
-
     var route = parseRoute();
-    var token = getToken();
+    if (!requireAuth(route)) return;
 
-    if (!token) {
-      if (
-        route.name !== 'home' &&
-        route.name !== 'register' &&
-        route.name !== 'login' &&
-        route.name !== 'node'
-      ) {
-        location.hash = '#/';
+    try {
+      if (route.view === 'landing') {
+        app.innerHTML =
+          '<div class="shell shell--landing landing">' +
+          '<div class="landing__art" aria-hidden="true"></div>' +
+          '<h1 class="landing__title">AURA2</h1>' +
+          '<p class="landing__tag">a chain for documenting what making actually looks like</p>' +
+          '<div class="btn-row">' +
+          '<a class="btn btn--primary" href="#/register">ENTER THE CHAIN</a>' +
+          '<a class="btn btn--secondary" href="#/login">ALREADY A NODE? LOGIN</a></div>' +
+          '<div class="landing__corner-bl">' +
+          iconChain() +
+          '<span>chain status: live</span></div>' +
+          '<div class="landing__corner-br">trust-based. non-financial. open.</div></div>';
         return;
       }
+
+      if (route.view === 'register') {
+        if (reg.step === 1) {
+          app.innerHTML =
+            '<div class="page">' +
+            '<div class="win">' +
+            '<div class="win__title">NEW NODE REGISTRATION</div>' +
+            '<div class="win__body">' +
+            '<div class="reg-progress"><span class="is-current">1 IDENTITY</span><span>2 SEED PHRASE</span><span>3 CONFIRMED</span></div>' +
+            '<form id="form-reg1">' +
+            '<div class="field"><label for="reg-alias">CHOOSE YOUR ALIAS (permanent — cannot be changed)</label>' +
+            '<input id="reg-alias" name="alias" required autocomplete="username" pattern="[a-z0-9_-]{3,30}" title="lowercase letters, numbers, hyphen, underscore" /></div>' +
+            '<div class="field"><label for="reg-pass">SET PASSWORD (minimum 8 characters)</label>' +
+            '<input id="reg-pass" type="password" name="password" minlength="8" required autocomplete="new-password" /></div>' +
+            '<button type="submit" class="btn btn--primary">CREATE NODE</button></form>' +
+            '<p class="text-muted mt-0">Your alias is your permanent identity on the chain. No email. No phone. No real name.</p>' +
+            '</div></div></div>';
+          document.getElementById('form-reg1').onsubmit = async function (e) {
+            e.preventDefault();
+            var fd = new FormData(e.target);
+            var alias = (fd.get('alias') || '').toString().trim();
+            var password = (fd.get('password') || '').toString();
+            if (!/^[a-z0-9_-]+$/.test(alias)) {
+              app.insertAdjacentHTML('afterbegin', flashErr('Alias: lowercase a-z, 0-9, _, - only'));
+              return;
+            }
+            try {
+              var data = await api('/auth/register', { method: 'POST', body: { alias: alias, password: password } });
+              reg.step = 2;
+              reg.alias = data.alias || alias;
+              reg.token = data.token;
+              reg.password = password;
+              reg.seedWords = (data.seedPhrase || '').split(/\s+/).filter(Boolean);
+              setSession(reg.token, reg.alias);
+              render();
+            } catch (err) {
+              app.insertAdjacentHTML('afterbegin', flashErr(err.message));
+            }
+          };
+          return;
+        }
+        if (reg.step === 2) {
+          var cells = '';
+          for (var i = 0; i < reg.seedWords.length; i++) {
+            cells +=
+              '<div class="seed-cell"><strong>' +
+              (i + 1) +
+              '.</strong> ' +
+              escapeHtml(reg.seedWords[i]) +
+              '</div>';
+          }
+          app.innerHTML =
+            '<div class="page">' +
+            '<div class="win win--warn-left">' +
+            '<div class="win__title">YOUR SEED PHRASE — READ CAREFULLY</div>' +
+            '<div class="win__body">' +
+            '<div class="reg-progress"><span>1 IDENTITY</span><span class="is-current">2 SEED PHRASE</span><span>3 CONFIRMED</span></div>' +
+            '<div class="seed-grid">' +
+            cells +
+            '</div>' +
+            '<div class="warn-block">WRITE THESE 12 WORDS DOWN. THIS IS THE ONLY TIME YOU WILL SEE THEM. THERE IS NO RECOVERY WITHOUT THEM.</div>' +
+            '<form id="form-reg2"><label><input type="checkbox" id="seed-ok" required /> I have written down all 12 words in order</label>' +
+            '<p><button type="submit" class="btn btn--primary" id="btn-seed-go" disabled>ENTER THE CHAIN</button></p></form>' +
+            '</div></div></div>';
+          var ck = document.getElementById('seed-ok');
+          var btn = document.getElementById('btn-seed-go');
+          ck.onchange = function () {
+            btn.disabled = !ck.checked;
+          };
+          document.getElementById('form-reg2').onsubmit = function (e) {
+            e.preventDefault();
+            reg.step = 3;
+            render();
+          };
+          return;
+        }
+        if (reg.step === 3) {
+          app.innerHTML =
+            '<div class="page">' +
+            '<div class="win"><div class="win__title">CONFIRMED</div><div class="win__body">' +
+            '<div class="reg-progress"><span>1 IDENTITY</span><span>2 SEED PHRASE</span><span class="is-current">3 CONFIRMED</span></div>' +
+            '<p>NODE CREATED. WELCOME TO THE CHAIN.</p>' +
+            '<p class="mono">' +
+            escapeHtml(reg.alias) +
+            '</p>' +
+            '<a class="btn btn--primary" href="#/dashboard">GO TO DASHBOARD</a>' +
+            '</div></div></div>';
+          return;
+        }
+      }
+
+      if (route.view === 'login') {
+        app.innerHTML =
+          topbar('login', !!getToken()) +
+          '<div class="page"><div class="win"><div class="win__title">NODE LOGIN</div><div class="win__body">' +
+          '<form id="form-login">' +
+          '<div class="field"><label for="li-alias">ALIAS</label><input id="li-alias" name="alias" required autocomplete="username" /></div>' +
+          '<div class="field"><label for="li-pass">PASSWORD</label><input id="li-pass" type="password" name="password" required autocomplete="current-password" /></div>' +
+          '<button type="submit" class="btn btn--primary">LOGIN</button></form>' +
+          '<p><a href="#/recover">FORGOT PASSWORD? USE SEED PHRASE</a></p>' +
+          '<p><a href="#/register">NEW HERE? REGISTER</a></p></div></div></div>';
+        document.getElementById('form-login').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          try {
+            var data = await api('/auth/login', {
+              method: 'POST',
+              body: { alias: fd.get('alias'), password: fd.get('password') },
+            });
+            setSession(data.token, data.alias);
+            location.hash = '#/dashboard';
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'recover') {
+        app.innerHTML =
+          topbar('recover', false) +
+          '<div class="page"><div class="win"><div class="win__title">SEED RECOVERY</div><div class="win__body">' +
+          '<form id="form-rec"><div class="field"><label>ALIAS</label><input name="alias" required /></div>' +
+          '<div class="field"><label>SEED PHRASE (12 words)</label><textarea name="seedPhrase" required></textarea></div>' +
+          '<div class="field"><label>NEW PASSWORD</label><input type="password" name="newPassword" minlength="8" required /></div>' +
+          '<button type="submit" class="btn btn--danger">RESET PASSWORD</button></form></div></div></div>';
+        document.getElementById('form-rec').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          try {
+            var data = await api('/auth/recover', {
+              method: 'POST',
+              body: {
+                alias: fd.get('alias'),
+                seedPhrase: fd.get('seedPhrase'),
+                newPassword: fd.get('newPassword'),
+              },
+            });
+            setSession(data.token, data.alias);
+            location.hash = '#/dashboard';
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        return;
+      }
+
+      if (route.view === 'space-settings') {
+        var spSet = await api('/spaces/' + encodeURIComponent(route.id));
+        var isAdm = (spSet.admins || []).indexOf(getAlias()) >= 0;
+        if (!isAdm) {
+          app.innerHTML = topbar('space', true) + '<div class="page">' + flashErr('Admin only') + '</div>';
+          bindSignOut();
+          return;
+        }
+        app.innerHTML =
+          topbar('dashboard / spaces / settings', true) +
+          '<div class="page"><div class="win"><div class="win__title">SPACE SETTINGS</div><div class="win__body">' +
+          '<form id="form-sp-set">' +
+          '<div class="field"><label>JOINING (projectAccess)</label><select name="projectAccess">' +
+          '<option value="open"' +
+          (spSet.settings && spSet.settings.projectAccess === 'open' ? ' selected' : '') +
+          '>open</option><option value="invite_only"' +
+          (spSet.settings && spSet.settings.projectAccess === 'invite_only' ? ' selected' : '') +
+          '>invite_only</option><option value="application"' +
+          (spSet.settings && spSet.settings.projectAccess === 'application' ? ' selected' : '') +
+          '>application</option></select></div>' +
+          '<div class="field"><label>VETO AUTHORITY (comma aliases)</label><input name="vetoAuthority" value="' +
+          escapeHtml((spSet.settings && spSet.settings.vetoAuthority || []).join(', ')) +
+          '" /></div>' +
+          '<div class="field"><label>VOTING THRESHOLD</label><input name="votingThreshold" type="number" step="0.05" min="0" max="1" value="' +
+          (spSet.settings && spSet.settings.votingThreshold != null ? spSet.settings.votingThreshold : 0.5) +
+          '" /></div>' +
+          '<button type="submit" class="btn btn--primary">SAVE</button></form></div></div></div>';
+        document.getElementById('form-sp-set').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          try {
+            var out = await api('/spaces/' + encodeURIComponent(route.id) + '/settings', {
+              method: 'PATCH',
+              body: {
+                projectAccess: fd.get('projectAccess'),
+                vetoAuthority: (fd.get('vetoAuthority') || '')
+                  .toString()
+                  .split(',')
+                  .map(function (s) {
+                    return s.trim();
+                  })
+                  .filter(Boolean),
+                votingThreshold: Number(fd.get('votingThreshold')),
+              },
+            });
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashOk('Saved') + rawApi(out));
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'dashboard') {
+        var me = await loadNodeProfile(getAlias());
+        var spaces = me.spacesWithNames || [];
+        var projectsHtml = '';
+        for (var si = 0; si < spaces.length; si++) {
+          try {
+            var plist = await api('/projects/space/' + encodeURIComponent(spaces[si].id));
+            for (var pj = 0; pj < plist.length; pj++) {
+              var p = plist[pj];
+              projectsHtml +=
+                '<div class="list-row"><div><strong>' +
+                escapeHtml(p.title) +
+                '</strong> <span class="tag ' +
+                tagClass(p.status) +
+                '">' +
+                escapeHtml(p.status) +
+                '</span><br/><span class="text-muted">' +
+                escapeHtml(spaces[si].name) +
+                '</span></div><a class="btn btn--secondary" href="#/projects/' +
+                p._id +
+                '">VIEW →</a></div>';
+            }
+          } catch (e) {
+            projectsHtml += '<div class="flash flash--err">' + escapeHtml(e.message) + '</div>';
+          }
+        }
+        var notes = [];
+        try {
+          notes = await api('/notifications');
+        } catch (e) {
+          notes = [];
+        }
+        var nh = '';
+        for (var n = 0; n < notes.length; n++) {
+          if (!notes[n].read) nh += '<div class="list-row">' + escapeHtml(notes[n].message || notes[n].type || 'notification') + '</div>';
+        }
+        var badges = (me.badges || []).map(function (b) {
+          return '<span class="tag tag--active">' + escapeHtml(String(b).toUpperCase()) + '</span>';
+        });
+        app.innerHTML =
+          topbar('dashboard', true) +
+          '<div class="page"><div class="grid-12">' +
+          '<div class="col-7"><div class="win"><div class="win__title">MY NODE</div><div class="win__body">' +
+          '<h2 class="mt-0">' +
+          escapeHtml(me.alias) +
+          '</h2>' +
+          radarSvg(me.reputationCategories, me.reputationScore) +
+          '<div>' +
+          badges.join(' ') +
+          '</div></div></div></div>' +
+          '<div class="col-5">' +
+          '<div class="win"><div class="win__title">MY SPACES</div><div class="win__body">' +
+          spaces
+            .map(function (s) {
+              return (
+                '<div class="list-row"><div>' +
+                escapeHtml(s.name) +
+                '</div><a class="btn btn--secondary" href="#/spaces/' +
+                s.id +
+                '">VIEW →</a></div>'
+              );
+            })
+            .join('') +
+          '<div class="btn-row"><a class="btn btn--secondary" href="#/spaces/new">+ CREATE SPACE</a> <a class="btn btn--secondary" href="#/spaces/join">+ JOIN SPACE</a></div>' +
+          '</div></div>' +
+          '<div class="win"><div class="win__title">MY PROJECTS</div><div class="win__body list-rows">' +
+          (projectsHtml || '<p class="text-muted">No projects yet.</p>') +
+          '<div class="btn-row"><a class="btn btn--secondary" href="#/projects/new">+ NEW PROJECT</a></div></div></div>' +
+          '<div class="win"><div class="win__title">NOTIFICATIONS</div><div class="win__body">' +
+          (nh || '<p class="text-muted">No unread.</p>') +
+          '<button type="button" class="btn btn--secondary" id="btn-notify-read">MARK ALL READ</button></div></div>' +
+          '</div></div></div>';
+        var br = document.getElementById('btn-notify-read');
+        if (br)
+          br.onclick = async function () {
+            try {
+              await api('/notifications/read-all', { method: 'PATCH' });
+              render();
+            } catch (e) {
+              alert(e.message);
+            }
+          };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'me') {
+        var prof = await loadNodeProfile(getAlias());
+        app.innerHTML =
+          topbar('dashboard / me', true) +
+          '<div class="page"><div class="win"><div class="win__title">MY PROFILE &amp; SETTINGS</div><div class="win__body">' +
+          '<form id="form-me">' +
+          '<div class="field"><label>INTERESTS (comma-separated)</label><input name="interests" value="' +
+          escapeHtml((prof.interests || []).join(', ')) +
+          '" /></div>' +
+          '<div class="field"><label>PORTFOLIO URL</label><input name="portfolioUrl" value="' +
+          escapeHtml(prof.portfolioUrl || '') +
+          '" /></div>' +
+          '<div class="field"><label>KEYWORDS (comma-separated)</label><input name="keywords" value="' +
+          escapeHtml((prof.keywords || []).join(', ')) +
+          '" /></div>' +
+          '<button type="submit" class="btn btn--primary">SAVE</button></form>' +
+          rawApi(prof) +
+          '</div></div></div>';
+        document.getElementById('form-me').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          var interests = (fd.get('interests') || '')
+            .toString()
+            .split(',')
+            .map(function (s) {
+              return s.trim();
+            })
+            .filter(Boolean);
+          var keywords = (fd.get('keywords') || '')
+            .toString()
+            .split(',')
+            .map(function (s) {
+              return s.trim();
+            })
+            .filter(Boolean);
+          try {
+            var out = await api('/nodes/me', {
+              method: 'PATCH',
+              body: {
+                interests: interests,
+                portfolioUrl: fd.get('portfolioUrl') || '',
+                keywords: keywords,
+              },
+            });
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashOk('Saved'));
+            document.querySelector('.win__body').insertAdjacentHTML('beforeend', rawApi(out));
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'spaces') {
+        var np = await loadNodeProfile(getAlias());
+        var sn = np.spacesWithNames || [];
+        app.innerHTML =
+          topbar('dashboard / spaces', true) +
+          '<div class="page"><div class="win"><div class="win__title">SPACES</div><div class="win__body list-rows">' +
+          sn
+            .map(function (s) {
+              return (
+                '<div class="list-row"><div>' +
+                escapeHtml(s.name) +
+                '</div><a class="btn btn--secondary" href="#/spaces/' +
+                s.id +
+                '">OPEN</a></div>'
+              );
+            })
+            .join('') +
+          '<div class="btn-row"><a class="btn btn--secondary" href="#/spaces/new">+ CREATE</a> <a class="btn btn--secondary" href="#/spaces/join">+ JOIN</a></div>' +
+          '</div></div></div>';
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'spaces-new') {
+        spc = { step: 1, data: {} };
+        renderSpaceWizard();
+        return;
+      }
+
+      if (route.view === 'spaces-join') {
+        app.innerHTML =
+          topbar('dashboard / spaces / join', true) +
+          '<div class="page"><div class="win"><div class="win__title">JOIN SPACE</div><div class="win__body">' +
+          '<form id="form-join">' +
+          '<div class="field"><label>SPACE ID</label><input name="spaceId" required class="mono" /></div>' +
+          '<div class="field"><label>INVITE CODE (if required)</label><input name="inviteCode" class="mono" /></div>' +
+          '<button type="submit" class="btn btn--primary">JOIN</button></form></div></div></div>';
+        document.getElementById('form-join').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          try {
+            var sid = fd.get('spaceId');
+            var body = {};
+            if (fd.get('inviteCode')) body.inviteCode = fd.get('inviteCode');
+            var r = await api('/spaces/' + encodeURIComponent(sid) + '/join', { method: 'POST', body: body });
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashOk(r.message || 'Joined') + rawApi(r));
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'space') {
+        var space = await api('/spaces/' + encodeURIComponent(route.id));
+        var isAdmin = (space.admins || []).indexOf(getAlias()) >= 0;
+        var mem = (space.members || [])
+          .map(function (m) {
+            return (
+              '<div class="list-row"><div>' +
+              iconNode() +
+              ' <span class="mono">' +
+              escapeHtml(m) +
+              '</span></div></div>'
+            );
+          })
+          .join('');
+        var pj = '';
+        try {
+          var pl = await api('/projects/space/' + encodeURIComponent(route.id));
+          for (var i = 0; i < pl.length; i++) {
+            pj +=
+              '<div class="list-row"><div><strong>' +
+              escapeHtml(pl[i].title) +
+              '</strong> <span class="tag ' +
+              tagClass(pl[i].status) +
+              '">' +
+              escapeHtml(pl[i].status) +
+              '</span></div><a class="btn btn--secondary" href="#/projects/' +
+              pl[i]._id +
+              '">VIEW →</a></div>';
+          }
+        } catch (e) {
+          pj = flashErr(e.message);
+        }
+        app.innerHTML =
+          topbar('dashboard / spaces / ' + (space.name || 'space'), true) +
+          '<div class="page"><div class="grid-12">' +
+          '<div class="col-12"><div class="win"><div class="win__title">' +
+          escapeHtml(space.name) +
+          '</div><div class="win__body"><p class="mono">ID: ' +
+          escapeHtml(space._id) +
+          ' <button type="button" class="btn btn--secondary" id="cp-sid">COPY</button></p>' +
+          '<p>' +
+          escapeHtml(space.description || '') +
+          '</p>' +
+          (isAdmin
+            ? '<p><a class="btn btn--secondary" href="#/spaces/' + route.id + '/settings">SETTINGS</a></p>'
+            : '') +
+          '</div></div></div>' +
+          '<div class="col-7"><div class="win"><div class="win__title">PROJECTS</div><div class="win__body list-rows">' +
+          pj +
+          '<a class="btn btn--primary" href="#/projects/new?space=' +
+          encodeURIComponent(route.id) +
+          '">NEW PROJECT IN SPACE</a></div></div></div>' +
+          '<div class="col-5"><div class="win"><div class="win__title">MEMBERS (' +
+          (space.members || []).length +
+          ')</div><div class="win__body list-rows">' +
+          mem +
+          '</div></div></div></div></div>';
+        document.getElementById('cp-sid').onclick = function () {
+          navigator.clipboard.writeText(space._id);
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'project-new') {
+        var qs = {};
+        location.hash
+          .replace(/^#[^?]*/, '')
+          .slice(1)
+          .split('&')
+          .forEach(function (p) {
+            var x = p.split('=');
+            qs[decodeURIComponent(x[0])] = decodeURIComponent(x[1] || '');
+          });
+        var me2 = await loadNodeProfile(getAlias());
+        var sns = me2.spacesWithNames || [];
+        var opts = sns
+          .map(function (s) {
+            return '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + '</option>';
+          })
+          .join('');
+        app.innerHTML =
+          topbar('dashboard / new project', true) +
+          '<div class="page"><div class="win"><div class="win__title">START PROJECT</div><div class="win__body">' +
+          '<form id="form-newp">' +
+          '<div class="field"><label>TITLE</label><input name="title" required /></div>' +
+          '<div class="field"><label>SPACE</label><select name="spaceId">' +
+          opts +
+          '</select></div>' +
+          '<div class="field"><label>CONTRIBUTORS (one alias per line, must exist on chain)</label><textarea name="contrib" rows="4" placeholder="riku&#10;prof"></textarea></div>' +
+          '<div class="field"><label>MENTOR ALIAS (optional)</label><input name="mentorAlias" /></div>' +
+          '<button type="submit" class="btn btn--primary">CREATE PROJECT</button></form></div></div></div>';
+        var sel = document.querySelector('[name="spaceId"]');
+        if (qs.space && sel) sel.value = qs.space;
+        document.getElementById('form-newp').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          var lines = (fd.get('contrib') || '')
+            .toString()
+            .split(/\n/)
+            .map(function (x) {
+              return x.trim();
+            })
+            .filter(Boolean);
+          var contributors = lines.map(function (a) {
+            return { alias: a, role: 'contributor' };
+          });
+          var body = {
+            title: fd.get('title'),
+            spaceId: fd.get('spaceId'),
+            contributors: contributors,
+            mentorAlias: fd.get('mentorAlias') || undefined,
+          };
+          try {
+            var pr = await api('/projects', { method: 'POST', body: body });
+            localStorage.setItem(LS_PROJECT, pr._id);
+            location.hash = '#/projects/' + pr._id;
+            render();
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'project' || String(route.view).indexOf('project-') === 0) {
+        await renderProjectShell(route);
+        return;
+      }
+
+      if (route.view === 'node-public') {
+        var node = await api('/nodes/' + encodeURIComponent(route.alias), { token: getToken() || '' });
+        var comp = (node.completedProjects || [])
+          .map(function (c) {
+            return (
+              '<div class="list-row"><a href="#/nfts/' +
+              escapeHtml(c.nftId || '') +
+              '">' +
+              escapeHtml(c.title) +
+              '</a></div>'
+            );
+          })
+          .join('');
+        app.innerHTML =
+          '<div class="page page--public-profile"><div class="topbar-minimal"><a class="topbar__brand" href="#/">AURA2</a></div>' +
+          '<h1 style="font-size:3rem;margin:24px 0 16px">' +
+          escapeHtml(node.alias) +
+          '</h1>' +
+          radarSvg(node.reputationCategories, node.reputationScore) +
+          '<p>' +
+          (node.badges || [])
+            .map(function (b) {
+              return '<span class="tag tag--active">' + escapeHtml(b) + '</span>';
+            })
+            .join(' ') +
+          '</p>' +
+          '<div class="grid-12"><div class="col-6"><div class="win"><div class="win__title">SPACES</div><div class="win__body">' +
+          (node.spacesWithNames || [])
+            .map(function (s) {
+              return '<div class="mono">' + escapeHtml(s.name) + '</div>';
+            })
+            .join('') +
+          '</div></div></div><div class="col-6"><div class="win"><div class="win__title">COMPLETED PROJECTS</div><div class="win__body list-rows">' +
+          comp +
+          '</div></div></div></div>' +
+          '<p class="mono">' +
+          escapeHtml((node.keywords || []).join(', ')) +
+          '</p>' +
+          (node.portfolioUrl
+            ? '<p><a href="' +
+              escapeHtml(node.portfolioUrl) +
+              '" target="_blank" rel="noopener">portfolio</a></p>'
+            : '') +
+          '<p class="text-muted">This profile is public. No personal data is stored.</p></div>';
+        return;
+      }
+
+      if (route.view === 'nft' || route.view === 'project-nft') {
+        var nid = route.id;
+        try {
+          var bundle;
+          if (route.view === 'project-nft' && route.projectId) {
+            bundle = await api('/credits/project/' + encodeURIComponent(route.projectId));
+            nid = bundle.nft && bundle.nft._id ? String(bundle.nft._id) : '';
+          } else {
+            bundle = await api('/nfts/' + encodeURIComponent(nid));
+          }
+          var nft = bundle.nft;
+          var proj = bundle.project;
+          app.innerHTML =
+            (getToken() ? topbar('nft', true) : '<div class="page page--public-profile"><a href="#/">AURA2</a></div>') +
+            '<div class="page"><div class="win"><div class="win__title win__title--blue">PROVENANCE RECORD</div><div class="win__body">' +
+            '<h2 class="mt-0">' +
+            escapeHtml(nft.title || '') +
+            '</h2>' +
+            (bundle.archive ? '<span class="tag tag--archived">ARCHIVE</span>' : '') +
+            '<div class="table-wrap"><table class="data-table"><tr><th>medium</th><td class="mono">' +
+            escapeHtml(nft.medium || '') +
+            '</td></tr><tr><th>project</th><td class="mono">' +
+            escapeHtml(proj._id) +
+            '</td></tr></table></div>' +
+            '<button type="button" class="btn btn--secondary" id="btn-share">SHARE</button>' +
+            rawApi(bundle) +
+            '</div></div></div>';
+          document.getElementById('btn-share').onclick = function () {
+            var share =
+              nid && nid.length
+                ? location.origin + '/#/nfts/' + nid
+                : location.origin + '/#/projects/' + (proj && proj._id ? proj._id : '') + '/nft';
+            navigator.clipboard.writeText(share);
+          };
+        } catch (e) {
+          app.innerHTML =
+            (getToken() ? topbar('nft', true) : '') +
+            '<div class="page">' +
+            flashErr(e.message + ' — sign in may be required for this endpoint.') +
+            ' <a href="#/login">LOGIN</a></div>';
+        }
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'archive-new') {
+        var me3 = await loadNodeProfile(getAlias());
+        var sopts = (me3.spacesWithNames || [])
+          .map(function (s) {
+            return '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>';
+          })
+          .join('');
+        app.innerHTML =
+          topbar('dashboard / archive', true) +
+          '<div class="page"><div class="win"><div class="win__title">ARCHIVE PAST WORK</div><div class="win__body">' +
+          '<p>Archiving documents work that predates the chain. Marked as reconstruction.</p>' +
+          '<form id="form-arch">' +
+          '<div class="field"><label>TITLE</label><input name="title" required /></div>' +
+          '<div class="field"><label>MEDIUM</label><input name="medium" required /></div>' +
+          '<div class="field"><label>APPROX DATE (string)</label><input name="approxDate" placeholder="March 2022" required /></div>' +
+          '<div class="field"><label>SPACE</label><select name="spaceId">' + sopts + '</select></div>' +
+          '<div class="field"><label>EVIDENCE TYPE</label><select name="evidenceType">' +
+          EVIDENCE_TYPES.map(function (t) {
+            return '<option value="' + t + '">' + t + '</option>';
+          }).join('') +
+          '</select></div>' +
+          '<div class="field"><label>EVIDENCE HASH (SHA-256 hex of file or URL)</label><input name="evidenceHash" class="mono" required /></div>' +
+          '<div class="field"><label>OTHER DESCRIPTION (if type=other)</label><input name="otherDescription" /></div>' +
+          '<div class="field"><label>CONTEXT (optional)</label><textarea name="contextNote"></textarea></div>' +
+          '<label><input type="checkbox" name="o1" required /> I declare this is my original work</label><br/>' +
+          '<label><input type="checkbox" name="o2" required /> I acknowledge this is a self-reported reconstruction</label>' +
+          '<p><button type="submit" class="btn btn--primary">ARCHIVE</button></p></form></div></div></div>';
+        document.getElementById('form-arch').onsubmit = async function (e) {
+          e.preventDefault();
+          var fd = new FormData(e.target);
+          var et = fd.get('evidenceType');
+          var ev = [{ evidenceType: et, evidenceHash: fd.get('evidenceHash') }];
+          if (et === 'other' && fd.get('otherDescription')) ev[0].otherDescription = fd.get('otherDescription');
+          try {
+            var ar = await api('/archives', {
+              method: 'POST',
+              body: {
+                title: fd.get('title'),
+                medium: fd.get('medium'),
+                approxDate: fd.get('approxDate'),
+                spaceId: fd.get('spaceId'),
+                evidence: ev,
+                reconstructionFlag: true,
+                originalWorkDeclaration: true,
+                contextNote: fd.get('contextNote') || undefined,
+              },
+            });
+            document.querySelector('.win__body').insertAdjacentHTML(
+              'afterbegin',
+              flashOk('Archived. NFT: ' + (ar.nft && ar.nft._id)) + rawApi(ar),
+            );
+          } catch (err) {
+            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+          }
+        };
+        bindSignOut();
+        return;
+      }
+
+      if (route.view === 'discover') {
+        app.innerHTML =
+          topbar('discover', true) +
+          '<div class="page"><div class="win"><div class="win__title">DISCOVER</div><div class="win__body">' +
+          '<form id="form-disc"><div class="field"><label>EXACT ALIAS</label><input name="alias" class="mono" required /></div>' +
+          '<button type="submit" class="btn btn--primary">OPEN PROFILE</button></form>' +
+          '<p class="text-muted">No algorithm. No ranking. Load a profile by exact alias (alphabetical browsing requires a future index endpoint).</p></div></div></div>';
+        document.getElementById('form-disc').onsubmit = function (e) {
+          e.preventDefault();
+          var a = new FormData(e.target).get('alias');
+          location.hash = '#/nodes/' + encodeURIComponent(String(a).trim());
+        };
+        bindSignOut();
+        return;
+      }
+
+      app.innerHTML = '<div class="page">' + flashErr('Unknown route') + '</div>';
+    } catch (err) {
+      app.innerHTML = '<div class="page">' + flashErr(err.message || String(err)) + '</div>';
+    }
+  }
+
+  async function renderProjectShell(route) {
+    var app = document.getElementById('app');
+    var pid = route.projectId;
+    var project = await api('/projects/' + encodeURIComponent(pid));
+    var sub = route.view.replace('project-', '');
+    if (sub === 'project' || sub === 'view') sub = 'view';
+    var statusTag =
+      '<span class="tag ' + tagClass(project.status) + '">' + escapeHtml(project.status) + '</span>';
+    var contrib = (project.contributors || [])
+      .map(function (c) {
+        return (
+          '<div class="list-row"><div>' +
+          iconNode() +
+          ' <span class="mono">' +
+          escapeHtml(c.alias) +
+          '</span> ' +
+          escapeHtml(c.role || '') +
+          (c.isPrimary ? ' <span class="tag tag--active">PRIMARY</span>' : '') +
+          '</div></div>'
+        );
+      })
+      .join('');
+    var active = project.status === 'active';
+    var nftBtn =
+      project.status === 'completed'
+        ? '<a class="btn btn--primary" href="#/projects/' +
+          pid +
+          '/nft">VIEW NFT</a>'
+        : '';
+
+    var traces = [];
+    var refs = [];
+    var pivots = [];
+    var vetos = [];
+    try {
+      traces = await api('/traces/project/' + encodeURIComponent(pid));
+    } catch (e) {
+      traces = [];
+    }
+    try {
+      refs = await api('/references/project/' + encodeURIComponent(pid));
+    } catch (e) {
+      refs = [];
+    }
+    try {
+      pivots = await api('/pivots/project/' + encodeURIComponent(pid));
+    } catch (e) {
+      pivots = [];
+    }
+    try {
+      vetos = await api('/vetos/project/' + encodeURIComponent(pid));
+    } catch (e) {
+      vetos = [];
+    }
+
+    var timeline = [];
+    traces.forEach(function (t) {
+      timeline.push({
+        kind: 'trace',
+        t: new Date(t.timestamp || t.createdAt).getTime(),
+        o: t,
+      });
+    });
+    refs.forEach(function (r) {
+      timeline.push({
+        kind: 'reference',
+        t: new Date(r.createdAt).getTime(),
+        o: r,
+      });
+    });
+    pivots.forEach(function (p) {
+      timeline.push({
+        kind: 'pivot',
+        t: new Date(p.createdAt).getTime(),
+        o: p,
+      });
+    });
+    vetos.forEach(function (v) {
+      timeline.push({
+        kind: 'veto',
+        t: new Date(v.createdAt).getTime(),
+        o: v,
+      });
+    });
+    timeline.sort(function (a, b) {
+      return a.t - b.t;
+    });
+
+    var tlHtml = timeline
+      .map(function (item, idx) {
+        var tag =
+          item.kind === 'trace'
+            ? 'tag--trace'
+            : item.kind === 'reference'
+              ? 'tag--reference'
+              : item.kind === 'pivot'
+                ? 'tag--pivot'
+                : 'tag--veto';
+        var lab =
+          item.kind === 'trace'
+            ? 'TRACE'
+            : item.kind === 'reference'
+              ? 'REFERENCE'
+              : item.kind === 'pivot'
+                ? 'PIVOT'
+                : 'VETO';
+        var desc = '';
+        if (item.kind === 'trace') desc = item.o.description || item.o.activityType || '';
+        else if (item.kind === 'reference') desc = item.o.relationshipType || '';
+        else if (item.kind === 'pivot') desc = (item.o.reason || '').slice(0, 120);
+        else desc = item.o.vetoType || '';
+        return (
+          '<details class="list-row" ' +
+          (idx === 0 ? 'open' : '') +
+          '><summary><span class="tag ' +
+          tag +
+          '">' +
+          lab +
+          '</span> <span class="mono">' +
+          escapeHtml(item.o.nodeAlias || '') +
+          '</span> <span class="timestamp mono">' +
+          new Date(item.t).toISOString() +
+          '</span> ' +
+          escapeHtml(desc) +
+          '</summary><pre class="mono">' +
+          escapeHtml(JSON.stringify(item.o, null, 2)) +
+          '</pre></details>'
+        );
+      })
+      .join('');
+
+    var shell =
+      topbar('dashboard / project', true) +
+      '<div class="page"><div class="win"><div class="win__title">' +
+      escapeHtml(project.title) +
+      ' | ' +
+      statusTag +
+      '</div><div class="win__body">' +
+      nftBtn +
+      '<div class="win" style="margin-top:16px"><div class="win__title">CONTRIBUTORS</div><div class="win__body list-rows">' +
+      contrib +
+      '</div></div>';
+
+    if (active) {
+      shell +=
+        '<div class="action-bar">' +
+        '<a class="btn btn--secondary" href="#/projects/' +
+        pid +
+        '/trace">LOG WORK</a>' +
+        '<a class="btn btn--secondary" href="#/projects/' +
+        pid +
+        '/reference">ADD REFERENCE</a>' +
+        '<a class="btn btn--secondary" href="#/projects/' +
+        pid +
+        '/pivot">RECORD PIVOT</a>' +
+        '<a class="btn btn--secondary" href="#/projects/' +
+        pid +
+        '/veto">RAISE VETO</a>' +
+        '<a class="btn btn--secondary" href="#/projects/' +
+        pid +
+        '/fork">FORK</a>' +
+        '<a class="btn btn--danger" href="#/projects/' +
+        pid +
+        '/credit">END PROJECT</a></div>';
+    }
+
+    shell += '<h3 class="mb-2">TIMELINE</h3><div class="list-rows">' + (tlHtml || '<p class="text-muted">Empty.</p>') + '</div>';
+
+    /* sub-views */
+    if (route.view === 'project-trace') {
+      shell += traceFormHtml(pid);
+    } else if (route.view === 'project-reference') {
+      shell += referenceFormHtml(pid);
+    } else if (route.view === 'project-pivot') {
+      shell += pivotFormHtml(pid);
+    } else if (route.view === 'project-veto') {
+      shell += vetoFormHtml(pid, traces);
+    } else if (route.view === 'project-fork') {
+      shell += forkFormHtml(pid, project);
+    } else if (route.view === 'project-credit') {
+      shell += await creditFormHtml(pid, project);
+    }
+
+    shell += '</div></div></div>';
+    app.innerHTML = shell;
+    attachProjectForms(route, pid, project);
+    bindSignOut();
+  }
+
+  function traceFormHtml(pid) {
+    var opts = ACTIVITY_TYPES.map(function (t) {
+      return '<option value="' + t + '">' + t + '</option>';
+    }).join('');
+    return (
+      '<div class="win" style="margin-top:24px"><div class="win__title">LOG WORK</div><div class="win__body">' +
+      '<div class="tabs"><button type="button" data-tab="m" class="is-active">MICRO</button><button type="button" data-tab="o">MEMO</button><button type="button" data-tab="r">REFLECTION</button></div>' +
+      '<form id="form-trace" data-pid="' +
+      pid +
+      '">' +
+      '<input type="hidden" name="mode" value="micro" />' +
+      '<div class="field"><label>ACTIVITY</label><select name="activityType">' +
+      opts +
+      '</select></div>' +
+      '<div class="field" id="other-wrap" style="display:none"><label>OTHER DESCRIPTION</label><input name="otherDescription" /></div>' +
+      '<div class="field"><label>DESCRIPTION</label><textarea name="description"></textarea></div>' +
+      '<div class="field"><label>DURATION (minutes)</label><input name="duration" type="number" min="0" /></div>' +
+      '<div class="field"><label>TOOL / SOFTWARE</label><input name="toolSoftware" /></div>' +
+      '<details><summary>Proxy log</summary><label><input type="checkbox" name="proxy" /> Enable proxy for another alias</label>' +
+      '<input name="proxyForAlias" placeholder="target alias" class="mono" /></details>' +
+      '<button type="submit" class="btn btn--primary">LOG WORK</button></form></div></div>'
+    );
+  }
+
+  function referenceFormHtml(pid) {
+    var ropts = REL_TYPES.map(function (t) {
+      return '<option value="' + t + '">' + t + '</option>';
+    }).join('');
+    return (
+      '<div class="win" style="margin-top:24px"><div class="win__title">ADD REFERENCE</div><div class="win__body">' +
+      '<form id="form-ref" data-pid="' +
+      pid +
+      '">' +
+      '<div class="field"><label>RELATIONSHIP</label><select name="relationshipType">' +
+      ropts +
+      '</select></div>' +
+      '<div class="field" id="ref-other" style="display:none"><label>OTHER EXPLANATION</label><input name="otherExplanation" /></div>' +
+      '<div class="field"><label>SOURCE</label><select name="src" id="ref-src"><option value="url">EXTERNAL URL</option><option value="project">ON-CHAIN PROJECT ID</option><option value="cite">CITATION TEXT</option></select></div>' +
+      '<div class="field" id="ref-url"><label>URL</label><input name="externalUrl" type="url" /></div>' +
+      '<div class="field" id="ref-pid" style="display:none"><label>PROJECT ID</label><input name="sourceProjectId" class="mono" /></div>' +
+      '<div class="field" id="ref-cite" style="display:none"><label>CITATION</label><textarea name="citation"></textarea></div>' +
+      '<button type="submit" class="btn btn--primary">ADD REFERENCE</button></form></div></div>'
+    );
+  }
+
+  function pivotFormHtml(pid) {
+    return (
+      '<div class="win" style="margin-top:24px"><div class="win__title">RECORD PIVOT</div><div class="win__body">' +
+      '<p>A pivot records a change in direction. It does not stop the project.</p>' +
+      '<form id="form-pivot" data-pid="' +
+      pid +
+      '"><div class="field"><label>WHAT CHANGED</label><textarea name="reason" required></textarea></div>' +
+      '<button type="submit" class="btn btn--primary">RECORD PIVOT</button></form></div></div>'
+    );
+  }
+
+  function vetoFormHtml(pid, traces) {
+    var vopts = VETO_TYPES.map(function (v) {
+      return '<option value="' + v + '">' + v + '</option>';
+    }).join('');
+    var boxes = (traces || [])
+      .map(function (t) {
+        return (
+          '<label class="list-row"><input type="checkbox" name="tid" value="' +
+          t._id +
+          '" /> <span class="mono">' +
+          escapeHtml(String(t._id)) +
+          '</span> ' +
+          escapeHtml(t.activityType || '') +
+          '</label>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="win" style="margin-top:24px"><div class="win__title">RAISE VETO</div><div class="win__body">' +
+      '<form id="form-veto" data-pid="' +
+      pid +
+      '">' +
+      '<div class="field"><label>TYPE</label><select name="vetoType">' +
+      vopts +
+      '</select></div>' +
+      '<p id="veto-help" class="mono text-muted"></p>' +
+      '<div class="field"><label>REASON</label><textarea name="reason" required></textarea></div>' +
+      '<details><summary>Target traces</summary>' +
+      boxes +
+      '</details>' +
+      '<button type="submit" class="btn btn--danger">RAISE VETO</button></form></div></div>'
+    );
+  }
+
+  function forkFormHtml(pid, project) {
+    return (
+      '<div class="win" style="margin-top:24px"><div class="win__title">FORK PROJECT</div><div class="win__body">' +
+      '<form id="form-fork" data-pid="' +
+      pid +
+      '">' +
+      '<div class="field"><label>NEW TITLE</label><input name="title" required /></div>' +
+      '<div class="field"><label>REASON</label><textarea name="forkReason" required></textarea></div>' +
+      '<div class="field"><label>TARGET SPACE ID (optional)</label><input name="targetSpaceId" class="mono" /></div>' +
+      '<button type="submit" class="btn btn--primary">CREATE FORK</button></form></div></div>'
+    );
+  }
+
+  async function creditFormHtml(pid, project) {
+    var nft0 = null;
+    try {
+      nft0 = await api('/credits/project/' + encodeURIComponent(pid));
+    } catch (e) {
+      nft0 = null;
+    }
+    var rows = (project.contributors || [])
+      .map(function (c) {
+        return (
+          '<tr><td class="mono">' +
+          escapeHtml(c.alias) +
+          '</td><td>' +
+          escapeHtml(c.role || '') +
+          '</td><td><input name="w_' +
+          escapeHtml(c.alias) +
+          '" type="number" step="0.01" min="0" max="1" placeholder="equal" class="mono" style="width:100px" /></td></tr>'
+        );
+      })
+      .join('');
+    var signBlock = '';
+    if (nft0 && nft0.nft) {
+      var nft = nft0.nft;
+      var signed = (project.contributors || [])
+        .map(function (c) {
+          return (
+            '<div class="mono">' +
+            escapeHtml(c.alias) +
+            ': ' +
+            (c.signedAt ? 'signed' : 'pending') +
+            '</div>'
+          );
+        })
+        .join('');
+      signBlock =
+        '<div class="win" style="margin-top:16px"><div class="win__title">SIGN CREDIT</div><div class="win__body">' +
+        signed +
+        '<form id="form-sign" data-nft="' +
+        nft._id +
+        '"><label><input type="checkbox" name="accepted" /> I accept this credit split</label>' +
+        '<button type="submit" class="btn btn--primary">SIGN</button></form></div></div>';
+    }
+    return (
+      '<div class="win" style="margin-top:24px"><div class="win__title">MINT FINAL NFT</div><div class="win__body">' +
+      '<form id="form-credit" data-pid="' +
+      pid +
+      '">' +
+      '<table class="data-table"><thead><tr><th>ALIAS</th><th>ROLE</th><th>WEIGHT</th></tr></thead><tbody>' +
+      rows +
+      '</tbody></table>' +
+      '<p class="text-muted">Leave weights blank for equal split. Weights must sum to 1.0 if specified.</p>' +
+      '<div class="field"><label>MEDIUM (optional)</label><input name="medium" /></div>' +
+      '<details><summary>Off-chain contributors</summary><textarea name="offChain" placeholder=\'[{"name":"x","portfolio":"","role":""}]\'></textarea></details>' +
+      '<label><input type="checkbox" name="dispute" /> Flag as disputed</label>' +
+      '<p><button type="submit" class="btn btn--primary">INITIATE CREDIT / MINT</button></p></form>' +
+      signBlock +
+      '</div></div>'
+    );
+  }
+
+  function attachProjectForms(route, pid, project) {
+    var tr = document.getElementById('form-trace');
+    if (tr) {
+      tr.querySelector('[name="activityType"]').onchange = function () {
+        document.getElementById('other-wrap').style.display = this.value === 'other' ? 'block' : 'none';
+      };
+      tr.onsubmit = async function (e) {
+        e.preventDefault();
+        var fd = new FormData(tr);
+        var mode = fd.get('proxy') ? 'proxy' : fd.get('mode') || 'micro';
+        var body = {
+          projectId: pid,
+          activityType: fd.get('activityType'),
+          mode: mode,
+          description: fd.get('description') || '',
+          duration: fd.get('duration') ? Number(fd.get('duration')) : undefined,
+          toolSoftware: fd.get('toolSoftware') || '',
+        };
+        if (body.activityType === 'other') body.otherDescription = fd.get('otherDescription') || '';
+        if (mode === 'proxy') body.proxyForAlias = fd.get('proxyForAlias');
+        try {
+          var out = await api('/traces', { method: 'POST', body: body });
+          tr.insertAdjacentHTML('afterend', flashOk('Trace logged') + rawApi(out));
+        } catch (err) {
+          tr.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+      var tabRow = tr.closest('.win') && tr.closest('.win').querySelector('.tabs');
+      if (tabRow) {
+        var modeInput = tr.querySelector('[name="mode"]');
+        tabRow.querySelectorAll('button[data-tab]').forEach(function (b) {
+          b.onclick = function () {
+            tabRow.querySelectorAll('button').forEach(function (x) {
+              x.classList.remove('is-active');
+            });
+            b.classList.add('is-active');
+            var t = b.getAttribute('data-tab');
+            modeInput.value = t === 'm' ? 'micro' : t === 'o' ? 'memo' : 'reflection';
+          };
+        });
+      }
+    }
+    var rf = document.getElementById('form-ref');
+    if (rf) {
+      rf.querySelector('[name="relationshipType"]').onchange = function () {
+        document.getElementById('ref-other').style.display = this.value === 'other' ? 'block' : 'none';
+      };
+      document.getElementById('ref-src').onchange = function () {
+        var v = this.value;
+        document.getElementById('ref-url').style.display = v === 'url' ? 'block' : 'none';
+        document.getElementById('ref-pid').style.display = v === 'project' ? 'block' : 'none';
+        document.getElementById('ref-cite').style.display = v === 'cite' ? 'block' : 'none';
+      };
+      rf.onsubmit = async function (e) {
+        e.preventDefault();
+        var fd = new FormData(rf);
+        var body = { projectId: pid, relationshipType: fd.get('relationshipType') };
+        var src = fd.get('src');
+        if (src === 'url') body.externalUrl = fd.get('externalUrl');
+        if (src === 'project') body.sourceProjectId = fd.get('sourceProjectId');
+        if (src === 'cite') body.citation = fd.get('citation');
+        if (body.relationshipType === 'other') body.otherExplanation = fd.get('otherExplanation');
+        try {
+          var o2 = await api('/references', { method: 'POST', body: body });
+          rf.insertAdjacentHTML('afterend', flashOk('Reference added') + rawApi(o2));
+        } catch (err) {
+          rf.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+    }
+    var pv = document.getElementById('form-pivot');
+    if (pv) {
+      pv.onsubmit = async function (e) {
+        e.preventDefault();
+        var fd = new FormData(pv);
+        try {
+          var o3 = await api('/pivots', { method: 'POST', body: { projectId: pid, reason: fd.get('reason') } });
+          pv.insertAdjacentHTML('afterend', flashOk('Pivot recorded') + rawApi(o3));
+        } catch (err) {
+          pv.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+    }
+    var vo = document.getElementById('form-veto');
+    if (vo) {
+      var help = {
+        hard_stop: 'Halts the project. Requires majority sign-off or veto authority.',
+        scope_limit: 'Restricts scope. Takes effect immediately.',
+        content_flag: 'Flags targeted content. Takes effect immediately.',
+        nda_seal: 'Encrypts targeted traces. Hash stays on chain. Content becomes private.',
+      };
+      var sel = vo.querySelector('[name="vetoType"]');
+      var hp = document.getElementById('veto-help');
+      function uh() {
+        hp.textContent = help[sel.value] || '';
+      }
+      sel.onchange = uh;
+      uh();
+      vo.onsubmit = async function (e) {
+        e.preventDefault();
+        var fd = new FormData(vo);
+        var tids = [];
+        vo.querySelectorAll('input[name="tid"]:checked').forEach(function (x) {
+          tids.push(x.value);
+        });
+        try {
+          var o4 = await api('/vetos', {
+            method: 'POST',
+            body: {
+              projectId: pid,
+              vetoType: fd.get('vetoType'),
+              reason: fd.get('reason'),
+              targetTraceIds: tids,
+            },
+          });
+          vo.insertAdjacentHTML('afterend', flashOk('Veto raised') + rawApi(o4));
+        } catch (err) {
+          vo.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+    }
+    var fk = document.getElementById('form-fork');
+    if (fk) {
+      fk.onsubmit = async function (e) {
+        e.preventDefault();
+        var fd = new FormData(fk);
+        var body = {
+          parentProjectId: pid,
+          title: fd.get('title'),
+          forkReason: fd.get('forkReason'),
+        };
+        if (fd.get('targetSpaceId')) body.targetSpaceId = fd.get('targetSpaceId');
+        try {
+          var o5 = await api('/forks', { method: 'POST', body: body });
+          fk.insertAdjacentHTML('afterend', flashOk('Fork created') + rawApi(o5));
+        } catch (err) {
+          fk.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+    }
+    var cr = document.getElementById('form-credit');
+    if (cr) {
+      cr.onsubmit = async function (e) {
+        e.preventDefault();
+        var fd = new FormData(cr);
+        var contributors = (project.contributors || []).map(function (c) {
+          var w = fd.get('w_' + c.alias);
+          var o = { alias: c.alias, role: c.role };
+          if (w !== '' && w != null) o.weight = Number(w);
+          return o;
+        });
+        var body = {
+          projectId: pid,
+          medium: fd.get('medium') || undefined,
+          contributors: contributors,
+          disputeFlag: !!fd.get('dispute'),
+        };
+        if (fd.get('offChain')) {
+          try {
+            body.offChainContributors = JSON.parse(fd.get('offChain'));
+          } catch (e) {
+            cr.insertAdjacentHTML('beforebegin', flashErr('Off-chain JSON invalid'));
+            return;
+          }
+        }
+        try {
+          var o6 = await api('/credits', { method: 'POST', body: body });
+          cr.insertAdjacentHTML('afterend', flashOk('Credit initiated') + rawApi(o6));
+        } catch (err) {
+          cr.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+    }
+    var sg = document.getElementById('form-sign');
+    if (sg) {
+      sg.onsubmit = async function (e) {
+        e.preventDefault();
+        var nftId = sg.getAttribute('data-nft');
+        try {
+          var o7 = await api('/credits/' + encodeURIComponent(nftId) + '/sign', {
+            method: 'POST',
+            body: { accepted: !!sg.querySelector('[name="accepted"]').checked },
+          });
+          sg.insertAdjacentHTML('afterend', rawApi(o7));
+        } catch (err) {
+          sg.insertAdjacentHTML('beforebegin', flashErr(err.message));
+        }
+      };
+    }
+  }
+
+  function renderSpaceWizard() {
+    var app = document.getElementById('app');
+    var step = spc.step;
+    var segs = [1, 2, 3, 4, 5]
+      .map(function (n) {
+        return '<div class="wiz-bar__seg' + (n <= step ? ' is-done' : '') + '"></div>';
+      })
+      .join('');
+    var body = '';
+    if (step === 1) {
+      body =
+        '<form id="wiz-sp"><div class="field"><label>NAME</label><input name="name" required /></div>' +
+        '<div class="field"><label>DESCRIPTION</label><textarea name="description"></textarea></div>' +
+        '<button type="submit" class="btn btn--primary">NEXT</button></form>';
+    } else if (step === 2) {
+      body =
+        '<form id="wiz-sp"><label><input type="radio" name="projectAccess" value="open" checked /> open</label><br/>' +
+        '<label><input type="radio" name="projectAccess" value="invite_only" /> invite only</label><br/>' +
+        '<label><input type="radio" name="projectAccess" value="application" /> application</label>' +
+        '<p><button type="submit" class="btn btn--primary">NEXT</button></p></form>';
+    } else if (step === 3) {
+      body =
+        '<form id="wiz-sp"><div class="field"><label>VETO AUTHORITY (comma aliases)</label><input name="vetoAuthority" /></div>' +
+        '<div class="field"><label>VOTING THRESHOLD (0–1)</label><input name="votingThreshold" type="number" step="0.05" min="0" max="1" value="0.5" /></div>' +
+        '<label><input type="checkbox" name="customContractsAllowed" checked /> Custom contracts allowed</label>' +
+        '<p><button type="submit" class="btn btn--primary">NEXT</button></p></form>';
+    } else if (step === 4) {
+      body =
+        '<form id="wiz-sp"><label><input type="radio" name="privacyDefault" value="public" /> public</label><br/>' +
+        '<label><input type="radio" name="privacyDefault" value="space_specific" checked /> space only</label><br/>' +
+        '<label><input type="radio" name="privacyDefault" value="private" /> private</label>' +
+        '<div class="field"><label>CONTENT RESTRICTIONS (comma)</label><input name="contentRestrictions" /></div>' +
+        '<p><button type="submit" class="btn btn--primary">NEXT</button></p></form>';
     } else {
-      if (route.name === 'register' || route.name === 'login') {
+      body =
+        '<p class="mono">' +
+        JSON.stringify(spc.data, null, 2) +
+        '</p><button type="button" class="btn btn--primary" id="btn-create-space">CREATE SPACE</button>';
+    }
+    app.innerHTML =
+      topbar('dashboard / spaces / new', true) +
+      '<div class="page"><div class="win"><div class="win__title">CREATE SPACE</div><div class="win__body">' +
+      '<div class="wiz-bar">' +
+      segs +
+      '</div>' +
+      body +
+      '</div></div></div>';
+    var f = document.getElementById('wiz-sp');
+    if (f) {
+      f.onsubmit = function (e) {
+        e.preventDefault();
+        var fd = new FormData(f);
+        if (step === 1) {
+          spc.data.name = fd.get('name');
+          spc.data.description = fd.get('description');
+        } else if (step === 2) {
+          spc.data.projectAccess = fd.get('projectAccess');
+        } else if (step === 3) {
+          spc.data.vetoAuthority = (fd.get('vetoAuthority') || '')
+            .toString()
+            .split(',')
+            .map(function (s) {
+              return s.trim();
+            })
+            .filter(Boolean);
+          spc.data.votingThreshold = Number(fd.get('votingThreshold'));
+          spc.data.customContractsAllowed = !!fd.get('customContractsAllowed');
+        } else if (step === 4) {
+          spc.data.privacyDefault = fd.get('privacyDefault');
+          spc.data.contentRestrictions = (fd.get('contentRestrictions') || '')
+            .toString()
+            .split(',')
+            .map(function (s) {
+              return s.trim();
+            })
+            .filter(Boolean);
+        }
+        spc.step++;
+        renderSpaceWizard();
+      };
+    }
+    var btn = document.getElementById('btn-create-space');
+    if (btn) {
+      btn.onclick = async function () {
+        try {
+          var settings = {
+            projectAccess: spc.data.projectAccess || 'open',
+            vetoAuthority: spc.data.vetoAuthority || [],
+            votingThreshold: spc.data.votingThreshold != null ? spc.data.votingThreshold : 0.5,
+            privacyDefault: spc.data.privacyDefault || 'space_specific',
+            customContractsAllowed: spc.data.customContractsAllowed !== false,
+            contentRestrictions: spc.data.contentRestrictions || [],
+          };
+          var out = await api('/spaces', {
+            method: 'POST',
+            body: {
+              name: spc.data.name,
+              description: spc.data.description || '',
+              settings: settings,
+            },
+          });
+          localStorage.setItem(LS_SPACE, out._id);
+          document.querySelector('.win__body').insertAdjacentHTML(
+            'afterbegin',
+            flashOk('Space created. ID: ' + out._id) +
+              ' <button type="button" class="btn btn--secondary" id="cp-ns">COPY ID</button>' +
+              rawApi(out),
+          );
+          document.getElementById('cp-ns').onclick = function () {
+            navigator.clipboard.writeText(out._id);
+          };
+        } catch (err) {
+          document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+        }
+      };
+    }
+    bindSignOut();
+  }
+
+  function bindSignOut() {
+    var b = document.getElementById('btn-signout');
+    if (b)
+      b.onclick = function () {
+        clearSession();
         location.hash = '#/';
-        return;
-      }
-    }
-
-    if (route.name === 'node' && !token) {
-      renderNodePublic(app, decodeURIComponent(route.params.alias));
-      return;
-    }
-
-    if (!token) {
-      if (route.name === 'home') renderAuthDual(app, 'home');
-      else if (route.name === 'register') renderAuthDual(app, 'register');
-      else if (route.name === 'login') renderAuthDual(app, 'login');
-      else renderUnknown(app, route.params.raw);
-      return;
-    }
-
-    switch (route.name) {
-      case 'home':
-        renderDashboard(app);
-        break;
-      case 'me':
-        renderMe(app);
-        break;
-      case 'spaces':
-        renderSpaces(app);
-        break;
-      case 'space':
-        renderSpaceDetail(app, route.params.id);
-        break;
-      case 'projectNew':
-        renderProjectNew(app);
-        break;
-      case 'project':
-        renderProject(app, route.params.id);
-        break;
-      case 'trace':
-        renderTrace(app, route.params.id);
-        break;
-      case 'reference':
-        renderReference(app, route.params.id);
-        break;
-      case 'pivot':
-        renderPivot(app, route.params.id);
-        break;
-      case 'credit':
-        renderCredit(app, route.params.id);
-        break;
-      case 'archiveNew':
-        renderArchiveNew(app);
-        break;
-      case 'nft':
-        renderNft(app, route.params.id);
-        break;
-      case 'node':
-        renderNodePublic(app, decodeURIComponent(route.params.alias));
-        break;
-      default:
-        renderUnknown(app, route.params.raw);
-    }
+        render();
+      };
   }
 
   window.addEventListener('hashchange', render);

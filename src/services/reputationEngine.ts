@@ -1,8 +1,33 @@
-import { ChainNode } from '../models/Node';
+import type { UpdateQuery } from 'mongoose';
+import { ChainNode, IChainNode, IReputationCategories } from '../models/Node';
 import { chainDefaults } from '../config/defaults';
-import { IReputationCategories } from '../models/Node';
 
 type ReputationCategory = keyof IReputationCategories;
+
+const EMPTY_CATEGORIES: IReputationCategories = {
+  craft: 0,
+  research: 0,
+  collaboration: 0,
+  pedagogy: 0,
+  consistency: 0,
+  community: 0,
+};
+
+/** Legacy / partial docs may omit subdocs; avoid silent no-ops or throws on increment. */
+function ensureReputationFields(node: IChainNode): void {
+  if (!Array.isArray(node.badges)) {
+    node.badges = [];
+  }
+  if (!node.reputationCategories || typeof node.reputationCategories !== 'object') {
+    node.reputationCategories = { ...EMPTY_CATEGORIES };
+    return;
+  }
+  (Object.keys(EMPTY_CATEGORIES) as ReputationCategory[]).forEach((k) => {
+    if (typeof node.reputationCategories[k] !== 'number' || Number.isNaN(node.reputationCategories[k])) {
+      node.reputationCategories[k] = 0;
+    }
+  });
+}
 
 const ACTIVITY_CATEGORY_MAP: Partial<Record<string, ReputationCategory>> = {
   skillwork: 'craft',
@@ -42,12 +67,19 @@ export async function addReputationPoints(
   const node = await ChainNode.findOne({ alias });
   if (!node || node.status !== 'active') return;
 
-  node.reputationScore = clamp(node.reputationScore + points);
+  ensureReputationFields(node);
+
+  const baseScore =
+    typeof node.reputationScore === 'number' && !Number.isNaN(node.reputationScore)
+      ? node.reputationScore
+      : chainDefaults.reputationBaseScore;
+  node.reputationScore = clamp(baseScore + points);
 
   if (category) {
+    const prev = node.reputationCategories[category] || 0;
     node.reputationCategories[category] = Math.min(
       chainDefaults.reputationCap,
-      node.reputationCategories[category] + points,
+      prev + points,
     );
   }
 
@@ -55,19 +87,52 @@ export async function addReputationPoints(
   await node.save();
 }
 
+/**
+ * Apply trace reputation + craft badge in one atomic DB update ($inc / $addToSet).
+ * Avoids find()+save() edge cases; falls back to { alias } if _id filter matches nothing.
+ *
+ * @param aliasForFallback — canonical alias for the reputation subject (proxy target alias when proxy).
+ */
 export async function onTraceCreated(
-  alias: string,
+  nodeId: string,
+  aliasForFallback: string,
   activityType: string,
 ): Promise<void> {
   const category = ACTIVITY_CATEGORY_MAP[activityType];
-  await addReputationPoints(alias, POINTS.trace, category);
+  const inc: Record<string, number> = {
+    reputationScore: POINTS.trace,
+  };
+  if (category) {
+    inc[`reputationCategories.${category}`] = POINTS.trace;
+  }
+
+  const update: UpdateQuery<IChainNode> = {
+    $inc: inc,
+    $set: { lastActiveAt: new Date() },
+  };
 
   if (activityType === 'skillwork' || activityType === 'fabrication') {
-    const node = await ChainNode.findOne({ alias });
-    if (node && !node.badges.includes('craft_affirmative')) {
-      node.badges.push('craft_affirmative');
-      await node.save();
-    }
+    update.$addToSet = { badges: 'craft_affirmative' };
+  }
+
+  let doc = await ChainNode.findOneAndUpdate(
+    { _id: nodeId, status: 'active' },
+    update,
+    { new: true },
+  );
+  if (!doc) {
+    doc = await ChainNode.findOneAndUpdate(
+      { alias: aliasForFallback, status: 'active' },
+      update,
+      { new: true },
+    );
+  }
+
+  if (!doc && process.env.NODE_ENV === 'development') {
+    console.warn('[reputation] onTraceCreated: no document updated', {
+      nodeId,
+      aliasForFallback,
+    });
   }
 }
 
