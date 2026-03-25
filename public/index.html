@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="aura-root">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,11 @@
     <link rel="stylesheet" href="/css/site.css" />
   </head>
   <body>
-    <div id="app" aria-live="polite"></div>
+    <div id="global-loading" class="loading-strip" hidden aria-live="polite">
+      <span class="dot">·</span><span class="dot">·</span><span class="dot">·</span>
+      <span class="loading-strip__label mono">loading</span>
+    </div>
+    <div id="app"></div>
     <script src="/js/site.js"></script>
   </body>
 </html>

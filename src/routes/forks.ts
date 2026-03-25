@@ -6,6 +6,7 @@ import { Project } from '../models/Project';
 import { Space } from '../models/Space';
 import { ChainNode } from '../models/Node';
 import { addBlock } from '../services/chain';
+import { onForkCreated } from '../services/reputationEngine';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 
@@ -86,6 +87,8 @@ router.post(
       visibility: parent.visibility,
       startBlockIndex: block.index,
     });
+
+    await onForkCreated(alias);
 
     res.status(201).json({
       forkedProject: forked,

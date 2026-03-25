@@ -8,6 +8,7 @@ import { Block } from '../models/Block';
 import { NFT, ContributorToken } from '../models/NFT';
 import { Mediation } from '../models/Mediation';
 import { addBlock } from '../services/chain';
+import { onProjectCompleted } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
@@ -149,6 +150,13 @@ router.post(
 
     project.status = disputeFlag ? 'disputed' : 'completed';
     await project.save();
+
+    if (!disputeFlag) {
+      await onProjectCompleted(
+        project.contributors.map((c) => ({ alias: c.alias, role: c.role })),
+        false,
+      );
+    }
 
     let mediation = null;
     if (disputeFlag) {

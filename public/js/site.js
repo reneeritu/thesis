@@ -50,6 +50,28 @@
     localStorage.removeItem(LS_ALIAS);
   }
 
+  var _loadCount = 0;
+  function setLoading(on) {
+    var el = document.getElementById('global-loading');
+    if (!el) return;
+    if (on) {
+      _loadCount++;
+      el.hidden = false;
+    } else {
+      _loadCount = Math.max(0, _loadCount - 1);
+      if (!_loadCount) el.hidden = true;
+    }
+  }
+
+  async function sha256Hex(buf) {
+    var hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash))
+      .map(function (b) {
+        return b.toString(16).padStart(2, '0');
+      })
+      .join('');
+  }
+
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s)
@@ -123,7 +145,7 @@
     var dots = '';
     for (var p = 0; p < pts.length; p++) {
       var xy = pts[p].split(',');
-      dots += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3" fill="#f5c400" stroke="#000" stroke-width="1"/>';
+      dots += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3" fill="#00B4D8" stroke="#0A0A0A" stroke-width="1"/>';
     }
     var lbl = '';
     for (var q = 0; q < axis.length; q++) {
@@ -146,7 +168,7 @@
       '<div class="radar-wrap"><svg viewBox="0 0 200 200" role="img" aria-label="Reputation radar">' +
       grid.join('') +
       axLines +
-      '<polygon fill="rgba(204,0,0,0.25)" stroke="#cc0000" stroke-width="2" points="' +
+      '<polygon fill="rgba(229,0,125,0.35)" stroke="#E5007D" stroke-width="2" points="' +
       poly +
       '" />' +
       dots +
@@ -158,31 +180,36 @@
 
   async function api(path, opts) {
     opts = opts || {};
-    var headers = { Accept: 'application/json' };
-    if (opts.body != null && !(opts.body instanceof FormData)) {
-      headers['Content-Type'] = 'application/json';
-    }
-    var tok = opts.token != null ? opts.token : getToken();
-    if (tok) headers['Authorization'] = 'Bearer ' + tok;
-    var res = await fetch(apiBase() + path, {
-      method: opts.method || 'GET',
-      headers: headers,
-      body: opts.body instanceof FormData ? opts.body : opts.body != null ? JSON.stringify(opts.body) : undefined,
-    });
-    var text = await res.text();
-    var data = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        data = { raw: text };
+    setLoading(true);
+    try {
+      var headers = { Accept: 'application/json' };
+      if (opts.body != null && !(opts.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
       }
+      var tok = opts.token != null ? opts.token : getToken();
+      if (tok) headers['Authorization'] = 'Bearer ' + tok;
+      var res = await fetch(apiBase() + path, {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: opts.body instanceof FormData ? opts.body : opts.body != null ? JSON.stringify(opts.body) : undefined,
+      });
+      var text = await res.text();
+      var data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { raw: text };
+        }
+      }
+      if (!res.ok) {
+        var msg = (data && (data.error || data.message)) || text || res.statusText;
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
+      return data;
+    } finally {
+      setLoading(false);
     }
-    if (!res.ok) {
-      var msg = (data && (data.error || data.message)) || text || res.statusText;
-      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
-    }
-    return data;
   }
 
   function parseRoute() {
@@ -255,15 +282,20 @@
     return true;
   }
 
-  function topbar(crumb, showAuth) {
+  /** Logged-in app bar. Unauthenticated pages use topbarMinimal() instead. */
+  function topbar(crumb) {
+    if (!getToken()) {
+      return (
+        '<header class="topbar"><a class="topbar__brand" href="#/">AURA2</a><div class="topbar__crumb"></div><div></div></header>'
+      );
+    }
     var alias = getAlias();
-    if (!showAuth) return '';
     return (
       '<header class="topbar"><a class="topbar__brand" href="#/dashboard">AURA2</a><div class="topbar__crumb mono">' +
       escapeHtml(crumb) +
-      '</div><div class="topbar__user"><a href="#/me">[' +
+      '</div><div class="topbar__user"><a href="#/me">' +
       escapeHtml(alias) +
-      ']</a> <button type="button" class="btn btn--secondary" id="btn-signout">SIGN OUT</button></div></header>'
+      '</a><span class="topbar__sep">|</span><button type="button" class="btn btn--secondary" id="btn-signout">SIGN OUT</button></div></header>'
     );
   }
 
@@ -293,18 +325,27 @@
 
     try {
       if (route.view === 'landing') {
+        var divPix = '';
+        for (var px = 0; px < 32; px++) {
+          divPix += '<span></span>';
+        }
         app.innerHTML =
-          '<div class="shell shell--landing landing">' +
-          '<div class="landing__art" aria-hidden="true"></div>' +
-          '<h1 class="landing__title">AURA2</h1>' +
-          '<p class="landing__tag">a chain for documenting what making actually looks like</p>' +
-          '<div class="btn-row">' +
+          '<div class="landing-hero">' +
+          '<div class="layout layout--landing">' +
+          '<div class="layout__z1">01 / LANDING</div>' +
+          '<div class="layout__main">' +
+          '<div class="landing-wordmark t-64 mono">AURA2</div>' +
+          '<p class="landing-tagline">a chain for documenting what making actually looks like</p>' +
+          '<div class="btn-row" style="justify-content:center">' +
           '<a class="btn btn--primary" href="#/register">ENTER THE CHAIN</a>' +
-          '<a class="btn btn--secondary" href="#/login">ALREADY A NODE? LOGIN</a></div>' +
-          '<div class="landing__corner-bl">' +
-          iconChain() +
-          '<span>chain status: live</span></div>' +
-          '<div class="landing__corner-br">trust-based. non-financial. open.</div></div>';
+          '<a class="btn btn--secondary" href="#/login">ALREADY A NODE?</a></div></div>' +
+          '<div class="layout__z3">chain status: live</div></div>' +
+          '<div class="layout" style="max-width:1280px;margin:0 auto;padding:0 48px 48px">' +
+          '<div class="layout__main" style="grid-column:3/span 8">' +
+          '<div class="pixel-divider">' +
+          divPix +
+          '</div>' +
+          '<p class="text-muted">trust-based. non-financial. open.</p></div></div></div>';
         return;
       }
 
@@ -400,7 +441,7 @@
 
       if (route.view === 'login') {
         app.innerHTML =
-          topbar('login', !!getToken()) +
+          topbar('login') +
           '<div class="page"><div class="win"><div class="win__title">NODE LOGIN</div><div class="win__body">' +
           '<form id="form-login">' +
           '<div class="field"><label for="li-alias">ALIAS</label><input id="li-alias" name="alias" required autocomplete="username" /></div>' +
@@ -428,7 +469,7 @@
 
       if (route.view === 'recover') {
         app.innerHTML =
-          topbar('recover', false) +
+          topbar('recover') +
           '<div class="page"><div class="win"><div class="win__title">SEED RECOVERY</div><div class="win__body">' +
           '<form id="form-rec"><div class="field"><label>ALIAS</label><input name="alias" required /></div>' +
           '<div class="field"><label>SEED PHRASE (12 words)</label><textarea name="seedPhrase" required></textarea></div>' +
@@ -459,12 +500,12 @@
         var spSet = await api('/spaces/' + encodeURIComponent(route.id));
         var isAdm = (spSet.admins || []).indexOf(getAlias()) >= 0;
         if (!isAdm) {
-          app.innerHTML = topbar('space', true) + '<div class="page">' + flashErr('Admin only') + '</div>';
+          app.innerHTML = topbar('space') + '<div class="page">' + flashErr('Admin only') + '</div>';
           bindSignOut();
           return;
         }
         app.innerHTML =
-          topbar('dashboard / spaces / settings', true) +
+          topbar('dashboard / spaces / settings') +
           '<div class="page"><div class="win"><div class="win__title">SPACE SETTINGS</div><div class="win__body">' +
           '<form id="form-sp-set">' +
           '<div class="field"><label>JOINING (projectAccess)</label><select name="projectAccess">' +
@@ -549,7 +590,7 @@
           return '<span class="tag tag--active">' + escapeHtml(String(b).toUpperCase()) + '</span>';
         });
         app.innerHTML =
-          topbar('dashboard', true) +
+          topbar('dashboard') +
           '<div class="page"><div class="grid-12">' +
           '<div class="col-7"><div class="win"><div class="win__title">MY NODE</div><div class="win__body">' +
           '<h2 class="mt-0">' +
@@ -598,7 +639,7 @@
       if (route.view === 'me') {
         var prof = await loadNodeProfile(getAlias());
         app.innerHTML =
-          topbar('dashboard / me', true) +
+          topbar('dashboard / me') +
           '<div class="page"><div class="win"><div class="win__title">MY PROFILE &amp; SETTINGS</div><div class="win__body">' +
           '<form id="form-me">' +
           '<div class="field"><label>INTERESTS (comma-separated)</label><input name="interests" value="' +
@@ -653,7 +694,7 @@
         var np = await loadNodeProfile(getAlias());
         var sn = np.spacesWithNames || [];
         app.innerHTML =
-          topbar('dashboard / spaces', true) +
+          topbar('dashboard / spaces') +
           '<div class="page"><div class="win"><div class="win__title">SPACES</div><div class="win__body list-rows">' +
           sn
             .map(function (s) {
@@ -680,7 +721,7 @@
 
       if (route.view === 'spaces-join') {
         app.innerHTML =
-          topbar('dashboard / spaces / join', true) +
+          topbar('dashboard / spaces / join') +
           '<div class="page"><div class="win"><div class="win__title">JOIN SPACE</div><div class="win__body">' +
           '<form id="form-join">' +
           '<div class="field"><label>SPACE ID</label><input name="spaceId" required class="mono" /></div>' +
@@ -736,7 +777,7 @@
           pj = flashErr(e.message);
         }
         app.innerHTML =
-          topbar('dashboard / spaces / ' + (space.name || 'space'), true) +
+          topbar('dashboard / spaces / ' + (space.name || 'space')) +
           '<div class="page"><div class="grid-12">' +
           '<div class="col-12"><div class="win"><div class="win__title">' +
           escapeHtml(space.name) +
@@ -785,7 +826,7 @@
           })
           .join('');
         app.innerHTML =
-          topbar('dashboard / new project', true) +
+          topbar('dashboard / new project') +
           '<div class="page"><div class="win"><div class="win__title">START PROJECT</div><div class="win__body">' +
           '<form id="form-newp">' +
           '<div class="field"><label>TITLE</label><input name="title" required /></div>' +
@@ -894,7 +935,7 @@
           var nft = bundle.nft;
           var proj = bundle.project;
           app.innerHTML =
-            (getToken() ? topbar('nft', true) : '<div class="page page--public-profile"><a href="#/">AURA2</a></div>') +
+            topbar('nft') +
             '<div class="page"><div class="win"><div class="win__title win__title--blue">PROVENANCE RECORD</div><div class="win__body">' +
             '<h2 class="mt-0">' +
             escapeHtml(nft.title || '') +
@@ -917,7 +958,7 @@
           };
         } catch (e) {
           app.innerHTML =
-            (getToken() ? topbar('nft', true) : '') +
+            topbar('nft') +
             '<div class="page">' +
             flashErr(e.message + ' — sign in may be required for this endpoint.') +
             ' <a href="#/login">LOGIN</a></div>';
@@ -934,7 +975,7 @@
           })
           .join('');
         app.innerHTML =
-          topbar('dashboard / archive', true) +
+          topbar('dashboard / archive') +
           '<div class="page"><div class="win"><div class="win__title">ARCHIVE PAST WORK</div><div class="win__body">' +
           '<p>Archiving documents work that predates the chain. Marked as reconstruction.</p>' +
           '<form id="form-arch">' +
@@ -947,17 +988,85 @@
             return '<option value="' + t + '">' + t + '</option>';
           }).join('') +
           '</select></div>' +
-          '<div class="field"><label>EVIDENCE HASH (SHA-256 hex of file or URL)</label><input name="evidenceHash" class="mono" required /></div>' +
+          '<div class="field"><label>EVIDENCE HASH (SHA-256)</label>' +
+          '<div class="tabs" id="arch-tabs" role="tablist">' +
+          '<button type="button" class="is-active" data-evtab="file" role="tab" aria-selected="true">FILE</button>' +
+          '<button type="button" data-evtab="url" role="tab" aria-selected="false">URL</button></div>' +
+          '<div id="arch-pane-file">' +
+          '<input type="file" id="arch-file" />' +
+          '<p class="text-muted">Hash = SHA-256 of file bytes (in browser).</p></div>' +
+          '<div id="arch-pane-url" hidden>' +
+          '<div class="field"><label>URL</label><input type="url" id="arch-url" placeholder="https://…" /></div>' +
+          '<button type="button" class="btn btn--secondary" id="arch-url-btn">COMPUTE HASH FROM URL</button>' +
+          '<p class="text-muted">Hash = SHA-256 of the URL string (UTF-8).</p></div>' +
+          '<div class="field"><label>EVIDENCE HASH (computed)</label>' +
+          '<input name="evidenceHash" id="arch-hash" class="mono" required readonly autocomplete="off" /></div></div>' +
           '<div class="field"><label>OTHER DESCRIPTION (if type=other)</label><input name="otherDescription" /></div>' +
           '<div class="field"><label>CONTEXT (optional)</label><textarea name="contextNote"></textarea></div>' +
           '<label><input type="checkbox" name="o1" required /> I declare this is my original work</label><br/>' +
           '<label><input type="checkbox" name="o2" required /> I acknowledge this is a self-reported reconstruction</label>' +
           '<p><button type="submit" class="btn btn--primary">ARCHIVE</button></p></form></div></div></div>';
+        (function bindArchiveEvidence() {
+          var tabs = document.getElementById('arch-tabs');
+          var paneF = document.getElementById('arch-pane-file');
+          var paneU = document.getElementById('arch-pane-url');
+          var hashIn = document.getElementById('arch-hash');
+          var fileIn = document.getElementById('arch-file');
+          var urlIn = document.getElementById('arch-url');
+          tabs.querySelectorAll('button[data-evtab]').forEach(function (b) {
+            b.onclick = function () {
+              tabs.querySelectorAll('button[data-evtab]').forEach(function (x) {
+                x.classList.remove('is-active');
+                x.setAttribute('aria-selected', 'false');
+              });
+              b.classList.add('is-active');
+              b.setAttribute('aria-selected', 'true');
+              var t = b.getAttribute('data-evtab');
+              paneF.hidden = t !== 'file';
+              paneU.hidden = t !== 'url';
+              hashIn.value = '';
+              fileIn.value = '';
+              if (urlIn) urlIn.value = '';
+            };
+          });
+          fileIn.onchange = async function (ev) {
+            var f = ev.target.files && ev.target.files[0];
+            if (!f) {
+              hashIn.value = '';
+              return;
+            }
+            try {
+              var buf = await f.arrayBuffer();
+              hashIn.value = await sha256Hex(buf);
+            } catch (err) {
+              hashIn.value = '';
+              document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message || 'Could not hash file'));
+            }
+          };
+          document.getElementById('arch-url-btn').onclick = async function () {
+            var u = (urlIn.value || '').trim();
+            if (!u) return;
+            try {
+              var enc = new TextEncoder().encode(u);
+              hashIn.value = await sha256Hex(enc);
+            } catch (err) {
+              document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message || 'Could not hash URL'));
+            }
+          };
+        })();
         document.getElementById('form-arch').onsubmit = async function (e) {
           e.preventDefault();
           var fd = new FormData(e.target);
+          var hex = (fd.get('evidenceHash') || '').trim().toLowerCase();
+          if (!/^[a-f0-9]{64}$/.test(hex)) {
+            document.querySelector('.win__body').insertAdjacentHTML(
+              'afterbegin',
+              flashErr('Evidence hash must be a 64-character hex SHA-256 (use FILE or URL above).'),
+            );
+            return;
+          }
           var et = fd.get('evidenceType');
-          var ev = [{ evidenceType: et, evidenceHash: fd.get('evidenceHash') }];
+          var ev = [{ evidenceType: et, evidenceHash: hex }];
           if (et === 'other' && fd.get('otherDescription')) ev[0].otherDescription = fd.get('otherDescription');
           try {
             var ar = await api('/archives', {
@@ -987,11 +1096,15 @@
 
       if (route.view === 'discover') {
         app.innerHTML =
-          topbar('discover', true) +
-          '<div class="page"><div class="win"><div class="win__title">DISCOVER</div><div class="win__body">' +
-          '<form id="form-disc"><div class="field"><label>EXACT ALIAS</label><input name="alias" class="mono" required /></div>' +
-          '<button type="submit" class="btn btn--primary">OPEN PROFILE</button></form>' +
-          '<p class="text-muted">No algorithm. No ranking. Load a profile by exact alias (alphabetical browsing requires a future index endpoint).</p></div></div></div>';
+          topbar('discover') +
+          '<div class="page layout"><div class="layout__z1">DISCOVER</div><div class="layout__main">' +
+          '<p class="t-40 mono" style="margin-bottom:48px">DISCOVER</p>' +
+          '<div class="todo-block">TODO: backend search index for FIELD / SKILL / TOOL filters and alphabetical listing.</div>' +
+          '<p class="text-muted" style="margin-bottom:24px">No algorithm. No ranking. Results are alphabetical (when indexed).</p>' +
+          '<div class="win"><div class="win__title">EXACT ALIAS LOOKUP</div><div class="win__body">' +
+          '<form id="form-disc"><div class="field"><label>ALIAS</label><input name="alias" class="mono" required /></div>' +
+          '<button type="submit" class="btn btn--primary">OPEN PROFILE</button></form></div></div>' +
+          '</div></div>';
         document.getElementById('form-disc').onsubmit = function (e) {
           e.preventDefault();
           var a = new FormData(e.target).get('alias');
@@ -1032,9 +1145,9 @@
     var active = project.status === 'active';
     var nftBtn =
       project.status === 'completed'
-        ? '<a class="btn btn--primary" href="#/projects/' +
+        ? '<a class="btn btn--provenance" href="#/projects/' +
           pid +
-          '/nft">VIEW NFT</a>'
+          '/nft">VIEW PROVENANCE RECORD</a>'
         : '';
 
     var traces = [];
@@ -1139,7 +1252,7 @@
       .join('');
 
     var shell =
-      topbar('dashboard / project', true) +
+      topbar('dashboard / project') +
       '<div class="page"><div class="win"><div class="win__title">' +
       escapeHtml(project.title) +
       ' | ' +
@@ -1342,7 +1455,7 @@
         '<button type="submit" class="btn btn--primary">SIGN</button></form></div></div>';
     }
     return (
-      '<div class="win" style="margin-top:24px"><div class="win__title">MINT FINAL NFT</div><div class="win__body">' +
+      '<div class="win" style="margin-top:24px"><div class="win__title">CREDIT SPLIT</div><div class="win__body">' +
       '<form id="form-credit" data-pid="' +
       pid +
       '">' +
@@ -1353,7 +1466,7 @@
       '<div class="field"><label>MEDIUM (optional)</label><input name="medium" /></div>' +
       '<details><summary>Off-chain contributors</summary><textarea name="offChain" placeholder=\'[{"name":"x","portfolio":"","role":""}]\'></textarea></details>' +
       '<label><input type="checkbox" name="dispute" /> Flag as disputed</label>' +
-      '<p><button type="submit" class="btn btn--primary">INITIATE CREDIT / MINT</button></p></form>' +
+      '<p><button type="submit" class="btn btn--primary">INITIATE CREDIT</button></p></form>' +
       signBlock +
       '</div></div>'
     );
@@ -1542,7 +1655,7 @@
             method: 'POST',
             body: { accepted: !!sg.querySelector('[name="accepted"]').checked },
           });
-          sg.insertAdjacentHTML('afterend', rawApi(o7));
+          sg.insertAdjacentHTML('afterend', flashOk('Signature recorded.') + rawApi(o7));
         } catch (err) {
           sg.insertAdjacentHTML('beforebegin', flashErr(err.message));
         }
@@ -1590,7 +1703,7 @@
         '</p><button type="button" class="btn btn--primary" id="btn-create-space">CREATE SPACE</button>';
     }
     app.innerHTML =
-      topbar('dashboard / spaces / new', true) +
+      topbar('dashboard / spaces / new') +
       '<div class="page"><div class="win"><div class="win__title">CREATE SPACE</div><div class="win__body">' +
       '<div class="wiz-bar">' +
       segs +

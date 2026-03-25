@@ -89,13 +89,10 @@ export async function addReputationPoints(
 
 /**
  * Apply trace reputation + craft badge in one atomic DB update ($inc / $addToSet).
- * Avoids find()+save() edge cases; falls back to { alias } if _id filter matches nothing.
- *
- * @param aliasForFallback — canonical alias for the reputation subject (proxy target alias when proxy).
+ * Avoids find()+save() edge cases.
  */
 export async function onTraceCreated(
-  nodeId: string,
-  aliasForFallback: string,
+  alias: string,
   activityType: string,
 ): Promise<void> {
   const category = ACTIVITY_CATEGORY_MAP[activityType];
@@ -115,24 +112,14 @@ export async function onTraceCreated(
     update.$addToSet = { badges: 'craft_affirmative' };
   }
 
-  let doc = await ChainNode.findOneAndUpdate(
-    { _id: nodeId, status: 'active' },
+  const doc = await ChainNode.findOneAndUpdate(
+    { alias, status: 'active' },
     update,
     { new: true },
   );
-  if (!doc) {
-    doc = await ChainNode.findOneAndUpdate(
-      { alias: aliasForFallback, status: 'active' },
-      update,
-      { new: true },
-    );
-  }
 
   if (!doc && process.env.NODE_ENV === 'development') {
-    console.warn('[reputation] onTraceCreated: no document updated', {
-      nodeId,
-      aliasForFallback,
-    });
+    console.warn('[reputation] onTraceCreated: no document updated', { alias });
   }
 }
 

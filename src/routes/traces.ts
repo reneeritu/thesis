@@ -115,11 +115,9 @@ router.post(
       { $set: { lastActiveAt: new Date() } },
     );
 
-    const reputationSubjectNodeId =
-      isProxy && proxyTarget ? String(proxyTarget._id) : req.node!.nodeId;
-    const reputationSubjectAlias =
+    const reputationAlias =
       isProxy && proxyForAlias ? proxyForAlias : alias;
-    await onTraceCreated(reputationSubjectNodeId, reputationSubjectAlias, activityType);
+    await onTraceCreated(reputationAlias, activityType);
 
     res.status(201).json(trace);
   },
