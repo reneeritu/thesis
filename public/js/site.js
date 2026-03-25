@@ -543,23 +543,22 @@
           divPix += '<span></span>';
         }
         app.innerHTML =
+          '<div class="landing-page">' +
           '<div class="landing-hero">' +
-          '<div class="layout layout--landing">' +
-          '<div class="layout__z1">01 / LANDING</div>' +
-          '<div class="layout__main">' +
-          '<div class="landing-wordmark t-64 mono">untitled</div>' +
-          '<p class="landing-tagline">a chain for documenting what making actually looks like</p>' +
-          '<div class="btn-row" style="justify-content:center">' +
-          '<a class="btn btn--primary" href="#/register">ENTER THE CHAIN</a>' +
-          '<a class="btn btn--secondary" href="#/login">ALREADY A NODE?</a></div></div>' +
-          '<div class="layout__z3">chain status: live</div></div>' +
-          '<div class="landing-hero__foot">' +
-          '<div class="layout">' +
-          '<div class="layout__main">' +
+          '<div class="landing-hero__center">' +
+          '<div class="landing-halftone" aria-hidden="true"></div>' +
+          '<div class="landing-wordmark t-64">untitled</div>' +
+          '<p class="landing-tagline mono">a chain for documenting what making actually looks like</p>' +
+          '<div class="landing-cta-row">' +
+          '<a class="btn btn--landing-primary" href="#/register">ENTER THE CHAIN</a>' +
+          '<a class="btn btn--landing-secondary" href="#/login">ALREADY A NODE? LOGIN</a>' +
+          '</div></div></div>' +
+          '<footer class="landing-hero__foot">' +
           '<div class="pixel-divider">' +
           divPix +
           '</div>' +
-          '<p class="text-muted">trust-based. non-financial. open.</p></div></div></div></div>';
+          '<p class="text-muted">trust-based. non-financial. open.</p>' +
+          '</footer></div>';
         return;
       }
 
