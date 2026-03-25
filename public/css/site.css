@@ -149,11 +149,16 @@ textarea,
 .layout {
   max-width: var(--max);
   margin: 0 auto;
-  padding: var(--margin-outer);
+  padding: 24px var(--margin-outer) 32px;
   display: grid;
-  grid-template-columns: repeat(12, var(--col-w));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--gutter);
   align-items: start;
+}
+
+/* Avoid double horizontal padding when .page and .layout share one element */
+.page.layout {
+  padding: 24px var(--margin-outer) 48px;
 }
 
 .layout__z1 {
@@ -172,6 +177,12 @@ textarea,
 .layout__main {
   grid-column: 3 / span 8;
   text-align: left;
+  min-width: 0;
+}
+
+.layout__main--narrow {
+  grid-column: 3 / span 6;
+  max-width: 640px;
 }
 
 .layout__z3 {
@@ -443,6 +454,25 @@ textarea,
   margin-bottom: 48px;
 }
 
+.shell-dash .win,
+.shell-dash__right .win,
+.shell-space .win,
+.shell-3col .win,
+.board-col .win,
+.profile-3col .win,
+.profile-split2 .win {
+  margin-bottom: 0;
+}
+
+/* Nested panels inside a project window */
+.win .win {
+  margin-bottom: 16px;
+}
+
+.win .win:last-child {
+  margin-bottom: 0;
+}
+
 /* Alias for generated markup */
 .win__title {
   display: flex;
@@ -501,7 +531,7 @@ textarea,
 }
 
 .win__body {
-  padding: 24px;
+  padding: 16px 20px;
 }
 
 /* ---------- Buttons ---------- */
@@ -974,7 +1004,7 @@ table.data-table {
 .page {
   max-width: var(--max);
   margin: 0 auto;
-  padding: 0 var(--margin-outer) 48px;
+  padding: 24px var(--margin-outer) 48px;
 }
 
 /* ---------- Dashboard / wireframe shells ---------- */
@@ -989,6 +1019,29 @@ table.data-table {
   display: flex;
   flex-direction: column;
   gap: var(--gutter);
+}
+
+/* Space view: full-width header, then 7/5 projects | members (matches 12-col sketch) */
+.shell-space {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--gutter);
+  width: 100%;
+}
+
+.shell-space__full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 960px) {
+  .shell-space {
+    grid-template-columns: 1fr;
+  }
+
+  .layout__main--narrow {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
 }
 
 @media (max-width: 1100px) {
@@ -1120,15 +1173,14 @@ table.data-table {
 }
 
 .row-cards {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: var(--gutter);
   align-items: stretch;
 }
 
 .row-cards .dash-card {
-  flex: 1 1 140px;
-  max-width: 200px;
+  min-height: 96px;
 }
 
 .row-cards__actions {
@@ -1148,7 +1200,6 @@ table.data-table {
 }
 
 .board-col .win {
-  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   max-height: min(70vh, 600px);

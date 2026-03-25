@@ -1012,8 +1012,9 @@
         }
         app.innerHTML =
           topbar('dashboard / spaces / ' + (space.name || 'space')) +
-          '<div class="page"><div class="grid-12">' +
-          '<div class="col-12"><div class="win"><div class="win__title">' +
+          '<div class="page layout"><div class="layout__z1">SPACE</div><div class="layout__main">' +
+          '<div class="shell-space">' +
+          '<div class="shell-space__full win"><div class="win__title">' +
           escapeHtml(space.name) +
           '</div><div class="win__body"><p class="mono">ID: ' +
           escapeHtml(space._id) +
@@ -1024,13 +1025,14 @@
           (isAdmin
             ? '<p><a class="btn btn--secondary" href="#/spaces/' + route.id + '/settings">SETTINGS</a></p>'
             : '') +
-          '</div></div></div>' +
-          '<div class="col-7"><div class="win"><div class="win__title">PROJECTS</div><div class="win__body list-rows">' +
+          '</div></div>' +
+          '<div class="shell-space__projects win"><div class="win__title">PROJECTS</div><div class="win__body list-rows">' +
           pj +
+          '<div class="btn-row" style="margin-top:12px;padding:12px;border-top:var(--border)">' +
           '<a class="btn btn--primary" href="#/projects/new?space=' +
           encodeURIComponent(route.id) +
           '">NEW PROJECT IN SPACE</a></div></div></div>' +
-          '<div class="col-5"><div class="win"><div class="win__title">MEMBERS (' +
+          '<div class="shell-space__members win"><div class="win__title">MEMBERS (' +
           (space.members || []).length +
           ')</div><div class="win__body list-rows">' +
           mem +
@@ -1061,15 +1063,16 @@
           .join('');
         app.innerHTML =
           topbar('dashboard / new project') +
-          '<div class="page"><div class="win"><div class="win__title">START PROJECT</div><div class="win__body">' +
+          '<div class="page layout"><div class="layout__z1">NEW</div><div class="layout__main layout__main--narrow">' +
+          '<div class="win"><div class="win__title">START PROJECT</div><div class="win__body">' +
           '<form id="form-newp">' +
           '<div class="field"><label>TITLE</label><input name="title" required /></div>' +
           '<div class="field"><label>SPACE</label><select name="spaceId">' +
           opts +
           '</select></div>' +
-          '<div class="field"><label>CONTRIBUTORS (one alias per line, must exist on chain)</label><textarea name="contrib" rows="4" placeholder="riku&#10;prof"></textarea></div>' +
+          '<div class="field"><label>CONTRIBUTORS (optional — one alias per line, must exist on chain)</label><textarea name="contrib" rows="4" placeholder=""></textarea></div>' +
           '<div class="field"><label>MENTOR ALIAS (optional)</label><input name="mentorAlias" /></div>' +
-          '<button type="submit" class="btn btn--primary">CREATE PROJECT</button></form></div></div></div>';
+          '<button type="submit" class="btn btn--primary">CREATE PROJECT</button></form></div></div></div></div>';
         var sel = document.querySelector('[name="spaceId"]');
         if (qs.space && sel) sel.value = qs.space;
         document.getElementById('form-newp').onsubmit = async function (e) {
