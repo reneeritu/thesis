@@ -1,4 +1,4 @@
-/* AURA2 — vanilla front-end, hash router, real API */
+/* untitled — vanilla front-end, hash router, real API */
 (function () {
   'use strict';
 
@@ -296,7 +296,7 @@
   function topbar(crumb) {
     if (!getToken()) {
       return (
-        '<header class="topbar"><a class="topbar__brand" href="#/">AURA2</a><div></div><div></div></header>'
+        '<header class="topbar"><a class="topbar__brand" href="#/">untitled</a><div></div><div></div></header>'
       );
     }
     var alias = getAlias();
@@ -306,7 +306,7 @@
       '<a class="topbar__home" href="#/dashboard" aria-label="Home">' +
       iconHome() +
       '</a>' +
-      '<a class="topbar__brand" href="#/dashboard">AURA2</a>' +
+      '<a class="topbar__brand" href="#/dashboard">untitled</a>' +
       '<details class="topbar__nav">' +
       '<summary><span class="mono">' +
       escapeHtml(crumb) +
@@ -547,7 +547,7 @@
           '<div class="layout layout--landing">' +
           '<div class="layout__z1">01 / LANDING</div>' +
           '<div class="layout__main">' +
-          '<div class="landing-wordmark t-64 mono">AURA2</div>' +
+          '<div class="landing-wordmark t-64 mono">untitled</div>' +
           '<p class="landing-tagline">a chain for documenting what making actually looks like</p>' +
           '<div class="btn-row" style="justify-content:center">' +
           '<a class="btn btn--primary" href="#/register">ENTER THE CHAIN</a>' +
@@ -1113,10 +1113,22 @@
         var node = await api('/nodes/' + encodeURIComponent(route.alias), { token: getToken() || '' });
         var pubHeader = getToken()
           ? topbar('nodes / ' + route.alias)
-          : '<header class="topbar"><a class="topbar__brand" href="#/">AURA2</a><div></div><div></div></header>';
+          : '<header class="topbar"><a class="topbar__brand" href="#/">untitled</a><div></div><div></div></header>';
+        var pubCallout = '';
+        if (!getToken()) {
+          pubCallout =
+            '<div class="public-auth-callout win" style="margin-bottom:24px">' +
+            '<div class="win__body">' +
+            '<p class="mt-0">Have an account? <a href="#/login">LOG IN</a>. New here? <a href="#/register">REGISTER</a>.</p>' +
+            '</div></div>';
+        }
         app.innerHTML =
           pubHeader +
-          '<div class="page layout"><div class="layout__z1">PROFILE</div><div class="layout__main">' +
+          '<div class="page layout page--public-profile"><div class="layout__z1">PROFILE</div><div class="layout__main">' +
+          '<h1 class="public-profile__title">' +
+          escapeHtml(node.alias) +
+          '</h1>' +
+          pubCallout +
           profileWireframeHtml(node, { settings: false }) +
           '</div></div>';
         if (getToken()) await bindAppChrome();

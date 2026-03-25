@@ -1,4 +1,4 @@
-/* AURA2 — Swiss grid × Win95 bitmap — CMYK on white — desktop ≥1024px */
+/* untitled — Swiss grid × Win95 bitmap — CMYK on white — desktop ≥1024px */
 
 :root {
   --cyan: #00b4d8;
@@ -252,8 +252,7 @@ textarea,
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--black);
   text-decoration: none;
   flex-shrink: 0;
@@ -1166,6 +1165,18 @@ table.data-table {
   max-width: var(--max);
   margin: 0 auto;
   padding: 0 var(--margin-outer) 48px;
+}
+
+.public-profile__title {
+  font-size: 3rem;
+  line-height: 1.1;
+  font-weight: 700;
+  margin: 24px 0 16px;
+}
+
+.public-auth-callout .win__body p {
+  font-size: 13px;
+  font-family: var(--font-mono);
 }
 
 .action-bar {
