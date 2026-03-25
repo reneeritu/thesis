@@ -102,6 +102,14 @@
     return '<svg class="icon-pixel" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" fill="#000"/><rect x="5" y="5" width="6" height="6" fill="#fff"/></svg>';
   }
 
+  function iconHome() {
+    return '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8l6-6 6 6"/><path d="M4 8v6h8V8"/></svg>';
+  }
+
+  function iconBell() {
+    return '<svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 2v1"/><path d="M5 12h6l-1-4V6a2 2 0 10-4 0v2l-1 4z"/></svg>';
+  }
+
   function radarSvg(rc, selfScore) {
     rc = rc || {};
     var keys = ['craft', 'research', 'collaboration', 'pedagogy', 'consistency', 'community'];
@@ -235,6 +243,7 @@
     }
     if (a === 'projects') {
       if (parts[1] === 'new') return { view: 'project-new', parts: parts };
+      if (!parts[1]) return { view: 'projects-board', parts: parts };
       if (parts[1]) {
         var pid = parts[1];
         var sub = parts[2] || 'view';
@@ -272,6 +281,7 @@
       'project-fork': 1,
       'project-credit': 1,
       'project-nft': 1,
+      'projects-board': 1,
       'archive-new': 1,
       discover: 1,
     };
@@ -282,20 +292,50 @@
     return true;
   }
 
-  /** Logged-in app bar. Unauthenticated pages use topbarMinimal() instead. */
+  /** Logged-in app bar. Unauthenticated pages use a minimal strip. */
   function topbar(crumb) {
     if (!getToken()) {
       return (
-        '<header class="topbar"><a class="topbar__brand" href="#/">AURA2</a><div class="topbar__crumb"></div><div></div></header>'
+        '<header class="topbar"><a class="topbar__brand" href="#/">AURA2</a><div></div><div></div></header>'
       );
     }
     var alias = getAlias();
     return (
-      '<header class="topbar"><a class="topbar__brand" href="#/dashboard">AURA2</a><div class="topbar__crumb mono">' +
+      '<header class="topbar">' +
+      '<div class="topbar__left">' +
+      '<a class="topbar__home" href="#/dashboard" aria-label="Home">' +
+      iconHome() +
+      '</a>' +
+      '<a class="topbar__brand" href="#/dashboard">AURA2</a>' +
+      '<details class="topbar__nav">' +
+      '<summary><span class="mono">' +
       escapeHtml(crumb) +
-      '</div><div class="topbar__user"><a href="#/me">' +
+      '</span> <span class="t-11">▼</span></summary>' +
+      '<nav class="topbar__nav-menu">' +
+      '<a href="#/dashboard">DASHBOARD</a>' +
+      '<a href="#/me">PROFILE</a>' +
+      '<a href="#/spaces">SPACES</a>' +
+      '<a href="#/projects">YOUR PROJECTS</a>' +
+      '<a href="#/projects/new">START NEW (+)</a>' +
+      '<a href="#/discover">SEARCH</a>' +
+      '</nav></details></div>' +
+      '<div></div>' +
+      '<div class="topbar__user">' +
+      '<div class="topbar__notif-wrap">' +
+      '<details class="topbar__notif">' +
+      '<summary aria-label="Notifications">' +
+      iconBell() +
+      '</summary>' +
+      '<div class="notif-panel">' +
+      '<div id="notif-panel-body" class="notif-panel__list"></div>' +
+      '<div class="notif-panel__foot"><button type="button" class="btn btn--secondary" id="btn-notify-read">MARK ALL READ</button></div>' +
+      '</div></details>' +
+      '<span id="notif-badge-count" class="topbar__notif-badge" hidden>0</span></div>' +
+      '<a href="#/me">' +
       escapeHtml(alias) +
-      '</a><span class="topbar__sep">|</span><button type="button" class="btn btn--secondary" id="btn-signout">SIGN OUT</button></div></header>'
+      '</a>' +
+      '<button type="button" class="btn btn--secondary" id="btn-signout">SIGN OUT</button>' +
+      '</div></header>'
     );
   }
 
@@ -315,6 +355,179 @@
 
   async function loadNodeProfile(alias) {
     return api('/nodes/' + encodeURIComponent(alias), { token: getToken() || '' });
+  }
+
+  async function fetchAllProjectRows() {
+    var me = await loadNodeProfile(getAlias());
+    var spaces = me.spacesWithNames || [];
+    var rows = [];
+    for (var si = 0; si < spaces.length; si++) {
+      try {
+        var plist = await api('/projects/space/' + encodeURIComponent(spaces[si].id));
+        for (var pj = 0; pj < plist.length; pj++) {
+          rows.push({
+            project: plist[pj],
+            spaceName: spaces[si].name,
+            spaceId: spaces[si].id,
+          });
+        }
+      } catch (e) {
+        rows.push({
+          error: e.message,
+          spaceName: spaces[si].name,
+          spaceId: spaces[si].id,
+        });
+      }
+    }
+    return { me: me, rows: rows };
+  }
+
+  function partitionProjectRows(rows) {
+    var ongoing = [];
+    var finished = [];
+    var archive = [];
+    rows.forEach(function (item) {
+      if (item.error || !item.project) return;
+      var s = item.project.status;
+      if (s === 'archived') archive.push(item);
+      else if (s === 'completed') finished.push(item);
+      else ongoing.push(item);
+    });
+    return { ongoing: ongoing, finished: finished, archive: archive };
+  }
+
+  function projectCardMarkup(item) {
+    var p = item.project;
+    return (
+      '<a class="dash-card" href="#/projects/' +
+      p._id +
+      '">' +
+      '<span class="dash-card__title">' +
+      escapeHtml(p.title) +
+      '</span>' +
+      '<span class="tag ' +
+      tagClass(p.status) +
+      '">' +
+      escapeHtml(p.status) +
+      '</span>' +
+      '<span class="dash-card__meta text-muted">' +
+      escapeHtml(item.spaceName) +
+      '</span></a>'
+    );
+  }
+
+  function profileAvatarHtml(alias) {
+    var a = (alias || '?').trim().slice(0, 2).toUpperCase();
+    return '<div class="profile-avatar mono">' + escapeHtml(a) + '</div>';
+  }
+
+  function profileWireframeHtml(node, opts) {
+    opts = opts || {};
+    var settings = !!opts.settings;
+    var alias = node.alias || '';
+    var scoreHtml;
+    if (node.reputationScore != null && String(node.reputationScore) !== '') {
+      scoreHtml =
+        '<div class="score-strip">CURRENT SCORE — <strong>' + escapeHtml(String(node.reputationScore)) + '</strong></div>';
+    } else if (settings) {
+      scoreHtml = '<div class="score-strip text-muted">SCORE — (only visible on your own profile)</div>';
+    } else {
+      scoreHtml = '<div class="score-strip text-muted">SCORE — not public</div>';
+    }
+    var kw = (node.keywords || []).join(', ');
+    var interestsList = (node.interests || [])
+      .map(function (x) {
+        return '<li>' + escapeHtml(x) + '</li>';
+      })
+      .join('');
+    var comp = (node.completedProjects || [])
+      .map(function (c) {
+        var href = c.nftId
+          ? '#/nfts/' + encodeURIComponent(String(c.nftId))
+          : c.projectId
+            ? '#/projects/' + encodeURIComponent(String(c.projectId))
+            : '#';
+        return '<div class="list-row"><a href="' + href + '">' + escapeHtml(c.title) + '</a></div>';
+      })
+      .join('');
+    var spacesList = (node.spacesWithNames || [])
+      .map(function (s) {
+        return '<div class="mono">' + escapeHtml(s.name) + '</div>';
+      })
+      .join('');
+    var links = '';
+    if (node.portfolioUrl) {
+      links +=
+        '<p><a href="' +
+        escapeHtml(node.portfolioUrl) +
+        '" target="_blank" rel="noopener">PORTFOLIO</a></p>';
+    } else {
+      links = '<p class="text-muted">—</p>';
+    }
+    var badges = (node.badges || [])
+      .map(function (b) {
+        return '<span class="tag tag--active">' + escapeHtml(String(b).toUpperCase()) + '</span>';
+      })
+      .join(' ');
+    var left =
+      '<div class="profile-stack">' +
+      profileAvatarHtml(alias) +
+      (badges ? '<p>' + badges + '</p>' : '') +
+      scoreHtml +
+      '</div>';
+    var center =
+      '<div class="profile-stack">' +
+      '<div class="win"><div class="win__title">CONTRIBUTIONS</div><div class="win__body"><div class="radar-wrap">' +
+      radarSvg(node.reputationCategories, node.reputationScore) +
+      '</div></div></div>' +
+      '<div class="win"><div class="win__title">NETWORK</div><div class="win__body">' +
+      (spacesList || '<p class="text-muted">No spaces listed.</p>') +
+      '<p class="text-muted t-11">Spaces this node appears in. A full collaboration graph is not on-chain yet.</p></div></div></div>';
+    var right =
+      '<div class="profile-stack">' +
+      '<div class="win"><div class="win__title">STATEMENT / KEYWORDS</div><div class="win__body"><p>' +
+      escapeHtml(kw || '—') +
+      '</p></div></div>' +
+      '<div class="profile-split2">' +
+      '<div class="win"><div class="win__title">INTERESTS</div><div class="win__body">' +
+      (interestsList ? '<ul class="mt-0">' + interestsList + '</ul>' : '<p class="text-muted">—</p>') +
+      '</div></div>' +
+      '<div class="win"><div class="win__title">PROJECTS</div><div class="win__body list-rows">' +
+      (comp || '<p class="text-muted">—</p>') +
+      '</div></div></div>' +
+      '<div class="win"><div class="win__title">LINKS</div><div class="win__body">' +
+      links +
+      '</div></div></div>';
+    var form = '';
+    if (settings) {
+      form =
+        '<div class="win" style="margin-top:24px"><div class="win__title">PROFILE SETTINGS</div><div class="win__body">' +
+        '<form id="form-me">' +
+        '<div class="field"><label>INTERESTS (comma-separated)</label><input name="interests" value="' +
+        escapeHtml((node.interests || []).join(', ')) +
+        '" /></div>' +
+        '<div class="field"><label>PORTFOLIO URL</label><input name="portfolioUrl" value="' +
+        escapeHtml(node.portfolioUrl || '') +
+        '" /></div>' +
+        '<div class="field"><label>KEYWORDS (comma-separated)</label><input name="keywords" value="' +
+        escapeHtml((node.keywords || []).join(', ')) +
+        '" /></div>' +
+        '<button type="submit" class="btn btn--primary">SAVE</button></form>' +
+        rawApi(node) +
+        '</div></div>';
+    }
+    return (
+      '<div class="profile-3col">' +
+      '<div class="profile-col profile-col--left">' +
+      left +
+      '</div><div class="profile-col profile-col--center">' +
+      center +
+      '</div><div class="profile-col profile-col--right">' +
+      right +
+      '</div></div>' +
+      form +
+      (settings ? '' : '<p class="text-muted" style="margin-top:24px">This profile is public. No personal data is stored.</p>')
+    );
   }
 
   async function render() {
@@ -340,12 +553,13 @@
           '<a class="btn btn--primary" href="#/register">ENTER THE CHAIN</a>' +
           '<a class="btn btn--secondary" href="#/login">ALREADY A NODE?</a></div></div>' +
           '<div class="layout__z3">chain status: live</div></div>' +
-          '<div class="layout" style="max-width:1280px;margin:0 auto;padding:0 48px 48px">' +
-          '<div class="layout__main" style="grid-column:3/span 8">' +
+          '<div class="landing-hero__foot">' +
+          '<div class="layout">' +
+          '<div class="layout__main">' +
           '<div class="pixel-divider">' +
           divPix +
           '</div>' +
-          '<p class="text-muted">trust-based. non-financial. open.</p></div></div></div>';
+          '<p class="text-muted">trust-based. non-financial. open.</p></div></div></div></div>';
         return;
       }
 
@@ -463,7 +677,7 @@
             document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -501,7 +715,7 @@
         var isAdm = (spSet.admins || []).indexOf(getAlias()) >= 0;
         if (!isAdm) {
           app.innerHTML = topbar('space') + '<div class="page">' + flashErr('Admin only') + '</div>';
-          bindSignOut();
+          await bindAppChrome();
           return;
         }
         app.innerHTML =
@@ -546,117 +760,135 @@
             document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
       if (route.view === 'dashboard') {
-        var me = await loadNodeProfile(getAlias());
+        var pack = await fetchAllProjectRows();
+        var me = pack.me;
+        var rows = pack.rows;
         var spaces = me.spacesWithNames || [];
-        var projectsHtml = '';
-        for (var si = 0; si < spaces.length; si++) {
-          try {
-            var plist = await api('/projects/space/' + encodeURIComponent(spaces[si].id));
-            for (var pj = 0; pj < plist.length; pj++) {
-              var p = plist[pj];
-              projectsHtml +=
-                '<div class="list-row"><div><strong>' +
-                escapeHtml(p.title) +
-                '</strong> <span class="tag ' +
-                tagClass(p.status) +
-                '">' +
-                escapeHtml(p.status) +
-                '</span><br/><span class="text-muted">' +
-                escapeHtml(spaces[si].name) +
-                '</span></div><a class="btn btn--secondary" href="#/projects/' +
-                p._id +
-                '">VIEW →</a></div>';
-            }
-          } catch (e) {
-            projectsHtml += '<div class="flash flash--err">' + escapeHtml(e.message) + '</div>';
-          }
-        }
-        var notes = [];
-        try {
-          notes = await api('/notifications');
-        } catch (e) {
-          notes = [];
-        }
-        var nh = '';
-        for (var n = 0; n < notes.length; n++) {
-          if (!notes[n].read) nh += '<div class="list-row">' + escapeHtml(notes[n].message || notes[n].type || 'notification') + '</div>';
-        }
         var badges = (me.badges || []).map(function (b) {
           return '<span class="tag tag--active">' + escapeHtml(String(b).toUpperCase()) + '</span>';
         });
+        var scoreLine =
+          me.reputationScore != null
+            ? '<div class="score-strip" style="margin-top:16px">CURRENT SCORE — <strong>' +
+              escapeHtml(String(me.reputationScore)) +
+              '</strong></div>'
+            : '';
+        var spaceCards = spaces
+          .map(function (s) {
+            return (
+              '<a class="dash-card" href="#/spaces/' +
+              s.id +
+              '"><span class="dash-card__title">' +
+              escapeHtml(s.name) +
+              '</span><span class="dash-card__meta">OPEN →</span></a>'
+            );
+          })
+          .join('');
+        var activeRows = rows.filter(function (item) {
+          if (!item.project) return false;
+          return ['active', 'halted', 'disputed'].indexOf(item.project.status) >= 0;
+        });
+        var projShow = activeRows.slice(0, 4).map(projectCardMarkup).join('');
+        var projRow =
+          '<div class="row-cards">' +
+          (projShow || '<p class="text-muted" style="flex:1">No active projects.</p>') +
+          '<a class="dash-card dash-card--cta" href="#/projects"><span class="dash-card__title">VIEW ALL</span><span class="mono">→</span></a>' +
+          '<a class="dash-card dash-card--cta" href="#/projects/new"><span class="dash-card__title">CREATE NEW</span><span class="mono">+</span></a></div>';
+        var errRows = rows
+          .filter(function (r) {
+            return r.error;
+          })
+          .map(function (r) {
+            return '<div class="flash flash--err">' + escapeHtml(r.spaceName + ': ' + r.error) + '</div>';
+          })
+          .join('');
         app.innerHTML =
           topbar('dashboard') +
-          '<div class="page"><div class="grid-12">' +
-          '<div class="col-7"><div class="win"><div class="win__title">MY NODE</div><div class="win__body">' +
-          '<h2 class="mt-0">' +
+          '<div class="page layout"><div class="layout__z1">HOME</div><div class="layout__main">' +
+          '<div class="shell-dash">' +
+          '<div class="shell-dash__left">' +
+          '<div class="win"><div class="win__title">CONTRIBUTIONS</div><div class="win__body">' +
+          '<h2 class="mt-0 mono">' +
           escapeHtml(me.alias) +
           '</h2>' +
+          '<div class="radar-wrap">' +
           radarSvg(me.reputationCategories, me.reputationScore) +
-          '<div>' +
+          '</div>' +
+          '<div style="margin-top:12px">' +
           badges.join(' ') +
-          '</div></div></div></div>' +
-          '<div class="col-5">' +
-          '<div class="win"><div class="win__title">MY SPACES</div><div class="win__body">' +
-          spaces
-            .map(function (s) {
-              return (
-                '<div class="list-row"><div>' +
-                escapeHtml(s.name) +
-                '</div><a class="btn btn--secondary" href="#/spaces/' +
-                s.id +
-                '">VIEW →</a></div>'
-              );
-            })
-            .join('') +
-          '<div class="btn-row"><a class="btn btn--secondary" href="#/spaces/new">+ CREATE SPACE</a> <a class="btn btn--secondary" href="#/spaces/join">+ JOIN SPACE</a></div>' +
-          '</div></div>' +
-          '<div class="win"><div class="win__title">MY PROJECTS</div><div class="win__body list-rows">' +
-          (projectsHtml || '<p class="text-muted">No projects yet.</p>') +
-          '<div class="btn-row"><a class="btn btn--secondary" href="#/projects/new">+ NEW PROJECT</a></div></div></div>' +
-          '<div class="win"><div class="win__title">NOTIFICATIONS</div><div class="win__body">' +
-          (nh || '<p class="text-muted">No unread.</p>') +
-          '<button type="button" class="btn btn--secondary" id="btn-notify-read">MARK ALL READ</button></div></div>' +
-          '</div></div></div>';
-        var br = document.getElementById('btn-notify-read');
-        if (br)
-          br.onclick = async function () {
-            try {
-              await api('/notifications/read-all', { method: 'PATCH' });
-              render();
-            } catch (e) {
-              alert(e.message);
-            }
-          };
-        bindSignOut();
+          '</div>' +
+          scoreLine +
+          '</div></div></div>' +
+          '<div class="shell-dash__right">' +
+          errRows +
+          '<div class="win"><div class="win__title">ACTIVE SPACES</div><div class="win__body">' +
+          '<div class="grid-cards grid-cards--spaces">' +
+          (spaceCards || '<p class="text-muted">None.</p>') +
+          '</div>' +
+          '<div class="btn-row" style="margin-top:16px">' +
+          '<a class="btn btn--secondary" href="#/spaces">VIEW SPACES</a>' +
+          '<a class="btn btn--secondary" href="#/spaces/join">+ JOIN</a>' +
+          '<a class="btn btn--secondary" href="#/spaces/new">+ CREATE</a></div></div></div>' +
+          '<div class="win"><div class="win__title">ACTIVE PROJECTS</div><div class="win__body">' +
+          projRow +
+          '</div></div></div></div></div></div>';
+        await bindAppChrome();
+        return;
+      }
+
+      if (route.view === 'projects-board') {
+        var packb = await fetchAllProjectRows();
+        var part = partitionProjectRows(packb.rows);
+        function boardCol(title, items) {
+          var inner = items.map(projectCardMarkup).join('') || '<p class="text-muted">None.</p>';
+          return (
+            '<div class="board-col"><div class="win"><div class="win__title">' +
+            title +
+            '</div><div class="win__body">' +
+            inner +
+            '</div></div></div>'
+          );
+        }
+        var errb = packb.rows
+          .filter(function (r) {
+            return r.error;
+          })
+          .map(function (r) {
+            return '<div class="flash flash--err">' + escapeHtml(r.spaceName + ': ' + r.error) + '</div>';
+          })
+          .join('');
+        app.innerHTML =
+          topbar('your projects') +
+          '<div class="page layout"><div class="layout__z1">PROJECTS</div><div class="layout__main">' +
+          errb +
+          '<p class="t-40 mono" style="margin-bottom:24px">YOUR PROJECTS</p>' +
+          '<div class="shell-3col">' +
+          boardCol('ONGOING / ACTIVE', part.ongoing) +
+          boardCol('FINISHED / CREDITED', part.finished) +
+          boardCol('ARCHIVE', part.archive) +
+          '</div>' +
+          '<div class="btn-row" style="margin-top:24px"><a class="btn btn--primary" href="#/projects/new">+ NEW PROJECT</a></div></div></div>';
+        await bindAppChrome();
         return;
       }
 
       if (route.view === 'me') {
         var prof = await loadNodeProfile(getAlias());
         app.innerHTML =
-          topbar('dashboard / me') +
-          '<div class="page"><div class="win"><div class="win__title">MY PROFILE &amp; SETTINGS</div><div class="win__body">' +
-          '<form id="form-me">' +
-          '<div class="field"><label>INTERESTS (comma-separated)</label><input name="interests" value="' +
-          escapeHtml((prof.interests || []).join(', ')) +
-          '" /></div>' +
-          '<div class="field"><label>PORTFOLIO URL</label><input name="portfolioUrl" value="' +
-          escapeHtml(prof.portfolioUrl || '') +
-          '" /></div>' +
-          '<div class="field"><label>KEYWORDS (comma-separated)</label><input name="keywords" value="' +
-          escapeHtml((prof.keywords || []).join(', ')) +
-          '" /></div>' +
-          '<button type="submit" class="btn btn--primary">SAVE</button></form>' +
-          rawApi(prof) +
-          '</div></div></div>';
+          topbar('profile') +
+          '<div class="page layout"><div class="layout__z1">PROFILE</div><div class="layout__main">' +
+          profileWireframeHtml(prof, { settings: true }) +
+          '</div></div>';
         document.getElementById('form-me').onsubmit = async function (e) {
           e.preventDefault();
-          var fd = new FormData(e.target);
+          var formEl = e.target;
+          var panel = formEl.closest('.win__body');
+          var fd = new FormData(formEl);
           var interests = (fd.get('interests') || '')
             .toString()
             .split(',')
@@ -680,13 +912,15 @@
                 keywords: keywords,
               },
             });
-            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashOk('Saved'));
-            document.querySelector('.win__body').insertAdjacentHTML('beforeend', rawApi(out));
+            if (panel) {
+              panel.insertAdjacentHTML('afterbegin', flashOk('Saved'));
+              panel.insertAdjacentHTML('beforeend', rawApi(out));
+            }
           } catch (err) {
-            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+            if (panel) panel.insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -709,13 +943,13 @@
             .join('') +
           '<div class="btn-row"><a class="btn btn--secondary" href="#/spaces/new">+ CREATE</a> <a class="btn btn--secondary" href="#/spaces/join">+ JOIN</a></div>' +
           '</div></div></div>';
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
       if (route.view === 'spaces-new') {
         spc = { step: 1, data: {} };
-        renderSpaceWizard();
+        await renderSpaceWizard();
         return;
       }
 
@@ -740,7 +974,7 @@
             document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -804,7 +1038,7 @@
         document.getElementById('cp-sid').onclick = function () {
           navigator.clipboard.writeText(space._id);
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -866,7 +1100,7 @@
             document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -877,48 +1111,15 @@
 
       if (route.view === 'node-public') {
         var node = await api('/nodes/' + encodeURIComponent(route.alias), { token: getToken() || '' });
-        var comp = (node.completedProjects || [])
-          .map(function (c) {
-            return (
-              '<div class="list-row"><a href="#/nfts/' +
-              escapeHtml(c.nftId || '') +
-              '">' +
-              escapeHtml(c.title) +
-              '</a></div>'
-            );
-          })
-          .join('');
+        var pubHeader = getToken()
+          ? topbar('nodes / ' + route.alias)
+          : '<header class="topbar"><a class="topbar__brand" href="#/">AURA2</a><div></div><div></div></header>';
         app.innerHTML =
-          '<div class="page page--public-profile"><div class="topbar-minimal"><a class="topbar__brand" href="#/">AURA2</a></div>' +
-          '<h1 style="font-size:3rem;margin:24px 0 16px">' +
-          escapeHtml(node.alias) +
-          '</h1>' +
-          radarSvg(node.reputationCategories, node.reputationScore) +
-          '<p>' +
-          (node.badges || [])
-            .map(function (b) {
-              return '<span class="tag tag--active">' + escapeHtml(b) + '</span>';
-            })
-            .join(' ') +
-          '</p>' +
-          '<div class="grid-12"><div class="col-6"><div class="win"><div class="win__title">SPACES</div><div class="win__body">' +
-          (node.spacesWithNames || [])
-            .map(function (s) {
-              return '<div class="mono">' + escapeHtml(s.name) + '</div>';
-            })
-            .join('') +
-          '</div></div></div><div class="col-6"><div class="win"><div class="win__title">COMPLETED PROJECTS</div><div class="win__body list-rows">' +
-          comp +
-          '</div></div></div></div>' +
-          '<p class="mono">' +
-          escapeHtml((node.keywords || []).join(', ')) +
-          '</p>' +
-          (node.portfolioUrl
-            ? '<p><a href="' +
-              escapeHtml(node.portfolioUrl) +
-              '" target="_blank" rel="noopener">portfolio</a></p>'
-            : '') +
-          '<p class="text-muted">This profile is public. No personal data is stored.</p></div>';
+          pubHeader +
+          '<div class="page layout"><div class="layout__z1">PROFILE</div><div class="layout__main">' +
+          profileWireframeHtml(node, { settings: false }) +
+          '</div></div>';
+        if (getToken()) await bindAppChrome();
         return;
       }
 
@@ -963,7 +1164,7 @@
             flashErr(e.message + ' — sign in may be required for this endpoint.') +
             ' <a href="#/login">LOGIN</a></div>';
         }
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -1090,7 +1291,7 @@
             document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -1110,7 +1311,7 @@
           var a = new FormData(e.target).get('alias');
           location.hash = '#/nodes/' + encodeURIComponent(String(a).trim());
         };
-        bindSignOut();
+        await bindAppChrome();
         return;
       }
 
@@ -1253,7 +1454,8 @@
 
     var shell =
       topbar('dashboard / project') +
-      '<div class="page"><div class="win"><div class="win__title">' +
+      '<div class="page shell-project"><div class="layout"><div class="layout__main">' +
+      '<div class="win"><div class="win__title">' +
       escapeHtml(project.title) +
       ' | ' +
       statusTag +
@@ -1303,10 +1505,10 @@
       shell += await creditFormHtml(pid, project);
     }
 
-    shell += '</div></div></div>';
+    shell += '</div></div></div></div></div>';
     app.innerHTML = shell;
     attachProjectForms(route, pid, project);
-    bindSignOut();
+    await bindAppChrome();
   }
 
   function traceFormHtml(pid) {
@@ -1663,7 +1865,7 @@
     }
   }
 
-  function renderSpaceWizard() {
+  async function renderSpaceWizard() {
     var app = document.getElementById('app');
     var step = spc.step;
     var segs = [1, 2, 3, 4, 5]
@@ -1712,7 +1914,7 @@
       '</div></div></div>';
     var f = document.getElementById('wiz-sp');
     if (f) {
-      f.onsubmit = function (e) {
+      f.onsubmit = async function (e) {
         e.preventDefault();
         var fd = new FormData(f);
         if (step === 1) {
@@ -1741,7 +1943,7 @@
             .filter(Boolean);
         }
         spc.step++;
-        renderSpaceWizard();
+        await renderSpaceWizard();
       };
     }
     var btn = document.getElementById('btn-create-space');
@@ -1779,7 +1981,51 @@
         }
       };
     }
+    await bindAppChrome();
+  }
+
+  async function bindAppChrome() {
     bindSignOut();
+    var bodyEl = document.getElementById('notif-panel-body');
+    if (!bodyEl) return;
+    try {
+      var notes = await api('/notifications');
+      var unread = 0;
+      var nh = '';
+      for (var n = 0; n < notes.length; n++) {
+        if (!notes[n].read) unread++;
+        var rd = notes[n].read ? 'read' : 'unread';
+        nh +=
+          '<div class="list-row"><div>' +
+          escapeHtml(notes[n].message || notes[n].type || 'notification') +
+          '<div class="notif-meta">' +
+          rd +
+          '</div></div></div>';
+      }
+      bodyEl.innerHTML = nh || '<p class="text-muted">No notifications.</p>';
+      var badge = document.getElementById('notif-badge-count');
+      if (badge) {
+        if (unread > 0) {
+          badge.textContent = String(unread);
+          badge.hidden = false;
+        } else {
+          badge.hidden = true;
+        }
+      }
+    } catch (e) {
+      bodyEl.innerHTML = '<p class="text-muted">Could not load notifications.</p>';
+    }
+    var br = document.getElementById('btn-notify-read');
+    if (br) {
+      br.onclick = async function () {
+        try {
+          await api('/notifications/read-all', { method: 'PATCH' });
+          render();
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+    }
   }
 
   function bindSignOut() {
