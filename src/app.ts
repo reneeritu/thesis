@@ -34,8 +34,13 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+const publicDir = path.join(__dirname, '..', 'public');
 /** Legacy static UI (original site) */
-app.use('/legacy', express.static(path.join(__dirname, '..', 'public')));
+app.use('/legacy', express.static(publicDir));
+// Serve legacy JS/CSS assets so /legacy/index.html works correctly
+app.use('/js', express.static(path.join(publicDir, 'js')));
+app.use('/css', express.static(path.join(publicDir, 'css')));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
