@@ -87,7 +87,9 @@ app.use('/notifications', notificationRoutes);
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendDist));
 
-app.get('*', (req, res, next) => {
+// SPA fallback for any non-API GET request
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
   // Let API and health routes pass through
   if (req.path.startsWith('/auth') || req.path.startsWith('/nodes') || req.path.startsWith('/spaces')) {
     return next();
