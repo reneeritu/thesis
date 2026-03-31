@@ -571,6 +571,7 @@
       if (route.view === 'register') {
         if (reg.step === 1) {
           app.innerHTML =
+            '<div class="auth-figma-root"><main class="auth-figma-wrap">' +
             '<div class="page">' +
             '<div class="win">' +
             '<div class="win__title">NEW NODE REGISTRATION</div>' +
@@ -583,7 +584,8 @@
             '<input id="reg-pass" type="password" name="password" minlength="8" required autocomplete="new-password" /></div>' +
             '<button type="submit" class="btn btn--primary">CREATE NODE</button></form>' +
             '<p class="text-muted mt-0">Your alias is your permanent identity on the chain. No email. No phone. No real name.</p>' +
-            '</div></div></div>';
+            '</div></div></div>' +
+            '</div></main></div>';
           document.getElementById('form-reg1').onsubmit = async function (e) {
             e.preventDefault();
             var fd = new FormData(e.target);
@@ -619,6 +621,7 @@
               '</div>';
           }
           app.innerHTML =
+            '<div class="auth-figma-root"><main class="auth-figma-wrap">' +
             '<div class="page">' +
             '<div class="win win--warn-left">' +
             '<div class="win__title">YOUR SEED PHRASE — READ CAREFULLY</div>' +
@@ -630,7 +633,8 @@
             '<div class="warn-block">WRITE THESE 12 WORDS DOWN. THIS IS THE ONLY TIME YOU WILL SEE THEM. THERE IS NO RECOVERY WITHOUT THEM.</div>' +
             '<form id="form-reg2"><label><input type="checkbox" id="seed-ok" required /> I have written down all 12 words in order</label>' +
             '<p><button type="submit" class="btn btn--primary" id="btn-seed-go" disabled>ENTER THE CHAIN</button></p></form>' +
-            '</div></div></div>';
+            '</div></div></div>' +
+            '</div></main></div>';
           var ck = document.getElementById('seed-ok');
           var btn = document.getElementById('btn-seed-go');
           ck.onchange = function () {
@@ -645,6 +649,7 @@
         }
         if (reg.step === 3) {
           app.innerHTML =
+            '<div class="auth-figma-root"><main class="auth-figma-wrap">' +
             '<div class="page">' +
             '<div class="win"><div class="win__title">CONFIRMED</div><div class="win__body">' +
             '<div class="reg-progress"><span>1 IDENTITY</span><span>2 SEED PHRASE</span><span class="is-current">3 CONFIRMED</span></div>' +
@@ -653,7 +658,8 @@
             escapeHtml(reg.alias) +
             '</p>' +
             '<a class="btn btn--primary" href="#/dashboard">GO TO DASHBOARD</a>' +
-            '</div></div></div>';
+            '</div></div></div>' +
+            '</div></main></div>';
           return;
         }
       }

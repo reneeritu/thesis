@@ -1237,6 +1237,12 @@ table.data-table {
   align-items: flex-start;
   line-height: normal;
   letter-spacing: normal;
+  min-height: 100vh;
+  min-height: 100dvh;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
 .auth-figma-wrap {
@@ -1248,8 +1254,13 @@ table.data-table {
   padding: 0 240px;
   box-sizing: border-box;
   isolation: isolate;
-  min-height: 100vh;
-  min-height: 100dvh;
+  width: 1920px;
+  height: 1000px;
+  flex: 0 0 auto;
+  overflow: visible;
+  --auth-scale: min(1, calc((100vw - 48px) / 1920), calc((100vh - 48px) / 1000));
+  transform: scale(var(--auth-scale));
+  transform-origin: center;
 }
 
 .auth-login-form {
