@@ -34,8 +34,8 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
-/** Static demo UI (original site) */
-app.use(express.static(path.join(__dirname, '..', 'public')));
+/** Legacy static UI (original site) */
+app.use('/legacy', express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -82,6 +82,39 @@ app.use('/flags', flagRoutes);
 app.use('/governance', governanceRoutes);
 
 app.use('/notifications', notificationRoutes);
+
+// React SPA (frontend/dist) at root
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendDist));
+
+// SPA fallback for non-API GET requests
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const p = req.path;
+  if (
+    p.startsWith('/auth') ||
+    p.startsWith('/nodes') ||
+    p.startsWith('/spaces') ||
+    p.startsWith('/projects') ||
+    p.startsWith('/traces') ||
+    p.startsWith('/vetos') ||
+    p.startsWith('/pivots') ||
+    p.startsWith('/references') ||
+    p.startsWith('/credits') ||
+    p.startsWith('/nfts') ||
+    p.startsWith('/forks') ||
+    p.startsWith('/archives') ||
+    p.startsWith('/mediations') ||
+    p.startsWith('/flags') ||
+    p.startsWith('/governance') ||
+    p.startsWith('/notifications') ||
+    p.startsWith('/health') ||
+    p.startsWith('/upload')
+  ) {
+    return next();
+  }
+  res.sendFile(path.join(frontendDist, 'index.html'));
+});
 
 app.use(errorHandler);
 
