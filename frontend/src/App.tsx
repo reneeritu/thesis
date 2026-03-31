@@ -33,12 +33,18 @@ function App() {
                 the messy in-between. No coins, no hype — just work.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <button className="px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] border border-black bg-[var(--color-orangered)] text-black hover:bg-black hover:text-[var(--color-skyblue)] transition">
+                <a
+                  href="/legacy/index.html#/register"
+                  className="px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] border border-black bg-orangered text-black hover:bg-black hover:text-skyblue transition"
+                >
                   Enter the chain
-                </button>
-                <button className="px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] border border-black bg-white hover:bg-black hover:text-[var(--color-skyblue)] transition">
+                </a>
+                <a
+                  href="/legacy/index.html#/login"
+                  className="px-6 py-2 text-xs font-semibold uppercase tracking-[0.2em] border border-black bg-white hover:bg-black hover:text-skyblue transition"
+                >
                   Already a node? Login
-                </button>
+                </a>
               </div>
             </div>
 
