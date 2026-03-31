@@ -660,28 +660,32 @@
 
       if (route.view === 'login') {
         app.innerHTML =
-          '<div class="auth-shell">' +
-          '<div class="auth-shell__band"><div class="auth-shell__left-top"></div></div>' +
-          '<main class="auth-shell__main">' +
-          '<div class="auth-shell__heading-row">' +
-          '<h1 class="auth-shell__title"><span class="auth-shell__title-highlight">It’s nice to see you again!</span></h1>' +
+          '<div class="auth-figma-root">' +
+          '<main class="auth-figma-wrap">' +
+          '<section class="auth-register-area">' +
+          '<a class="btn auth-switch-card" href="#/register">' +
+          '<div class="auth-switch-card__text"><span><span class="is-new">new user?<br /></span><span>sign up!</span></span></div>' +
+          '</a>' +
+          '</section>' +
+          '<section class="auth-login-form">' +
+          '<div class="auth-title-block"><h1 class="auth-title">It’s nice to see you again!</h1></div>' +
+          '<form id="form-login" class="auth-credentials">' +
+          '<div class="auth-credential-entry">' +
+          '<div class="auth-field">' +
+          '<div class="auth-field-label">username or alias</div>' +
+          '<input class="auth-field-input" id="li-alias" name="alias" required autocomplete="username" placeholder="xyz_123" />' +
           '</div>' +
-          '<form id="form-login" class="auth-shell__form">' +
-          '<div class="field">' +
-          '<div class="auth-shell__field-label">Username or alias</div>' +
-          '<input class="auth-shell__input" id="li-alias" name="alias" required autocomplete="username" placeholder="xyz_123" />' +
+          '<div class="auth-field">' +
+          '<div class="auth-field-label">password</div>' +
+          '<input class="auth-field-input auth-field-input--password" id="li-pass" type="password" name="password" required autocomplete="current-password" placeholder="..........................." />' +
           '</div>' +
-          '<div class="field">' +
-          '<div class="auth-shell__field-label">Password</div>' +
-          '<input class="auth-shell__input" id="li-pass" type="password" name="password" required autocomplete="current-password" />' +
           '</div>' +
-          '<div class="auth-shell__actions auth-shell__actions--login">' +
-          '<button type="submit" class="btn btn--primary auth-shell__primary-btn">Login</button>' +
+          '<div class="auth-login-btn-wrap">' +
+          '<button type="submit" class="btn auth-login-btn">login</button>' +
           '</div>' +
           '</form>' +
-          '<p><a href="#/recover">Forgot password? Use seed phrase</a></p>' +
+          '</section>' +
           '</main>' +
-          '<div class="auth-shell__band"><div class="auth-shell__right-top"><a class="auth-shell__switch-card" href="#/register">New user?<strong>Sign up!</strong></a></div></div>' +
           '</div>';
         document.getElementById('form-login').onsubmit = async function (e) {
           e.preventDefault();
