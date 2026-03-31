@@ -53,13 +53,19 @@
   var _loadCount = 0;
   function setLoading(on) {
     var el = document.getElementById('global-loading');
+    var body = document.body;
     if (!el) return;
     if (on) {
+      var wasZero = _loadCount === 0;
       _loadCount++;
       el.hidden = false;
+      if (body && wasZero) body.classList.add('is-loading');
     } else {
       _loadCount = Math.max(0, _loadCount - 1);
-      if (!_loadCount) el.hidden = true;
+      if (!_loadCount) {
+        el.hidden = true;
+        if (body) body.classList.remove('is-loading');
+      }
     }
   }
 
@@ -654,14 +660,30 @@
 
       if (route.view === 'login') {
         app.innerHTML =
-          topbar('login') +
-          '<div class="page"><div class="win"><div class="win__title">NODE LOGIN</div><div class="win__body">' +
-          '<form id="form-login">' +
-          '<div class="field"><label for="li-alias">ALIAS</label><input id="li-alias" name="alias" required autocomplete="username" /></div>' +
-          '<div class="field"><label for="li-pass">PASSWORD</label><input id="li-pass" type="password" name="password" required autocomplete="current-password" /></div>' +
-          '<button type="submit" class="btn btn--primary">LOGIN</button></form>' +
-          '<p><a href="#/recover">FORGOT PASSWORD? USE SEED PHRASE</a></p>' +
-          '<p><a href="#/register">NEW HERE? REGISTER</a></p></div></div></div>';
+          '<div class="auth-shell">' +
+          '<div class="auth-shell__band"></div>' +
+          '<main class="auth-shell__main">' +
+          '<div class="auth-shell__heading-row">' +
+          '<h1 class="auth-shell__title">It’s nice to see you again!</h1>' +
+          '<a class="auth-shell__switch" href="#/register">New user? Sign up!</a>' +
+          '</div>' +
+          '<form id="form-login" class="auth-shell__form">' +
+          '<div class="field">' +
+          '<div class="auth-shell__field-label">Username or alias</div>' +
+          '<input class="auth-shell__input" id="li-alias" name="alias" required autocomplete="username" />' +
+          '</div>' +
+          '<div class="field">' +
+          '<div class="auth-shell__field-label">Password</div>' +
+          '<input class="auth-shell__input" id="li-pass" type="password" name="password" required autocomplete="current-password" />' +
+          '</div>' +
+          '<div class="auth-shell__actions">' +
+          '<button type="submit" class="btn btn--primary auth-shell__primary-btn">Login</button>' +
+          '</div>' +
+          '</form>' +
+          '<p><a href="#/recover">Forgot password? Use seed phrase</a></p>' +
+          '</main>' +
+          '<div class="auth-shell__band"></div>' +
+          '</div>';
         document.getElementById('form-login').onsubmit = async function (e) {
           e.preventDefault();
           var fd = new FormData(e.target);
@@ -673,10 +695,9 @@
             setSession(data.token, data.alias);
             location.hash = '#/dashboard';
           } catch (err) {
-            document.querySelector('.win__body').insertAdjacentHTML('afterbegin', flashErr(err.message));
+            app.insertAdjacentHTML('afterbegin', flashErr(err.message));
           }
         };
-        await bindAppChrome();
         return;
       }
 

@@ -45,6 +45,10 @@ body {
   background-size: 8px 8px;
 }
 
+body.is-loading {
+  cursor: progress;
+}
+
 #app {
   min-height: 100vh;
   min-height: 100dvh;
@@ -561,10 +565,25 @@ textarea,
   text-decoration: none;
   color: inherit;
   background: var(--white);
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    border-color 150ms ease-out,
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
 }
 
 .btn:hover:not(:disabled) {
-  border-left: 3px solid var(--cyan);
+  background: var(--black);
+  color: var(--cyan);
+  border-color: var(--black);
+  box-shadow: 0 0 0 1px var(--black);
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(1.03);
+  box-shadow: 0 0 0 1px var(--black);
 }
 
 .btn--primary {
@@ -1084,6 +1103,90 @@ table.data-table {
   padding: 16px;
   font-weight: 700;
   margin: 24px 0;
+}
+
+/* ---------- Auth shell ---------- */
+.auth-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 240px;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.auth-shell__band {
+  background: var(--cyan);
+}
+
+.auth-shell__main {
+  background: var(--white);
+  padding: 80px 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-shell__heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 64px;
+}
+
+.auth-shell__title {
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 700;
+  max-width: 18ch;
+}
+
+.auth-shell__switch {
+  align-self: flex-start;
+  background: var(--magenta);
+  color: var(--white);
+  border: var(--border);
+  padding: 10px 18px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+
+.auth-shell__form {
+  max-width: 520px;
+}
+
+.auth-shell__field-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.auth-shell__input {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: var(--magenta);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.auth-shell__input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.auth-shell__actions {
+  margin-top: 32px;
+}
+
+.auth-shell__primary-btn {
+  min-width: 220px;
+  padding-left: 32px;
+  padding-right: 32px;
 }
 
 /* ---------- Misc ---------- */
