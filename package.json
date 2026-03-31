@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc && npm run build:frontend",
-    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:frontend": "cd frontend && npm install --include=dev && npm run build",
     "postinstall": "npm run build",
     "start": "node dist/server.js",
     "lint": "eslint src/ --ext .ts",
