@@ -661,28 +661,27 @@
       if (route.view === 'login') {
         app.innerHTML =
           '<div class="auth-shell">' +
-          '<div class="auth-shell__band"></div>' +
+          '<div class="auth-shell__band"><div class="auth-shell__left-top"></div></div>' +
           '<main class="auth-shell__main">' +
           '<div class="auth-shell__heading-row">' +
-          '<h1 class="auth-shell__title">It’s nice to see you again!</h1>' +
-          '<a class="auth-shell__switch" href="#/register">New user? Sign up!</a>' +
+          '<h1 class="auth-shell__title"><span class="auth-shell__title-highlight">It’s nice to see you again!</span></h1>' +
           '</div>' +
           '<form id="form-login" class="auth-shell__form">' +
           '<div class="field">' +
           '<div class="auth-shell__field-label">Username or alias</div>' +
-          '<input class="auth-shell__input" id="li-alias" name="alias" required autocomplete="username" />' +
+          '<input class="auth-shell__input" id="li-alias" name="alias" required autocomplete="username" placeholder="xyz_123" />' +
           '</div>' +
           '<div class="field">' +
           '<div class="auth-shell__field-label">Password</div>' +
           '<input class="auth-shell__input" id="li-pass" type="password" name="password" required autocomplete="current-password" />' +
           '</div>' +
-          '<div class="auth-shell__actions">' +
+          '<div class="auth-shell__actions auth-shell__actions--login">' +
           '<button type="submit" class="btn btn--primary auth-shell__primary-btn">Login</button>' +
           '</div>' +
           '</form>' +
           '<p><a href="#/recover">Forgot password? Use seed phrase</a></p>' +
           '</main>' +
-          '<div class="auth-shell__band"></div>' +
+          '<div class="auth-shell__band"><div class="auth-shell__right-top"><a class="auth-shell__switch-card" href="#/register">New user?<strong>Sign up!</strong></a></div></div>' +
           '</div>';
         document.getElementById('form-login').onsubmit = async function (e) {
           e.preventDefault();
