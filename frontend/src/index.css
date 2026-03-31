@@ -9,13 +9,17 @@ body,
 }
 
 body {
-  @apply m-0 bg-white text-[16px] leading-snug text-black font-body;
+  @apply m-0 bg-grey-50 text-body leading-snug text-black font-sans overflow-x-hidden;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.035) 1px, transparent 0),
+    radial-gradient(circle at 3px 3px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
+  background-size: 8px 8px, 10px 10px;
 }
 
 h1,
 h2,
 h3 {
-  @apply font-display;
+  @apply font-mono;
 }
 
 .grid-overlay {
