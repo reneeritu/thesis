@@ -109,7 +109,12 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/notifications') || req.path.startsWith('/health') || req.path.startsWith('/upload')) {
     return next();
   }
-  res.sendFile(path.join(frontendDist, 'index.html'));
+  const indexPath = path.join(frontendDist, 'index.html');
+  res.sendFile(indexPath, function (err) {
+    if (!err) return;
+    // If the built frontend is missing (e.g. not built in this env), fall back to legacy static UI
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  });
 });
 
 app.use(errorHandler);
