@@ -34,8 +34,8 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
-/** Static demo UI (e.g. https://your-service.onrender.com/demo.html) */
-app.use(express.static(path.join(__dirname, '..', 'public')));
+/** Static demo UI legacy endpoint */
+app.use('/legacy', express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -82,6 +82,33 @@ app.use('/flags', flagRoutes);
 app.use('/governance', governanceRoutes);
 
 app.use('/notifications', notificationRoutes);
+
+// Frontend SPA (built React app)
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendDist));
+
+app.get('*', (req, res, next) => {
+  // Let API and health routes pass through
+  if (req.path.startsWith('/auth') || req.path.startsWith('/nodes') || req.path.startsWith('/spaces')) {
+    return next();
+  }
+  if (req.path.startsWith('/projects') || req.path.startsWith('/traces') || req.path.startsWith('/vetos')) {
+    return next();
+  }
+  if (req.path.startsWith('/pivots') || req.path.startsWith('/references') || req.path.startsWith('/credits')) {
+    return next();
+  }
+  if (req.path.startsWith('/nfts') || req.path.startsWith('/forks') || req.path.startsWith('/archives')) {
+    return next();
+  }
+  if (req.path.startsWith('/mediations') || req.path.startsWith('/flags') || req.path.startsWith('/governance')) {
+    return next();
+  }
+  if (req.path.startsWith('/notifications') || req.path.startsWith('/health') || req.path.startsWith('/upload')) {
+    return next();
+  }
+  res.sendFile(path.join(frontendDist, 'index.html'));
+});
 
 app.use(errorHandler);
 
