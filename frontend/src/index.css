@@ -1,18 +1,6 @@
-@import 'tailwindcss';
-
-@theme {
-  --color-skyblue: #67defa;
-  --color-orangered: #ffcc00;
-  --color-black: #0a0a0a;
-  --color-white: #ffffff;
-  --color-grey: #f4f4f4;
-  --color-pink: #ff2a7a;
-  --color-ultramarine: #1d3bff;
-
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 html,
 body,
@@ -21,21 +9,20 @@ body,
 }
 
 body {
-  @apply m-0 bg-white text-[16px] leading-snug text-black;
-  font-family: var(--font-body);
+  @apply m-0 bg-white text-[16px] leading-snug text-black font-body;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
+  @apply font-display;
 }
 
 .grid-overlay {
   background-image:
     linear-gradient(
       to right,
-      rgba(0, 0, 0, 0.05) 1px,
+      rgba(0, 0, 0, 0.06) 1px,
       transparent 1px
     ),
     linear-gradient(
