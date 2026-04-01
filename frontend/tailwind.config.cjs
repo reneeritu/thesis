@@ -53,7 +53,7 @@ module.exports = {
         7: '56px',
       },
       maxWidth: {
-        shell: '600px',
+        shell: '1200px',
       },
     },
   },

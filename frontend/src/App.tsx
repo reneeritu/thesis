@@ -1,6 +1,13 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import Landing from './pages/Landing'
 import DashboardPage from './pages/DashboardPage'
+import ProfilePage from './pages/ProfilePage'
+import SpacesPage from './pages/SpacesPage'
+import SpaceJoinPage from './pages/SpaceJoinPage'
+import SpaceDetailPage from './pages/SpaceDetailPage'
+import ProjectsBoardPage from './pages/ProjectsBoardPage'
+import ProjectNewPage from './pages/ProjectNewPage'
+import ProjectDetailPage from './pages/ProjectDetailPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RecoverPage from './pages/RecoverPage'
@@ -23,6 +30,13 @@ export default function App() {
       <Route path="/recover" element={<RecoverPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/me" element={<ProfilePage />} />
+        <Route path="/spaces" element={<SpacesPage />} />
+        <Route path="/spaces/join" element={<SpaceJoinPage />} />
+        <Route path="/spaces/:id" element={<SpaceDetailPage />} />
+        <Route path="/projects" element={<ProjectsBoardPage />} />
+        <Route path="/projects/new" element={<ProjectNewPage />} />
+        <Route path="/projects/:id" element={<ProjectDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
