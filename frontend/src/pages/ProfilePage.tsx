@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AppShell } from '../components/AppShell'
+import { RadarChart } from '../components/RadarChart'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
 
@@ -17,6 +18,14 @@ type SpaceWithName = {
 type NodeProfile = {
   alias: string
   reputationScore?: number
+  reputationCategories?: {
+    craft?: number
+    research?: number
+    collaboration?: number
+    pedagogy?: number
+    consistency?: number
+    community?: number
+  }
   badges?: string[]
   keywords?: string[]
   interests?: string[]
@@ -113,6 +122,9 @@ export default function ProfilePage() {
                 Node
               </p>
               <p className="text-h3 font-mono">{profile.alias}</p>
+              <div className="max-w-[340px] border border-black bg-white p-3 text-black">
+                <RadarChart categories={profile.reputationCategories} className="w-full h-auto" />
+              </div>
               {profile.reputationScore != null ? (
                 <p className="text-small font-mono">
                   CURRENT SCORE — <span className="font-mono">{profile.reputationScore}</span>

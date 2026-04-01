@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { RadarChart } from '../components/RadarChart'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
 
@@ -12,6 +13,14 @@ type SpaceWithName = {
 type NodeProfile = {
   alias: string
   reputationScore?: number
+  reputationCategories?: {
+    craft?: number
+    research?: number
+    collaboration?: number
+    pedagogy?: number
+    consistency?: number
+    community?: number
+  }
   badges?: string[]
   spacesWithNames?: SpaceWithName[]
 }
@@ -129,6 +138,9 @@ export default function DashboardPage() {
               Node
             </p>
             <p className="text-h3 font-mono">{me.alias}</p>
+            <div className="max-w-[340px] border border-black bg-white p-3 text-black">
+              <RadarChart categories={me.reputationCategories} className="w-full h-auto" />
+            </div>
             {me.reputationScore != null ? (
               <p className="text-small font-mono">
                 CURRENT SCORE — <span className="font-mono">{me.reputationScore}</span>

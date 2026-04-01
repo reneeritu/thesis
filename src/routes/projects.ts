@@ -5,11 +5,16 @@ import { startProjectSchema, addContributorSchema } from '../schemas/project';
 import { Project } from '../models/Project';
 import { Space } from '../models/Space';
 import { ChainNode } from '../models/Node';
+import { Trace } from '../models/Trace';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 
 const router = Router();
+
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 /**
  * POST /projects
@@ -69,6 +74,91 @@ router.post(
     });
 
     res.status(201).json(project);
+  },
+);
+
+/**
+ * GET /projects/search?q=...
+ * Search projects by title/context/aliases and tool/software traces.
+ */
+router.get(
+  '/search',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const q = String(req.query.q || '').trim();
+    const spaceId = String(req.query.spaceId || '').trim();
+    if (!q) return res.json([]);
+
+    const rx = new RegExp(escapeRegex(q), 'i');
+    const baseFilter: Record<string, unknown> = {};
+    if (spaceId) baseFilter.spaceId = spaceId;
+
+    const textMatched = await Project.find({
+      ...baseFilter,
+      $or: [
+        { title: rx },
+        { context: rx },
+        { creatorAlias: rx },
+        { mentorAlias: rx },
+      ],
+    })
+      .select('_id title status spaceId context creatorAlias mentorAlias')
+      .lean();
+
+    const toolProjectIds = await Trace.find({ toolSoftware: rx })
+      .distinct('projectId');
+
+    const mergedIds = new Set<string>([
+      ...textMatched.map((p) => String(p._id)),
+      ...toolProjectIds.map((id) => String(id)),
+    ]);
+
+    if (mergedIds.size === 0) return res.json([]);
+
+    const idList = [...mergedIds];
+    const projects = await Project.find({
+      _id: { $in: idList },
+      ...(spaceId ? { spaceId } : {}),
+    })
+      .select('_id title status spaceId context creatorAlias mentorAlias createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const spaceIds = [...new Set(projects.map((p) => String(p.spaceId)))];
+    const spaces = await Space.find({ _id: { $in: spaceIds } })
+      .select('_id name')
+      .lean();
+    const spaceNameById = new Map(spaces.map((s) => [String(s._id), String(s.name || '')]));
+
+    const traceRows = await Trace.find({
+      projectId: { $in: projects.map((p) => p._id) },
+      toolSoftware: { $ne: '' },
+    })
+      .select('projectId toolSoftware')
+      .lean();
+
+    const toolsByProject = new Map<string, string[]>();
+    for (const t of traceRows) {
+      const pid = String(t.projectId);
+      const current = toolsByProject.get(pid) || [];
+      const tool = String(t.toolSoftware || '').trim();
+      if (tool && !current.includes(tool)) current.push(tool);
+      toolsByProject.set(pid, current.slice(0, 8));
+    }
+
+    const out = projects.map((p) => ({
+      _id: String(p._id),
+      title: p.title,
+      status: p.status,
+      spaceId: String(p.spaceId),
+      spaceName: spaceNameById.get(String(p.spaceId)) || String(p.spaceId),
+      context: p.context || '',
+      creatorAlias: p.creatorAlias,
+      mentorAlias: p.mentorAlias || '',
+      tools: toolsByProject.get(String(p._id)) || [],
+    }));
+
+    res.json(out);
   },
 );
 

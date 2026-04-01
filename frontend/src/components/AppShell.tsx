@@ -42,6 +42,9 @@ export function AppShell({ children, title }: Props) {
               <Link to="/discover" className={navBtn}>
                 Discover
               </Link>
+              <Link to="/governance" className={navBtn}>
+                Governance
+              </Link>
               <Link to="/archive/new" className={navBtn}>
                 Archive
               </Link>

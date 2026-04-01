@@ -14,6 +14,10 @@ import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 
 const router = Router();
 
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * POST /spaces
  * Create a new space. Creator becomes first admin and member.
@@ -45,6 +49,44 @@ router.post('/', requireAuth, validate(createSpaceSchema), async (req: AuthReque
   );
 
   res.status(201).json(space);
+});
+
+/**
+ * GET /spaces/search?q=...
+ * Search spaces by name, description, and rule tags.
+ */
+router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
+  const q = String(req.query.q || '').trim();
+  if (!q) return res.json([]);
+
+  const rx = new RegExp(escapeRegex(q), 'i');
+  const alias = req.node!.alias;
+
+  const spaces = await Space.find({
+    $or: [
+      { name: rx },
+      { description: rx },
+      { 'settings.contentRestrictions': rx },
+      { 'settings.minDocRequirements': rx },
+    ],
+  })
+    .select('name description status members settings')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const out = spaces.map((s) => ({
+    _id: String(s._id),
+    name: s.name,
+    description: s.description || '',
+    status: s.status,
+    projectAccess: s.settings?.projectAccess || 'open',
+    contentRestrictions: s.settings?.contentRestrictions || [],
+    minDocRequirements: s.settings?.minDocRequirements || [],
+    memberCount: Array.isArray(s.members) ? s.members.length : 0,
+    isMember: Array.isArray(s.members) ? s.members.includes(alias) : false,
+  }));
+
+  res.json(out);
 });
 
 /**

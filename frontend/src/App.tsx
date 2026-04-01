@@ -12,8 +12,11 @@ import ProjectNewPage from './pages/ProjectNewPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import ArchiveNewPage from './pages/ArchiveNewPage'
 import DiscoverPage from './pages/DiscoverPage'
+import GovernancePage from './pages/GovernancePage'
 import PublicNodePage from './pages/PublicNodePage'
 import NftPage from './pages/NftPage'
+import SpaceSearchPage from './pages/SpaceSearchPage'
+import ProjectSearchPage from './pages/ProjectSearchPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RecoverPage from './pages/RecoverPage'
@@ -39,15 +42,18 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/me" element={<ProfilePage />} />
         <Route path="/spaces" element={<SpacesPage />} />
+        <Route path="/spaces/search" element={<SpaceSearchPage />} />
         <Route path="/spaces/new" element={<SpaceNewPage />} />
         <Route path="/spaces/join" element={<SpaceJoinPage />} />
         <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
         <Route path="/spaces/:id" element={<SpaceDetailPage />} />
         <Route path="/projects" element={<ProjectsBoardPage />} />
+        <Route path="/projects/search" element={<ProjectSearchPage />} />
         <Route path="/projects/new" element={<ProjectNewPage />} />
         <Route path="/projects/:id" element={<ProjectDetailPage />} />
         <Route path="/archive/new" element={<ArchiveNewPage />} />
         <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/governance" element={<GovernancePage />} />
         <Route path="/nfts/:id" element={<NftPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

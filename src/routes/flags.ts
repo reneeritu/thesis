@@ -689,6 +689,20 @@ router.get(
 );
 
 /**
+ * GET /flags/mine
+ * List flags raised by the current node.
+ */
+router.get(
+  '/mine',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const alias = req.node!.alias;
+    const flags = await Flag.find({ raisedBy: alias }).sort({ createdAt: -1 });
+    res.json(flags);
+  },
+);
+
+/**
  * GET /flags/target/:targetType/:targetId
  * List all flags on a specific target.
  */

@@ -150,12 +150,20 @@ export default function ProjectsBoardPage() {
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-small text-grey-400">Your projects across all spaces.</p>
-          <Link
-            to="/projects/new"
-            className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.18em] text-black hover:bg-black hover:text-yellow-400 transition"
-          >
-            + New project
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/projects/search"
+              className="border border-black bg-white px-3 py-1 font-mono text-small uppercase tracking-[0.18em] hover:bg-black hover:text-yellow-400 transition"
+            >
+              Search
+            </Link>
+            <Link
+              to="/projects/new"
+              className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.18em] text-black hover:bg-black hover:text-yellow-400 transition"
+            >
+              + New project
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

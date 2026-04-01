@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
-import { redirectToDashboard, setSession } from '../lib/session'
+import { getToken, redirectToDashboard, setSession } from '../lib/session'
 
 type LoginResponse = { token: string; alias: string }
 
@@ -13,7 +13,12 @@ const fieldInput =
   'w-full border border-black bg-white px-3 py-2 text-body font-sans placeholder:text-grey-400 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 
 export default function LoginPage() {
+  const token = getToken()
   const [error, setError] = useState<string | null>(null)
+
+  if (token) {
+    return <Navigate to="/dashboard" replace />
+  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()

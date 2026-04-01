@@ -60,6 +60,12 @@ export default function SpacesPage() {
             >
               + Join
             </Link>
+            <Link
+              to="/spaces/search"
+              className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+            >
+              Search
+            </Link>
           </div>
         </div>
 

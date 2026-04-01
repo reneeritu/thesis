@@ -178,7 +178,17 @@ export function CreditForm({ projectId, contributors, onDone }: Props) {
         </label>
 
         {error && <p className="border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p>}
-        {result && <p className="border border-black bg-white px-3 py-2 font-mono">{result}</p>}
+        {result ? (
+          <div className="border border-black bg-white px-3 py-2 font-mono space-y-2">
+            <p>{result}</p>
+            <Link
+              to={`/governance?category=dispute&type=credit_dispute&targetType=project&targetId=${encodeURIComponent(projectId)}`}
+              className="underline underline-offset-4"
+            >
+              Raise dispute flag for this project
+            </Link>
+          </div>
+        ) : null}
 
         <Button type="submit" variant="primary" loading={busy}>Initiate Credit</Button>
       </form>

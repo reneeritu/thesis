@@ -506,6 +506,22 @@ router.post(
 );
 
 /**
+ * GET /mediations/mine
+ * List mediations where the current node is a party or triggerer.
+ */
+router.get(
+  '/mine',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const alias = req.node!.alias;
+    const mediations = await Mediation.find({
+      $or: [{ triggeredBy: alias }, { parties: alias }],
+    }).sort({ createdAt: -1 });
+    res.json(mediations);
+  },
+);
+
+/**
  * GET /mediations/project/:projectId
  */
 router.get(
