@@ -2,10 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-#root {
-  height: 100%;
+@layer base {
+  html {
+    @apply max-h-[100vh] max-w-[100vw] overflow-x-hidden;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: inherit;
+  }
+
+  body {
+    @apply m-0 min-h-[80vh] max-h-[100vh] min-w-[80vw] max-w-[100vw] w-full overflow-x-hidden overflow-y-auto;
+    @apply bg-grey-50 text-body leading-snug text-black font-sans;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.035) 1px, transparent 0),
+      radial-gradient(circle at 3px 3px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
+    background-size: 8px 8px, 10px 10px;
+  }
+
+  #root {
+    @apply flex min-h-[80vh] min-w-[80vw] max-w-[100vw] w-full flex-col overflow-x-hidden;
+  }
 }
 
 body.is-loading {
@@ -14,14 +35,6 @@ body.is-loading {
 
 body.is-done {
   cursor: progress;
-}
-
-body {
-  @apply m-0 bg-grey-50 text-body leading-snug text-black font-sans overflow-x-hidden;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.035) 1px, transparent 0),
-    radial-gradient(circle at 3px 3px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
-  background-size: 8px 8px, 10px 10px;
 }
 
 h1,
@@ -45,4 +58,11 @@ h3 {
   background-size:
     calc(100% / 12) 100%,
     100% 24px;
+}
+
+@layer utilities {
+  /* 8px rhythm; 60px side padding from md up */
+  .shell-px {
+    @apply px-4 sm:px-8 md:px-[60px];
+  }
 }

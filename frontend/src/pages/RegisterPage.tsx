@@ -141,7 +141,7 @@ export default function RegisterPage() {
                 Write these words down in order. This is the only time they are shown. There is no account
                 recovery without them.
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {seedWords.map((w, i) => (
                   <div
                     key={i}
@@ -176,7 +176,7 @@ export default function RegisterPage() {
                 Node <span className="font-mono">{alias}</span> is ready.
               </p>
               <a
-                href="/legacy/index.html#/dashboard"
+                href="/dashboard"
                 className="inline-block border border-black bg-yellow-400 text-black font-mono text-small uppercase tracking-[0.2em] px-6 py-2 hover:bg-black hover:text-yellow-400 transition active:scale-[0.98]"
               >
                 Go to dashboard

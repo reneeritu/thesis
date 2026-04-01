@@ -27,9 +27,19 @@ module.exports = {
         ],
       },
       fontSize: {
-        h1: ['64px', { lineHeight: '1.05', letterSpacing: '-0.04em' }],
-        h2: ['40px', { lineHeight: '1.1', letterSpacing: '-0.03em' }],
-        h3: ['24px', { lineHeight: '1.2', letterSpacing: '-0.02em' }],
+        /* Caps match the fixed scale; fluid down to readable mobile minimums */
+        h1: [
+          'clamp(2rem, 9vw, 4rem)',
+          { lineHeight: '1.05', letterSpacing: '-0.04em' },
+        ],
+        h2: [
+          'clamp(1.75rem, 5.5vw, 2.5rem)',
+          { lineHeight: '1.1', letterSpacing: '-0.03em' },
+        ],
+        h3: [
+          'clamp(1.125rem, 3vw, 1.5rem)',
+          { lineHeight: '1.2', letterSpacing: '-0.02em' },
+        ],
         body: ['16px', { lineHeight: '1.5' }],
         small: ['14px', { lineHeight: '1.4' }],
       },

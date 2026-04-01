@@ -4,7 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
-import { redirectToLegacyDashboard, setSession } from '../lib/session'
+import { redirectToDashboard, setSession } from '../lib/session'
 
 type LoginResponse = { token: string; alias: string }
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
       })
       setSession(data.token, data.alias)
       flashDone()
-      redirectToLegacyDashboard()
+      redirectToDashboard()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
     }
@@ -53,7 +53,7 @@ export default function LoginPage() {
         </div>
 
         <div className="col-span-12 md:col-span-7">
-          <form onSubmit={onSubmit} className="space-y-4 max-w-md">
+          <form onSubmit={onSubmit} className="w-full max-w-md space-y-4">
             {error ? (
               <p
                 className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black"

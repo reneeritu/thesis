@@ -30,7 +30,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       className={[
-        'font-mono text-small uppercase tracking-[0.2em] px-6 py-2 transition',
+        'font-mono text-small uppercase tracking-[0.2em] px-4 py-2 sm:px-6 transition',
         'active:scale-[0.98]',
         loading ? 'cursor-wait opacity-80' : '',
         variantClass[variant],

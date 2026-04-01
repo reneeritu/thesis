@@ -4,7 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
-import { redirectToLegacyDashboard, setSession } from '../lib/session'
+import { redirectToDashboard, setSession } from '../lib/session'
 
 type RecoverResponse = { token: string; alias: string }
 
@@ -30,7 +30,7 @@ export default function RecoverPage() {
       })
       setSession(data.token, data.alias)
       flashDone()
-      redirectToLegacyDashboard()
+      redirectToDashboard()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
     }

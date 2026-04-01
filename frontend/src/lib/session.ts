@@ -1,6 +1,14 @@
 const LS_TOKEN = 'aura2_token'
 const LS_ALIAS = 'aura2_alias'
 
+export function getToken(): string {
+  return localStorage.getItem(LS_TOKEN) || ''
+}
+
+export function getAlias(): string {
+  return localStorage.getItem(LS_ALIAS) || ''
+}
+
 export function setSession(token: string, alias: string): void {
   if (token) localStorage.setItem(LS_TOKEN, token)
   else localStorage.removeItem(LS_TOKEN)
@@ -8,6 +16,7 @@ export function setSession(token: string, alias: string): void {
   else localStorage.removeItem(LS_ALIAS)
 }
 
-export function redirectToLegacyDashboard(): void {
-  window.location.href = '/legacy/index.html#/dashboard'
+export function redirectToDashboard(): void {
+  window.location.href = '/dashboard'
 }
+

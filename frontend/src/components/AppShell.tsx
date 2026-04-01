@@ -9,9 +9,9 @@ type Props = {
 
 export function AppShell({ children, title }: Props) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-[80vh] flex-1 flex-col">
       <header className="border-b border-grey-200 shrink-0">
-        <div className="mx-auto max-w-shell px-[60px] py-4 flex items-center justify-between gap-4">
+        <div className="mx-auto max-w-shell shell-px py-4 flex flex-wrap items-center justify-between gap-4">
           <Link
             to="/"
             className="text-small font-mono tracking-[0.18em] uppercase text-grey-400 hover:text-black transition"
@@ -21,19 +21,19 @@ export function AppShell({ children, title }: Props) {
           <nav className="flex flex-wrap items-center justify-end gap-2 text-small font-mono uppercase tracking-[0.18em]">
             <Link
               to="/login"
-              className="border border-black px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+              className="border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
             >
               Login
             </Link>
             <Link
               to="/register"
-              className="border border-black px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+              className="border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
             >
               Register
             </Link>
             <Link
               to="/recover"
-              className="border border-black px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+              className="border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
             >
               Recover
             </Link>
@@ -41,7 +41,7 @@ export function AppShell({ children, title }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-shell px-[60px] py-10 w-full flex-1 grid-overlay grid grid-cols-12 gap-x-3 gap-y-6 content-start">
+      <main className="mx-auto max-w-shell shell-px py-6 sm:py-10 w-full flex-1 min-h-0 overflow-y-auto grid-overlay grid grid-cols-12 gap-x-2 sm:gap-x-3 gap-y-6 content-start">
         {title ? (
           <div className="col-span-12">
             <h1 className="text-h2">{title}</h1>
