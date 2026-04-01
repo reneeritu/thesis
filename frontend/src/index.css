@@ -8,6 +8,14 @@ body,
   height: 100%;
 }
 
+body.is-loading {
+  cursor: wait;
+}
+
+body.is-done {
+  cursor: progress;
+}
+
 body {
   @apply m-0 bg-grey-50 text-body leading-snug text-black font-sans overflow-x-hidden;
   background-image:
