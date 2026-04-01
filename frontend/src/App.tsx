@@ -4,7 +4,9 @@ import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import SpacesPage from './pages/SpacesPage'
 import SpaceJoinPage from './pages/SpaceJoinPage'
+import SpaceNewPage from './pages/SpaceNewPage'
 import SpaceDetailPage from './pages/SpaceDetailPage'
+import SpaceSettingsPage from './pages/SpaceSettingsPage'
 import ProjectsBoardPage from './pages/ProjectsBoardPage'
 import ProjectNewPage from './pages/ProjectNewPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
@@ -37,7 +39,9 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/me" element={<ProfilePage />} />
         <Route path="/spaces" element={<SpacesPage />} />
+        <Route path="/spaces/new" element={<SpaceNewPage />} />
         <Route path="/spaces/join" element={<SpaceJoinPage />} />
+        <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
         <Route path="/spaces/:id" element={<SpaceDetailPage />} />
         <Route path="/projects" element={<ProjectsBoardPage />} />
         <Route path="/projects/new" element={<ProjectNewPage />} />

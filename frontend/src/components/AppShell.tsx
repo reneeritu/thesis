@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { clearSession, getToken } from '../lib/session'
+import { NotificationBell } from './NotificationBell'
 
 type Props = {
   children: ReactNode
@@ -44,6 +45,7 @@ export function AppShell({ children, title }: Props) {
               <Link to="/archive/new" className={navBtn}>
                 Archive
               </Link>
+              <NotificationBell />
               <a href="/legacy/index.html#/dashboard" className={`${navBtn} text-grey-400`}>
                 Legacy
               </a>
