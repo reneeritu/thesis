@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { clearSession, getToken } from '../lib/session'
 
 type Props = {
   children: ReactNode
@@ -7,7 +8,12 @@ type Props = {
   title?: string
 }
 
+const navBtn =
+  'border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]'
+
 export function AppShell({ children, title }: Props) {
+  const token = getToken()
+
   return (
     <div className="flex min-h-[80vh] flex-1 flex-col">
       <header className="border-b border-grey-200 shrink-0">
@@ -18,26 +24,53 @@ export function AppShell({ children, title }: Props) {
           >
             untitled
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-2 text-small font-mono uppercase tracking-[0.18em]">
-            <Link
-              to="/login"
-              className="border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
-            >
-              Register
-            </Link>
-            <Link
-              to="/recover"
-              className="border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
-            >
-              Recover
-            </Link>
-          </nav>
+          {token ? (
+            <nav className="flex flex-wrap items-center justify-end gap-2 text-small font-mono uppercase tracking-[0.18em] max-w-[min(100%,520px)]">
+              <Link to="/dashboard" className={navBtn}>
+                Dashboard
+              </Link>
+              <Link to="/me" className={navBtn}>
+                Profile
+              </Link>
+              <Link to="/spaces" className={navBtn}>
+                Spaces
+              </Link>
+              <Link to="/projects" className={navBtn}>
+                Projects
+              </Link>
+              <Link to="/discover" className={navBtn}>
+                Discover
+              </Link>
+              <Link to="/archive/new" className={navBtn}>
+                Archive
+              </Link>
+              <a href="/legacy/index.html#/dashboard" className={`${navBtn} text-grey-400`}>
+                Legacy
+              </a>
+              <button
+                type="button"
+                className={`${navBtn} bg-white`}
+                onClick={() => {
+                  clearSession()
+                  window.location.href = '/'
+                }}
+              >
+                Sign out
+              </button>
+            </nav>
+          ) : (
+            <nav className="flex flex-wrap items-center justify-end gap-2 text-small font-mono uppercase tracking-[0.18em]">
+              <Link to="/login" className={navBtn}>
+                Login
+              </Link>
+              <Link to="/register" className={navBtn}>
+                Register
+              </Link>
+              <Link to="/recover" className={navBtn}>
+                Recover
+              </Link>
+            </nav>
+          )}
         </div>
       </header>
 

@@ -33,6 +33,8 @@ export interface IEvidence {
   evidenceType: EvidenceType;
   evidenceHash: string;
   otherDescription: string;
+  /** Linked Media document when file was uploaded via /upload/archive-evidence */
+  mediaId?: mongoose.Types.ObjectId;
 }
 
 export interface IAttestation {
@@ -65,6 +67,7 @@ const evidenceSchema = new Schema<IEvidence>(
     evidenceType: { type: String, required: true, enum: EVIDENCE_TYPES },
     evidenceHash: { type: String, required: true },
     otherDescription: { type: String, default: '' },
+    mediaId: { type: Schema.Types.ObjectId, ref: 'Media', required: false },
   },
   { _id: false },
 );

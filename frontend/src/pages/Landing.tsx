@@ -28,6 +28,13 @@ export default function Landing() {
                 Already a node? Login
               </Link>
             </div>
+            <p className="text-small text-grey-400 pt-6">
+              Previous UI:{' '}
+              <a href="/legacy/index.html" className="underline underline-offset-4 hover:text-black">
+                open legacy app
+              </a>
+              .
+            </p>
           </div>
         </div>
       </section>

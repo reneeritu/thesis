@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
 
@@ -62,6 +62,14 @@ export default function ProjectDetailPage() {
                 <span className="font-mono text-xs break-all">
                   {project._id}
                 </span>
+              </p>
+              <p className="pt-2">
+                <Link
+                  to={`/archive/new?space=${encodeURIComponent(project.spaceId)}`}
+                  className="font-mono text-small underline underline-offset-4"
+                >
+                  Archive past work in this space (evidence + hashes)
+                </Link>
               </p>
             </section>
 

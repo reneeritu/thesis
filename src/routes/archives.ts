@@ -2,7 +2,9 @@ import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { createArchiveSchema, addAttestationSchema } from '../schemas/archive';
+import mongoose from 'mongoose';
 import { Archive } from '../models/Archive';
+import { Media } from '../models/Media';
 import { Project } from '../models/Project';
 import { Space } from '../models/Space';
 import { ChainNode } from '../models/Node';
@@ -38,7 +40,7 @@ router.post(
       medium,
       approxDate,
       spaceId,
-      evidence,
+      evidence: rawEvidence,
       reconstructionFlag,
       originalWorkDeclaration,
       collaborators,
@@ -50,6 +52,48 @@ router.post(
     if (!space) throw new NotFoundError('Space');
     if (!space.members.includes(alias)) {
       throw new ForbiddenError('You must be a member of this space');
+    }
+
+    type EvidenceIn = {
+      evidenceType: string;
+      evidenceHash: string;
+      otherDescription?: string;
+      mediaId?: mongoose.Types.ObjectId;
+    };
+
+    const evidence: EvidenceIn[] = rawEvidence.map(
+      (e: {
+        evidenceType: string;
+        evidenceHash: string;
+        otherDescription?: string;
+        mediaId?: string;
+      }) => {
+        const out: EvidenceIn = {
+          evidenceType: e.evidenceType,
+          evidenceHash: e.evidenceHash,
+          otherDescription: e.otherDescription,
+        };
+        if (e.mediaId && mongoose.Types.ObjectId.isValid(e.mediaId)) {
+          out.mediaId = new mongoose.Types.ObjectId(e.mediaId);
+        }
+        return out;
+      },
+    );
+
+    for (const e of evidence) {
+      if (!e.mediaId) continue;
+      const media = await Media.findById(e.mediaId);
+      if (!media) throw new NotFoundError('Media');
+      if (media.uploaderAlias !== alias) {
+        throw new ForbiddenError('Evidence media must be uploaded by you');
+      }
+      if (media.hash !== e.evidenceHash) {
+        throw new AppError('Evidence hash does not match uploaded media');
+      }
+      const sid = space._id!.toString();
+      if (media.spaceId && media.spaceId.toString() !== sid) {
+        throw new AppError('Evidence media must belong to the selected space');
+      }
     }
 
     const contributorList = [
@@ -76,7 +120,7 @@ router.post(
       medium,
       approxDate,
       creatorAlias: alias,
-      evidenceHashes: evidence.map((e: { evidenceHash: string }) => e.evidenceHash),
+      evidenceHashes: evidence.map((e: EvidenceIn) => e.evidenceHash),
       reconstructionFlag,
       originalWorkDeclaration,
     });
@@ -99,7 +143,12 @@ router.post(
       approxDate,
       creatorAlias: alias,
       collaborators: collaborators || [],
-      evidence,
+      evidence: evidence.map((e: EvidenceIn) => ({
+        evidenceType: e.evidenceType,
+        evidenceHash: e.evidenceHash,
+        otherDescription: e.otherDescription || '',
+        ...(e.mediaId ? { mediaId: e.mediaId } : {}),
+      })),
       reconstructionFlag,
       originalWorkDeclaration,
       contextNote: contextNote || '',
@@ -143,6 +192,14 @@ router.post(
       blockIndex: block.index,
     }));
     await ContributorToken.insertMany(tokenDocs);
+
+    for (const e of evidence) {
+      if (e.mediaId) {
+        await Media.findByIdAndUpdate(e.mediaId, {
+          $set: { projectId: project._id },
+        });
+      }
+    }
 
     res.status(201).json({ archive, project, nft });
   },

@@ -13,6 +13,7 @@ export const createArchiveSchema = z.object({
           evidenceType: z.enum(EVIDENCE_TYPES),
           evidenceHash: z.string().min(1),
           otherDescription: z.string().max(500).optional(),
+          mediaId: z.string().optional(),
         })
         .refine(
           (e) => e.evidenceType !== 'other' || (e.otherDescription && e.otherDescription.length > 0),

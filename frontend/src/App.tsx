@@ -8,6 +8,10 @@ import SpaceDetailPage from './pages/SpaceDetailPage'
 import ProjectsBoardPage from './pages/ProjectsBoardPage'
 import ProjectNewPage from './pages/ProjectNewPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
+import ArchiveNewPage from './pages/ArchiveNewPage'
+import DiscoverPage from './pages/DiscoverPage'
+import PublicNodePage from './pages/PublicNodePage'
+import NftPage from './pages/NftPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RecoverPage from './pages/RecoverPage'
@@ -28,6 +32,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/recover" element={<RecoverPage />} />
+      <Route path="/nodes/:alias" element={<PublicNodePage />} />
       <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/me" element={<ProfilePage />} />
@@ -37,6 +42,9 @@ export default function App() {
         <Route path="/projects" element={<ProjectsBoardPage />} />
         <Route path="/projects/new" element={<ProjectNewPage />} />
         <Route path="/projects/:id" element={<ProjectDetailPage />} />
+        <Route path="/archive/new" element={<ArchiveNewPage />} />
+        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/nfts/:id" element={<NftPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

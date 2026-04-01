@@ -20,3 +20,8 @@ export function redirectToDashboard(): void {
   window.location.href = '/dashboard'
 }
 
+export function clearSession(): void {
+  localStorage.removeItem(LS_TOKEN)
+  localStorage.removeItem(LS_ALIAS)
+}
+

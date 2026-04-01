@@ -8,14 +8,14 @@ Monochrome React/Tailwind shell at `/` is now the primary entrypoint, with the l
 
 **Status**: Done / evolving
 
-- **Shell**: Monochrome grid, max content width 600px, 12‑column grid, 60px horizontal padding, 8px spacing rhythm.
+- **Shell**: Monochrome grid, max content width `max-w-shell` (see Tailwind config), 12‑column grid, horizontal padding via `shell-px`, 8px spacing rhythm.
 - **Typography**: Fixed scale (H1 64px, H2 40px, H3 24px, body 16px, small 14px) implemented with fluid `clamp(...)` down to mobile minima, capped at design sizes.
 - **Color + texture**: Black/white/greys/yellow, dotted/noise background.
 - **Routing**:
   - React SPA mounted at `/`.
   - Legacy app available at `/legacy/index.html#/…`.
   - `/login`, `/register`, `/recover` implemented as React pages, wired to `/auth/*` backend routes.
-  - `/dashboard` currently redirects back to `/legacy/index.html#/dashboard` via `LegacyDashboardRedirect`.
+  - `/dashboard` is a React page; legacy backup remains at `/legacy/index.html#/dashboard`.
 - **Auth contract**:
   - Persists `aura2_token` and `aura2_alias` in `localStorage` (same keys as legacy).
   - Uses existing backend routes:
@@ -152,37 +152,41 @@ This is the largest surface and may be split further if needed.
 
 ## M6 — Public / secondary surfaces
 
-Port lower‑traffic or public‑facing routes.
+**Status**: Done (core set)
 
-**Scope**
+**Implemented**
 
-- `/discover` (replaces `#/discover`)
-- `/archive/new` (replaces `#/archive/new`)
-- `/nodes/:alias` (public node page)
-- `/nfts/:id` (public NFT view)
-- Any notifications or appeals views that are still only in legacy.
+- `/discover` — alias lookup → `/nodes/:alias` (auth required; matches legacy discover flow).
+- `/archive/new` — archive wizard: file upload via `POST /upload/archive-evidence` (Media row in MongoDB + bytes on disk), or URL hashed client-side; `POST /archives` with evidence hashes + optional `mediaId`; media rows get `projectId` after archive project is created.
+- `/nodes/:alias` — public node profile (`GET /nodes/:alias` with optional auth).
+- `/nfts/:id` — provenance bundle (`GET /nfts/:id`, auth required by API).
 
-**Exit criteria**
+**Still legacy-only (optional later)**
 
-- Public URLs and secondary flows have first‑class React equivalents.
-- Legacy views are only used for explicitly “old” URLs or admin/debug views.
+- Notifications panel, appeals, project subviews (`/projects/:id/trace`, etc.).
+
+**Exit criteria** (met for listed routes)
+
+- Public URLs and secondary flows above have React equivalents wired to the same APIs.
 
 ---
 
 ## M7 — Cutover and cleanup
 
-Once all primary routes are migrated, finalize the transition.
+**Status**: Done (app shell + landing)
 
-**Scope**
+**Implemented**
 
-- Update all internal links and CTAs to point at React routes (not `#/…`).
-- Keep `/legacy` available but clearly labeled as “legacy interface” if exposed at all.
-- Optionally:
-  - Remove dead UI branches from `public/js/site.js`.
-  - Add light documentation on how new React routes map to backend endpoints.
+- Logged-in **AppShell** nav uses React routes only (`/dashboard`, `/me`, `/spaces`, `/projects`, `/discover`, `/archive/new`) plus an explicit **Legacy** link to `/legacy/index.html#/dashboard` and **Sign out** (clears `localStorage`).
+- Landing footer links to **open legacy app** for backup.
+- Unauthenticated shell still shows Login / Register / Recover.
 
-**Exit criteria**
+**Optional follow-ups**
 
-- React app is the authoritative UI for all supported routes.
-- Legacy UI is only used intentionally (e.g. for migrations, debugging, or historical comparison).
+- Trim unused branches in `public/js/site.js` once no longer needed.
+- Add project subroutes in React when ready.
+
+**Exit criteria** (met for primary navigation)
+
+- React is the default UI; legacy is reachable on purpose, not required for core flows.
 

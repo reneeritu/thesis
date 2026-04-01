@@ -111,6 +111,20 @@ export default function DashboardPage() {
 
         {me ? (
           <section className="space-y-2">
+            <div className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
+              <Link
+                to="/archive/new"
+                className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+              >
+                Archive work
+              </Link>
+              <Link
+                to="/discover"
+                className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+              >
+                Discover
+              </Link>
+            </div>
             <p className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
               Node
             </p>

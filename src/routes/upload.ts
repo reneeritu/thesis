@@ -8,6 +8,7 @@ import { optionalAuth } from '../middleware/optionalAuth';
 import { ChainNode } from '../models/Node';
 import { Media } from '../models/Media';
 import { Project } from '../models/Project';
+import { Space } from '../models/Space';
 import { hashFile, createThumbnail } from '../services/media';
 import { config } from '../config';
 import { AuthRequest } from '../types';
@@ -71,6 +72,62 @@ router.post(
     const media = await Media.create({
       traceId: traceId || null,
       projectId,
+      uploaderAlias: req.node!.alias,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      hash: fileHash,
+      path: req.file.path,
+    });
+
+    res.status(201).json({
+      mediaId: media._id,
+      hash: fileHash,
+      filename: media.filename,
+      originalName: media.originalName,
+      mimeType: media.mimeType,
+      size: media.size,
+    });
+  },
+);
+
+/**
+ * POST /upload/archive-evidence
+ * Upload a file for archive (past work) before a project exists. Bytes are stored on disk;
+ * metadata is stored on the Media document in MongoDB. projectId is set when POST /archives completes.
+ */
+router.post(
+  '/upload/archive-evidence',
+  requireAuth,
+  upload.single('file'),
+  async (req: AuthRequest, res: Response) => {
+    if (!req.file) throw new AppError('No file provided');
+
+    const spaceId = String(req.body.spaceId || '').trim();
+    if (!spaceId) throw new AppError('spaceId is required');
+
+    const space = await Space.findById(spaceId);
+    if (!space) throw new NotFoundError('Space');
+    if (!space.members.includes(req.node!.alias)) {
+      throw new ForbiddenError('You must be a member of this space');
+    }
+
+    const fileHash = await hashFile(req.file.path);
+
+    const isImage = req.file.mimetype.startsWith('image/');
+    if (isImage) {
+      try {
+        await createThumbnail(req.file.path);
+      } catch {
+        // best-effort
+      }
+    }
+
+    const media = await Media.create({
+      traceId: null,
+      projectId: null,
+      spaceId,
       uploaderAlias: req.node!.alias,
       filename: req.file.filename,
       originalName: req.file.originalname,

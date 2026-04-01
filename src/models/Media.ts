@@ -5,7 +5,10 @@ export type MediaStatus = (typeof MEDIA_STATUSES)[number];
 
 export interface IMedia extends Document {
   traceId: mongoose.Types.ObjectId | null;
-  projectId: mongoose.Types.ObjectId;
+  /** Set after archive/project creation when evidence was uploaded before the project existed */
+  projectId: mongoose.Types.ObjectId | null;
+  /** Space context for archive-evidence uploads (before projectId exists) */
+  spaceId: mongoose.Types.ObjectId | null;
   uploaderAlias: string;
   filename: string;
   originalName: string;
@@ -22,7 +25,8 @@ export interface IMedia extends Document {
 const mediaSchema = new Schema<IMedia>(
   {
     traceId: { type: Schema.Types.ObjectId, ref: 'Trace', default: null },
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
+    spaceId: { type: Schema.Types.ObjectId, ref: 'Space', default: null },
     uploaderAlias: { type: String, required: true },
     filename: { type: String, required: true },
     originalName: { type: String, required: true },
@@ -41,6 +45,7 @@ const mediaSchema = new Schema<IMedia>(
 );
 
 mediaSchema.index({ projectId: 1 });
+mediaSchema.index({ spaceId: 1 });
 mediaSchema.index({ traceId: 1 });
 mediaSchema.index({ hash: 1 });
 mediaSchema.index({ status: 1 });
