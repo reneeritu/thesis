@@ -4,8 +4,17 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    /* three.module alone is ~700kB minified; warning is informational */
+    chunkSizeWarningLimit: 900,
+  },
   server: {
     port: 5173,
+    /**
+     * If 5173 is taken, Vite picks the next free port (e.g. 5174).
+     * Always use the exact `Local: http://localhost:…` URL printed in the terminal.
+     */
+    strictPort: false,
     proxy: {
       '/auth': 'http://localhost:3000',
       '/nodes': 'http://localhost:3000',

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import Landing from './pages/Landing'
+import WelcomeLanding from './pages/WelcomeLanding'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import SpacesPage from './pages/SpacesPage'
@@ -34,6 +35,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/welcome" element={<WelcomeLanding />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/recover" element={<RecoverPage />} />

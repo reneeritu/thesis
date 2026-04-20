@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="g4" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#004d4d"/>
+      <stop offset="100%" style="stop-color:#18101f"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g4)"/>
+  <rect x="40" y="40" width="720" height="420" fill="none" stroke="#cc2266" stroke-width="2" opacity="0.35"/>
+  <text x="400" y="248" text-anchor="middle" fill="#f5f0e8" font-family="Georgia,serif" font-size="34">Return vector</text>
+</svg>

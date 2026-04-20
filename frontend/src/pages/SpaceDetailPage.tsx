@@ -1,7 +1,19 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
+import { getAlias } from '../lib/session'
+
+type InviteCode = {
+  code: string
+  used: boolean
+  usedCount: number
+  mode: 'single_use' | 'multi_use'
+  expiresAt: string | null
+  createdAt: string
+}
+
+type PendingVeto = { alias: string; notifiedAt: string }
 
 type Space = {
   _id: string
@@ -9,6 +21,16 @@ type Space = {
   description?: string
   members: string[]
   admins: string[]
+  creatorAlias: string
+  settings?: {
+    vetoAuthority?: string[]
+    projectAccess?: string
+    inviteMode?: string
+    inviteExpiryDays?: number | null
+  }
+  pendingVeto?: PendingVeto[]
+  inviteCodes?: InviteCode[]
+  status?: string
 }
 
 type Project = {
@@ -17,125 +39,347 @@ type Project = {
   status: string
 }
 
+type GenerateInviteOpts = {
+  mode: 'single_use' | 'multi_use'
+  expiryDays: number | null
+}
+
 export default function SpaceDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const meAlias = getAlias()
+
   const [space, setSpace] = useState<Space | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      if (!id) return
-      try {
-        const s = await api<Space>('/spaces/' + encodeURIComponent(id))
-        let p: Project[] = []
-        try {
-          p = await api<Project[]>('/projects/space/' + encodeURIComponent(id))
-        } catch (e) {
-          // surface later in UI as part of error message
-          console.error(e)
-        }
-        if (!cancelled) {
-          setSpace(s)
-          setProjects(p)
-        }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load space')
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
+  // Invite generation state
+  const [genMode, setGenMode] = useState<'single_use' | 'multi_use'>('single_use')
+  const [genExpiry, setGenExpiry] = useState<number | null>(15)
+  const [genResult, setGenResult] = useState<{ inviteCode: string; expiresAt: string | null } | null>(null)
+
+  const load = useCallback(async () => {
+    if (!id) return
+    try {
+      const s = await api<Space>('/spaces/' + encodeURIComponent(id))
+      let p: Project[] = []
+      try { p = await api<Project[]>('/projects/space/' + encodeURIComponent(id)) } catch { /* ignore */ }
+      setSpace(s)
+      setProjects(p)
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load space')
     }
   }, [id])
 
-  const memberCount = space?.members?.length ?? 0
+  useEffect(() => { void load() }, [load])
+
+  const isMember = space?.members?.includes(meAlias) ?? false
+  const isAdmin = space?.admins?.includes(meAlias) ?? false
+  const hasPendingVeto = space?.pendingVeto?.some((p) => p.alias === meAlias) ?? false
+
+  async function leaveSpace() {
+    if (!id) return
+    if (!window.confirm('Leave this space?')) return
+    setBusy(true)
+    try {
+      await api('/spaces/' + encodeURIComponent(id) + '/leave', { method: 'DELETE' })
+      navigate('/spaces')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to leave space')
+    } finally { setBusy(false) }
+  }
+
+  async function generateInvite(opts: GenerateInviteOpts) {
+    if (!id) return
+    setBusy(true)
+    try {
+      const r = await api<{ inviteCode: string; expiresAt: string | null }>(
+        '/spaces/' + encodeURIComponent(id) + '/invite',
+        {
+          method: 'POST',
+          body: { mode: opts.mode, expiryDays: opts.expiryDays },
+        },
+      )
+      setGenResult(r)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate invite')
+    } finally { setBusy(false) }
+  }
+
+  async function respondVeto(joinSpace: boolean, acceptVeto: boolean) {
+    if (!id) return
+    setBusy(true)
+    try {
+      await api('/spaces/' + encodeURIComponent(id) + '/veto-respond', {
+        method: 'POST',
+        body: { joinSpace, acceptVeto },
+      })
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to respond')
+    } finally { setBusy(false) }
+  }
+
+  function copyToClipboard(text: string, key: string) {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
+
+  const inviteJoinUrl = (code: string) =>
+    `${window.location.origin}/spaces/join?space=${id}&code=${encodeURIComponent(code)}`
 
   return (
     <AppShell title={space?.name || 'Space'}>
       <div className="space-y-6">
-        {error ? (
+        {error && (
           <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
             {error}
           </p>
-        ) : null}
+        )}
 
         {space ? (
-          <section className="space-y-3">
-            <p className="text-small text-grey-400">
-              ID:{' '}
-              <span className="font-mono text-xs break-all">
-                {space._id}
-              </span>
-            </p>
-            {space.description ? (
-              <p className="text-body text-grey-700">{space.description}</p>
-            ) : (
-              <p className="text-small text-grey-400">No description.</p>
+          <>
+            {/* ── Info ── */}
+            <section className="space-y-2">
+              <p className="font-mono text-[10px] text-grey-400">
+                ID: <span className="break-all">{space._id}</span>
+              </p>
+              {space.description && <p className="text-body text-grey-700">{space.description}</p>}
+              <p className="font-mono text-[11px] text-grey-400">
+                Created by <strong>{space.creatorAlias}</strong> · {space.members.length} members
+                {space.settings?.vetoAuthority?.length
+                  ? ` · Veto: ${space.settings.vetoAuthority.join(', ')}`
+                  : ''}
+                {(space.pendingVeto?.length ?? 0) > 0
+                  ? ` · Veto pending: ${space.pendingVeto!.map((p) => p.alias).join(', ')}`
+                  : ''}
+              </p>
+            </section>
+
+            {/* ── Veto invitation for current user ── */}
+            {hasPendingVeto && (
+              <section className="border border-black p-4 space-y-3 bg-yellow-50">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
+                  You have been invited to join this space as veto authority
+                </p>
+                <p className="text-small text-grey-600">Choose how to respond:</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => respondVeto(true, true)}
+                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                  >
+                    Join + Accept Veto
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => respondVeto(true, false)}
+                    className="border border-black bg-white px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  >
+                    Join Only (no veto)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => respondVeto(false, false)}
+                    className="border border-grey-400 bg-white px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-grey-100 transition disabled:opacity-60 text-grey-600"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </section>
             )}
-            <div className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
+
+            {/* ── Actions ── */}
+            <section className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
               <Link
                 to={`/projects/new?space=${encodeURIComponent(space._id)}`}
                 className="border border-black bg-yellow-400 px-3 py-1 text-black hover:bg-black hover:text-yellow-400 transition"
               >
-                New project in space
+                New project
               </Link>
-              <Link
-                to={`/spaces/${encodeURIComponent(space._id)}/settings`}
-                className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
-              >
-                Settings
-              </Link>
-            </div>
-          </section>
-        ) : (
-          <p className="text-small font-mono text-grey-400">Loading…</p>
-        )}
-
-        <section className="space-y-3">
-          <h2 className="text-h3">Projects</h2>
-          {projects.length === 0 ? (
-            <p className="text-small text-grey-400">No projects in this space yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {projects.map((p) => (
-                <div
-                  key={p._id}
-                  className="flex items-center justify-between border border-black bg-white px-3 py-2 text-small"
+              {isAdmin && (
+                <Link
+                  to={`/spaces/${encodeURIComponent(space._id)}/settings`}
+                  className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
                 >
-                  <div className="min-w-0">
-                    <p className="font-mono truncate">{p.title}</p>
-                    <p className="text-[11px] font-mono uppercase tracking-[0.18em]">
-                      STATUS — {p.status.toUpperCase()}
-                    </p>
-                  </div>
-                  <Link
-                    to={`/projects/${encodeURIComponent(p._id)}`}
-                    className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
-                  >
-                    View →
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                  Settings
+                </Link>
+              )}
+              {isMember && space.creatorAlias !== meAlias && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={leaveSpace}
+                  className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-grey-600 hover:border-black hover:text-black transition disabled:opacity-60"
+                >
+                  Leave space
+                </button>
+              )}
+            </section>
 
-        <section className="space-y-3">
-          <h2 className="text-h3">Members ({memberCount})</h2>
-          {memberCount === 0 ? (
-            <p className="text-small text-grey-400">—</p>
-          ) : (
-            <ul className="space-y-1 text-small font-mono">
-              {space!.members.map((m) => (
-                <li key={m}>{m}</li>
-              ))}
-            </ul>
-          )}
-        </section>
+            {/* ── Members list ── */}
+            <section className="space-y-2">
+              <h2 className="text-h3 font-mono uppercase tracking-[0.18em]">Members ({space.members.length})</h2>
+              <ul className="divide-y divide-grey-100 border border-grey-200">
+                {space.members.map((alias) => (
+                  <li key={alias} className="flex items-center justify-between px-3 py-2 font-mono text-[11px]">
+                    <Link to={`/nodes/${encodeURIComponent(alias)}`} className="hover:underline">
+                      {alias}
+                    </Link>
+                    <span className="text-grey-400">
+                      {space.admins.includes(alias) ? 'admin' : 'member'}
+                      {space.settings?.vetoAuthority?.includes(alias) ? ' · veto' : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* ── Invite codes (admin only) ── */}
+            {isAdmin && (
+              <section className="space-y-3">
+                <h2 className="text-h3 font-mono uppercase tracking-[0.18em]">Invite Codes</h2>
+
+                <div className="border border-grey-200 p-3 space-y-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-grey-400">Generate new code</p>
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div>
+                      <label className="block font-mono text-[10px] text-grey-400 mb-0.5">Type</label>
+                      <select
+                        value={genMode}
+                        onChange={(e) => setGenMode(e.target.value as 'single_use' | 'multi_use')}
+                        className="border border-black bg-white px-2 py-1 font-mono text-[11px]"
+                      >
+                        <option value="single_use">Single-use</option>
+                        <option value="multi_use">Multi-use / shareable</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1 font-mono text-[10px] text-grey-400 mb-0.5">
+                        <input
+                          type="checkbox"
+                          checked={genExpiry !== null}
+                          onChange={(e) => setGenExpiry(e.target.checked ? 15 : null)}
+                        />
+                        Expires in (days)
+                      </label>
+                      {genExpiry !== null && (
+                        <input
+                          type="number"
+                          min={1}
+                          value={genExpiry}
+                          onChange={(e) => setGenExpiry(Number(e.target.value))}
+                          className="w-20 border border-black bg-white px-2 py-1 font-mono text-[11px]"
+                        />
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => generateInvite({ mode: genMode, expiryDays: genExpiry })}
+                      className="border border-black bg-white px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                    >
+                      Generate
+                    </button>
+                  </div>
+
+                  {genResult && (
+                    <div className="mt-2 border border-black bg-grey-50 p-3 space-y-2">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-grey-400">New invite code</p>
+                      <div className="flex items-center gap-2">
+                        <code className="font-mono text-[13px] tracking-widest break-all">{genResult.inviteCode}</code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(genResult.inviteCode, 'code')}
+                          className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition"
+                        >
+                          {copied === 'code' ? 'Copied!' : 'Copy code'}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-grey-400 break-all">{inviteJoinUrl(genResult.inviteCode)}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(inviteJoinUrl(genResult.inviteCode), 'url')}
+                          className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                        >
+                          {copied === 'url' ? 'Copied!' : 'Copy link'}
+                        </button>
+                      </div>
+                      {genResult.expiresAt && (
+                        <p className="font-mono text-[10px] text-grey-400">
+                          Expires: {new Date(genResult.expiresAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Existing codes */}
+                {(space.inviteCodes?.length ?? 0) > 0 && (
+                  <ul className="divide-y divide-grey-100 border border-grey-200">
+                    {space.inviteCodes!.map((ic, i) => (
+                      <li key={i} className="px-3 py-2 font-mono text-[11px] space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="tracking-widest break-all">{ic.code}</code>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(ic.code, 'ic-' + i)}
+                            className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                          >
+                            {copied === 'ic-' + i ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                        <p className="text-grey-400">
+                          {ic.mode === 'multi_use' ? 'Multi-use' : 'Single-use'}
+                          {' · '}used {ic.usedCount ?? (ic.used ? 1 : 0)}×
+                          {ic.expiresAt ? ` · expires ${new Date(ic.expiresAt).toLocaleDateString()}` : ' · no expiry'}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {/* ── Projects ── */}
+            <section className="space-y-3">
+              <h2 className="text-h3 font-mono uppercase tracking-[0.18em]">Projects</h2>
+              {projects.length === 0 ? (
+                <p className="text-small text-grey-400">No projects yet.</p>
+              ) : (
+                <ul className="divide-y divide-grey-100 border border-grey-200">
+                  {projects.map((p) => (
+                    <li key={p._id} className="flex items-center justify-between px-3 py-2 text-small font-mono">
+                      <span>{p.title}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-grey-400 text-[10px] uppercase">{p.status}</span>
+                        <Link
+                          to={`/projects/${encodeURIComponent(p._id)}`}
+                          className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition"
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        ) : (
+          !error && <p className="text-small font-mono text-grey-400">Loading…</p>
+        )}
       </div>
     </AppShell>
   )
 }
-

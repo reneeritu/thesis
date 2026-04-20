@@ -29,6 +29,11 @@ export default function Landing() {
               </Link>
             </div>
             <p className="text-small text-grey-400 pt-6">
+              Etch welcome (scroll + 3D):{' '}
+              <Link to="/welcome" className="underline underline-offset-4 hover:text-black">
+                open /welcome
+              </Link>
+              <span className="mx-2 text-grey-200">·</span>
               Previous UI:{' '}
               <a href="/legacy/index.html" className="underline underline-offset-4 hover:text-black">
                 open legacy app

@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
-import { getToken, redirectToDashboard, setSession } from '../lib/session'
+import { redirectToDashboard, setSession } from '../lib/session'
 
 type RecoverResponse = { token: string; alias: string }
 
@@ -14,12 +14,7 @@ const fieldInput =
 const textareaClass = fieldInput + ' min-h-[120px] font-mono text-small'
 
 export default function RecoverPage() {
-  const token = getToken()
   const [error, setError] = useState<string | null>(null)
-
-  if (token) {
-    return <Navigate to="/dashboard" replace />
-  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()

@@ -11,6 +11,14 @@ export const NOTIFICATION_TYPES = [
   'contributor_signed',
   'veto_raised',
   'mediation_update',
+  /** Sent to a node invited to be veto authority in a space. */
+  'veto_invite',
+  /** Sent to a node invited as contributor on a project. */
+  'contributor_invite',
+  /** Sent to space creator when veto authority responds. */
+  'veto_invite_response',
+  /** Sent to project creator when invited contributor responds. */
+  'contributor_invite_response',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

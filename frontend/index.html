@@ -9,11 +9,95 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Boldonse:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
+    <!-- Referenced by welcome grain: filter: url(#noiseFilter) contrast(1.5) brightness(0.9) -->
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="0"
+      height="0"
+      style="position: absolute; overflow: hidden"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter
+          id="noiseFilter"
+          x="-25%"
+          y="-25%"
+          width="150%"
+          height="150%"
+          color-interpolation-filters="sRGB"
+        >
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.8"
+            numOctaves="5"
+            stitchTiles="stitch"
+            result="turb"
+          />
+          <feColorMatrix in="turb" type="saturate" values="0" result="mono" />
+          <feComponentTransfer in="mono" result="hi">
+            <feFuncR type="linear" slope="1.55" intercept="-0.08" />
+            <feFuncG type="linear" slope="1.55" intercept="-0.08" />
+            <feFuncB type="linear" slope="1.55" intercept="-0.08" />
+          </feComponentTransfer>
+        </filter>
+        <!-- Etch dispersal: feTurbulence-driven tear (scale set from JS) -->
+        <filter
+          id="etchTearDispersion"
+          x="-45%"
+          y="-45%"
+          width="190%"
+          height="190%"
+          color-interpolation-filters="sRGB"
+        >
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.11"
+            numOctaves="5"
+            stitchTiles="stitch"
+            result="tearTurb"
+          />
+          <feDisplacementMap
+            id="etchDispMap"
+            in="SourceGraphic"
+            in2="tearTurb"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+        <!-- End-of-hero: fractal displacement on WebGL canvas (scale + baseFrequency from JS) -->
+        <filter
+          id="logoFractalDissolve"
+          x="-30%"
+          y="-30%"
+          width="160%"
+          height="160%"
+          color-interpolation-filters="sRGB"
+        >
+          <feTurbulence
+            id="logoDissolveTurb"
+            type="fractalNoise"
+            baseFrequency="0.035"
+            numOctaves="4"
+            stitchTiles="stitch"
+            result="dissTurb"
+          />
+          <feDisplacementMap
+            id="logoDissolveDisp"
+            in="SourceGraphic"
+            in2="dissTurb"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

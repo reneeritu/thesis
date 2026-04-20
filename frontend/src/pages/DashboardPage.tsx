@@ -163,23 +163,58 @@ export default function DashboardPage() {
           <p className="text-small font-mono text-grey-400">Loading node…</p>
         )}
 
-        {spaces.length ? (
+        {spaces.length === 0 && me ? (
+          /* ── First-time user guide ── */
+          <section className="border border-black p-5 space-y-4 bg-white">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
+              Getting started
+            </p>
+            <p className="text-body">
+              The chain lets you document creative work so it's permanently traceable — who made what, when, with what evidence.
+              Here's how it works in three steps:
+            </p>
+            <ol className="space-y-4">
+              <li className="flex gap-3">
+                <span className="font-mono text-[13px] font-bold shrink-0 w-5">1.</span>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">Create or join a Space</p>
+                  <p className="text-small text-grey-600 mt-0.5">
+                    A space is a shared context — a studio, class, or project group. You can invite co-founders and set who has veto authority.
+                  </p>
+                  <div className="flex gap-2 mt-2 text-small font-mono uppercase tracking-[0.18em]">
+                    <Link to="/spaces/new" className="border border-black bg-yellow-400 px-3 py-1 text-black hover:bg-black hover:text-yellow-400 transition">+ Create space</Link>
+                    <Link to="/spaces/join" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">Join with invite code</Link>
+                    <Link to="/discover" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">Browse public spaces</Link>
+                  </div>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-mono text-[13px] font-bold shrink-0 w-5">2.</span>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">Start a Project inside a space</p>
+                  <p className="text-small text-grey-600 mt-0.5">
+                    A project tracks one body of work. Add collaborators — they'll get a notification to accept or decline.
+                  </p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-mono text-[13px] font-bold shrink-0 w-5">3.</span>
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">Log Work (Traces) with proof</p>
+                  <p className="text-small text-grey-600 mt-0.5">
+                    Each trace is a timestamped record of activity. Attach an image, video, or audio file as proof — its SHA-256 fingerprint is stored on the chain so anyone can verify the file hasn't changed.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </section>
+        ) : spaces.length > 0 ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-h3">Spaces</h2>
               <div className="flex gap-2 text-small font-mono uppercase tracking-[0.18em]">
-                <Link
-                  to="/spaces/new"
-                  className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
-                >
-                  + Create
-                </Link>
-                <Link
-                  to="/spaces/join"
-                  className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
-                >
-                  + Join
-                </Link>
+                <Link to="/spaces/new" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">+ Create</Link>
+                <Link to="/spaces/join" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">+ Join</Link>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

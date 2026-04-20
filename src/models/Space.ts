@@ -10,10 +10,28 @@ export interface ISpaceSettings {
   minDocRequirements: string[];
 }
 
+export interface IPendingVeto {
+  alias: string;
+  notifiedAt: Date;
+}
+
+export interface IFoundingMember {
+  alias: string;
+  role: 'admin' | 'member';
+}
+
+export type InviteMode = 'single_use' | 'multi_use';
+
 export interface IInviteCode {
   code: string;
   used: boolean;
   createdAt: Date;
+  /** How many times this code may be used. null = single-use (legacy). */
+  maxUses: number | null;
+  usedCount: number;
+  /** null = never expires */
+  expiresAt: Date | null;
+  mode: InviteMode;
 }
 
 export interface ISpace extends Document {
@@ -22,7 +40,10 @@ export interface ISpace extends Document {
   creatorAlias: string;
   admins: string[];
   members: string[];
+  /** vetoAuthority aliases that have accepted the role. */
   settings: ISpaceSettings;
+  /** Aliases invited to be veto authority but have not responded yet. */
+  pendingVeto: IPendingVeto[];
   inviteCodes: IInviteCode[];
   status: 'active' | 'dormant';
   parentSpaceId: mongoose.Types.ObjectId | null;
@@ -51,11 +72,23 @@ const spaceSettingsSchema = new Schema<ISpaceSettings>(
   { _id: false },
 );
 
+const pendingVetoSchema = new Schema<IPendingVeto>(
+  {
+    alias: { type: String, required: true },
+    notifiedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const inviteCodeSchema = new Schema<IInviteCode>(
   {
     code: { type: String, required: true },
     used: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
+    maxUses: { type: Number, default: null },
+    usedCount: { type: Number, default: 0 },
+    expiresAt: { type: Date, default: null },
+    mode: { type: String, enum: ['single_use', 'multi_use'], default: 'single_use' },
   },
   { _id: false },
 );
@@ -68,6 +101,7 @@ const spaceSchema = new Schema<ISpace>(
     admins: { type: [String], required: true },
     members: { type: [String], default: [] },
     settings: { type: spaceSettingsSchema, required: true },
+    pendingVeto: { type: [pendingVetoSchema], default: [] },
     inviteCodes: { type: [inviteCodeSchema], default: [] },
     status: { type: String, enum: ['active', 'dormant'], default: 'active' },
     parentSpaceId: { type: Schema.Types.ObjectId, ref: 'Space', default: null },

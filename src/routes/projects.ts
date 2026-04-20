@@ -6,6 +6,7 @@ import { Project } from '../models/Project';
 import { Space } from '../models/Space';
 import { ChainNode } from '../models/Node';
 import { Trace } from '../models/Trace';
+import { Notification } from '../models/Notification';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
@@ -36,9 +37,19 @@ router.post(
       throw new ForbiddenError('You are not a member of this space');
     }
 
-    const contributorList = [
-      { alias, role: 'creator', isPrimary: true, signedAt: new Date() },
+    const now = new Date();
+    const contributorList: {
+      alias: string;
+      role: string;
+      isPrimary: boolean;
+      signedAt: Date | null;
+      accepted: boolean | null;
+      invitedAt: Date | null;
+    }[] = [
+      { alias, role: 'creator', isPrimary: true, signedAt: now, accepted: true, invitedAt: null },
     ];
+
+    const invitedAliases: string[] = [];
 
     if (contributors) {
       for (const c of contributors) {
@@ -49,8 +60,11 @@ router.post(
           alias: c.alias,
           role: c.role || 'contributor',
           isPrimary: c.isPrimary ?? false,
-          signedAt: null as unknown as Date,
+          signedAt: null,
+          accepted: null,   // pending
+          invitedAt: now,
         });
+        invitedAliases.push(c.alias);
       }
     }
 
@@ -72,6 +86,22 @@ router.post(
       visibility: visibility || 'space_only',
       startBlockIndex: block.index,
     });
+
+    // Notify invited contributors
+    for (const invitedAlias of invitedAliases) {
+      await Notification.create({
+        recipientAlias: invitedAlias,
+        type: 'contributor_invite',
+        relatedId: String(project._id),
+        relatedType: 'project',
+        metadata: {
+          projectId: String(project._id),
+          projectTitle: title,
+          inviterAlias: alias,
+          message: `${alias} has invited you as a contributor to project "${title}". Accept or decline from the project page.`,
+        },
+      });
+    }
 
     res.status(201).json(project);
   },
@@ -223,15 +253,86 @@ router.post(
     const exists = await ChainNode.findOne({ alias, status: 'active' });
     if (!exists) throw new NotFoundError(`Node "${alias}"`);
 
+    const now2 = new Date();
     project.contributors.push({
       alias,
       role: role || 'contributor',
       isPrimary: isPrimary ?? false,
       signedAt: null,
+      accepted: null,
+      invitedAt: now2,
     });
     await project.save();
 
+    // Notify the invited contributor
+    await Notification.create({
+      recipientAlias: alias,
+      type: 'contributor_invite',
+      relatedId: String(project._id),
+      relatedType: 'project',
+      metadata: {
+        projectId: String(project._id),
+        projectTitle: project.title,
+        inviterAlias: req.node!.alias,
+        message: `${req.node!.alias} has invited you as a contributor to project "${project.title}". Accept or decline from the project page.`,
+      },
+    });
+
     res.json(project);
+  },
+);
+
+/**
+ * POST /projects/:id/contributors/respond
+ * The current authenticated node accepts or declines a contributor invitation.
+ * Body: { accept: boolean }
+ */
+const respondContributorSchema = require('zod').z.object({ accept: require('zod').z.boolean() });
+
+router.post(
+  '/:id/contributors/respond',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const project = await Project.findById(req.params.id);
+    if (!project) throw new NotFoundError('Project');
+
+    const alias = req.node!.alias;
+    const contrib = project.contributors.find((c) => c.alias === alias);
+    if (!contrib) throw new AppError('You are not listed as a contributor on this project');
+    if (contrib.accepted !== null) throw new AppError('You have already responded to this invitation');
+
+    const accept = req.body.accept;
+    if (typeof accept !== 'boolean') throw new AppError('accept must be true or false');
+
+    contrib.accepted = accept;
+    if (accept) {
+      contrib.signedAt = new Date();
+    } else {
+      // Remove from contributors on decline
+      project.contributors = project.contributors.filter((c) => c.alias !== alias);
+    }
+    await project.save();
+
+    // Notify project creator
+    const decision = accept
+      ? `${alias} accepted your contributor invitation on project "${project.title}".`
+      : `${alias} declined your contributor invitation on project "${project.title}".`;
+
+    await Notification.create({
+      recipientAlias: project.creatorAlias,
+      type: 'contributor_invite_response',
+      relatedId: String(project._id),
+      relatedType: 'project',
+      metadata: {
+        projectId: String(project._id),
+        projectTitle: project.title,
+        respondentAlias: alias,
+        accepted: accept,
+        message: decision,
+      },
+    });
+
+    res.json({ accepted: accept, message: decision });
   },
 );
 

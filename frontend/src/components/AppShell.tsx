@@ -10,7 +10,7 @@ type Props = {
 }
 
 const navBtn =
-  'border border-black px-2.5 py-1.5 sm:px-3 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]'
+  'border border-black px-2 py-1 text-[10px] sm:px-2.5 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]'
 
 export function AppShell({ children, title }: Props) {
   const token = getToken()
@@ -18,39 +18,48 @@ export function AppShell({ children, title }: Props) {
   return (
     <div className="flex min-h-[80vh] flex-1 flex-col">
       <header className="border-b border-grey-200 shrink-0">
-        <div className="mx-auto max-w-shell shell-px py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="mx-auto max-w-shell shell-px py-2 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/"
-            className="text-small font-mono tracking-[0.18em] uppercase text-grey-400 hover:text-black transition"
+            className="text-[11px] font-mono tracking-[0.18em] uppercase text-grey-400 hover:text-black transition"
           >
             untitled
           </Link>
           {token ? (
-            <nav className="flex flex-wrap items-center justify-end gap-2 text-small font-mono uppercase tracking-[0.18em] max-w-[min(100%,520px)]">
-              <Link to="/dashboard" className={navBtn}>
-                Dashboard
-              </Link>
-              <Link to="/me" className={navBtn}>
-                Profile
-              </Link>
-              <Link to="/spaces" className={navBtn}>
-                Spaces
-              </Link>
-              <Link to="/projects" className={navBtn}>
-                Projects
-              </Link>
+            <nav className="flex flex-wrap items-center justify-end gap-1 text-[11px] font-mono uppercase tracking-[0.18em] max-w-[min(100%,520px)]">
+              <div className="relative">
+                <details className="group">
+                  <summary className={`${navBtn} list-none cursor-pointer`}>
+                    Menu
+                  </summary>
+                  <div className="absolute right-0 mt-1 min-w-[160px] border border-black bg-white shadow-sm z-50">
+                    <Link to="/dashboard" className="block px-3 py-1 text-[11px] hover:bg-black hover:text-yellow-400">
+                      Home
+                    </Link>
+                    <Link to="/me" className="block px-3 py-1 text-[11px] hover:bg-black hover:text-yellow-400">
+                      Profile
+                    </Link>
+                    <Link to="/spaces" className="block px-3 py-1 text-[11px] hover:bg-black hover:text-yellow-400">
+                      Spaces
+                    </Link>
+                    <Link to="/projects" className="block px-3 py-1 text-[11px] hover:bg-black hover:text-yellow-400">
+                      Projects
+                    </Link>
+                    <Link to="/archive/new" className="block px-3 py-1 text-[11px] hover:bg-black hover:text-yellow-400">
+                      Archive
+                    </Link>
+                    <Link to="/governance" className="block px-3 py-1 text-[11px] hover:bg-black hover:text-yellow-400">
+                      Governance
+                    </Link>
+                  </div>
+                </details>
+              </div>
               <Link to="/discover" className={navBtn}>
                 Discover
               </Link>
-              <Link to="/governance" className={navBtn}>
-                Governance
-              </Link>
-              <Link to="/archive/new" className={navBtn}>
-                Archive
-              </Link>
               <NotificationBell />
               <a href="/legacy/index.html#/dashboard" className={`${navBtn} text-grey-400`}>
-                Legacy
+                Old site
               </a>
               <button
                 type="button"

@@ -149,6 +149,44 @@ router.post(
 );
 
 /**
+ * GET /media/project/:projectId
+ * List all Media records for a project (members only).
+ * Returns metadata + a URL to fetch each file.
+ */
+router.get(
+  '/media/project/:projectId',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const project = await Project.findById(req.params.projectId);
+    if (!project) throw new NotFoundError('Project');
+
+    const alias = req.node!.alias;
+    const isContributor = project.contributors.some((c) => c.alias === alias);
+    if (!isContributor) throw new ForbiddenError('You are not a contributor on this project');
+
+    const mediaList = await Media.find({ projectId: req.params.projectId, status: { $ne: 'removed' } })
+      .select('_id filename originalName mimeType size hash uploaderAlias createdAt status')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(
+      mediaList.map((m) => ({
+        mediaId: String(m._id),
+        filename: m.filename,
+        originalName: m.originalName,
+        mimeType: m.mimeType,
+        size: m.size,
+        hash: m.hash,
+        uploaderAlias: m.uploaderAlias,
+        createdAt: m.createdAt,
+        status: m.status,
+        url: `/media/${String(m._id)}`,
+      })),
+    );
+  },
+);
+
+/**
  * GET /media/:mediaId
  * Serves uploaded media bytes, enforcing content visibility rules.
  *

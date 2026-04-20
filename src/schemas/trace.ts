@@ -12,6 +12,8 @@ export const createTraceSchema = z
     toolSoftware: z.string().max(200).optional(),
     mode: z.enum(LOG_MODES).optional(),
     proxyForAlias: z.string().optional(),
+    /** Optional Media document id linking proof to this trace. */
+    mediaId: z.string().optional(),
   })
   .refine(
     (d) => d.activityType !== 'other' || (d.otherDescription && d.otherDescription.length > 0),

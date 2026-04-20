@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="g5" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#fdfcf5"/>
+      <stop offset="100%" style="stop-color:#e8dcc8"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g5)"/>
+  <rect x="40" y="40" width="720" height="420" fill="none" stroke="#004d4d" stroke-width="2" opacity="0.5"/>
+  <text x="400" y="248" text-anchor="middle" fill="#2a2520" font-family="Georgia,serif" font-size="34">Fifth orbit</text>
+</svg>

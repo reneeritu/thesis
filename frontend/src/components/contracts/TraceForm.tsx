@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { api } from '../../lib/api'
 import { Button } from '../Button'
+import { getToken } from '../../lib/session'
 
 const ACTIVITY_TYPES = [
   'brainstorm',
@@ -22,9 +23,25 @@ const MODE_LABELS: Record<string, string> = {
   reflection: 'REFLECTION',
 }
 
+type MediaResult = {
+  mediaId: string
+  hash: string
+  filename: string
+  originalName: string
+  mimeType: string
+  size: number
+}
+
 type Props = {
   projectId: string
   onDone: () => void
+}
+
+function apiBase() {
+  const m = document.querySelector('meta[name="aura-api-base"]')
+  const b = m?.getAttribute('content')
+  if (b?.trim()) return b.replace(/\/$/, '')
+  return window.location.origin.replace(/\/$/, '')
 }
 
 export function TraceForm({ projectId, onDone }: Props) {
@@ -39,6 +56,48 @@ export function TraceForm({ projectId, onDone }: Props) {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Media proof upload
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const [uploadBusy, setUploadBusy] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadedMedia, setUploadedMedia] = useState<MediaResult | null>(null)
+
+  async function uploadProof(file: File) {
+    setUploadBusy(true)
+    setUploadError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('projectId', projectId)
+      const tok = getToken()
+      const res = await fetch(apiBase() + '/upload', {
+        method: 'POST',
+        headers: tok ? { Authorization: 'Bearer ' + tok } : undefined,
+        body: fd,
+      })
+      const text = await res.text()
+      let data: unknown
+      try { data = JSON.parse(text) } catch { data = { raw: text } }
+      if (!res.ok) {
+        const d = data as { error?: string; message?: string } | null
+        throw new Error(String(d?.error ?? d?.message ?? text ?? res.statusText))
+      }
+      const r = data as MediaResult & { mediaId?: string }
+      setUploadedMedia({
+        mediaId: String(r.mediaId),
+        hash: r.hash,
+        filename: r.filename,
+        originalName: r.originalName,
+        mimeType: r.mimeType,
+        size: r.size,
+      })
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setUploadBusy(false)
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -56,6 +115,7 @@ export function TraceForm({ projectId, onDone }: Props) {
       }
       if (activityType === 'other') body.otherDescription = otherDescription
       if (proxy) body.proxyForAlias = proxyForAlias
+      if (uploadedMedia?.mediaId) body.mediaId = uploadedMedia.mediaId
       await api('/traces', { method: 'POST', body })
       setResult('Trace logged.')
       onDone()
@@ -138,6 +198,62 @@ export function TraceForm({ projectId, onDone }: Props) {
               className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
             />
           </div>
+        </div>
+
+        {/* ── Proof (image / video / audio) ── */}
+        <div className="border border-grey-200 p-3 space-y-2">
+          <p className="font-mono uppercase tracking-[0.18em] text-grey-400 text-[10px]">
+            Attach proof (image / video / audio) — optional
+          </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,video/*,audio/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) void uploadProof(f)
+            }}
+          />
+          {!uploadedMedia && (
+            <button
+              type="button"
+              disabled={uploadBusy}
+              onClick={() => fileRef.current?.click()}
+              className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] bg-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+            >
+              {uploadBusy ? 'Uploading…' : 'Choose file'}
+            </button>
+          )}
+          {uploadError && (
+            <p className="font-mono text-[11px] text-red-600">{uploadError}</p>
+          )}
+          {uploadedMedia && (
+            <div className="space-y-1 font-mono text-[11px]">
+              <p className="text-grey-400 uppercase tracking-[0.12em]">Proof attached ✓</p>
+              <p><span className="text-grey-400">File: </span>{uploadedMedia.originalName}</p>
+              <p><span className="text-grey-400">Type: </span>{uploadedMedia.mimeType}</p>
+              <p className="break-all">
+                <span className="text-grey-400">Media ID: </span>
+                <span className="tracking-wider">{uploadedMedia.mediaId}</span>
+              </p>
+              <p className="break-all">
+                <span className="text-grey-400">SHA-256 hash: </span>
+                <span className="text-[10px]">{uploadedMedia.hash}</span>
+              </p>
+              <p className="text-grey-400 text-[10px]">
+                Anyone can verify this file hasn't changed by computing its SHA-256 and comparing to this hash.
+                Retrieve it via: <span className="font-mono">/media/{uploadedMedia.mediaId}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => { setUploadedMedia(null); if (fileRef.current) fileRef.current.value = '' }}
+                className="text-grey-400 underline text-[10px] hover:text-black"
+              >
+                Remove
+              </button>
+            </div>
+          )}
         </div>
 
         <details className="text-small">

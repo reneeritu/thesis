@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
+import { getAlias } from '../lib/session'
+import { AppShell } from '../components/AppShell'
 import { ProjectTimeline, type TimelineEntry } from '../components/contracts/ProjectTimeline'
 import { TraceForm } from '../components/contracts/TraceForm'
 import { ReferenceForm } from '../components/contracts/ReferenceForm'
@@ -14,6 +15,8 @@ type Contributor = {
   alias: string
   role?: string
   isPrimary?: boolean
+  accepted?: boolean | null
+  invitedAt?: string | null
 }
 
 type Project = {
@@ -31,10 +34,23 @@ type VetoRow = { _id: string; vetoType?: string; nodeAlias?: string; createdAt?:
 
 type NftCredit = { nft: { _id: string } }
 
+type MediaItem = {
+  mediaId: string
+  filename: string
+  originalName: string
+  mimeType: string
+  size: number
+  hash: string
+  uploaderAlias: string
+  createdAt: string
+  url: string
+}
+
 type ActiveForm = 'trace' | 'reference' | 'pivot' | 'veto' | 'fork' | 'credit' | null
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const meAlias = getAlias()
   const [project, setProject] = useState<Project | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [traces, setTraces] = useState<TraceRow[]>([])
@@ -42,6 +58,9 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeForm, setActiveForm] = useState<ActiveForm>(null)
   const [loadKey, setLoadKey] = useState(0)
+  const [respondBusy, setRespondBusy] = useState(false)
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
+  const [showMedia, setShowMedia] = useState(false)
 
   const reload = useCallback(() => setLoadKey((k) => k + 1), [])
 
@@ -54,15 +73,17 @@ export default function ProjectDetailPage() {
         if (cancelled) return
         setProject(p)
 
-        const [traceRes, refRes, pivotRes, vetoRes] = await Promise.all([
+        const [traceRes, refRes, pivotRes, vetoRes, mediaRes] = await Promise.all([
           api<TraceRow[]>('/traces/project/' + encodeURIComponent(id)).catch(() => [] as TraceRow[]),
           api<RefRow[]>('/references/project/' + encodeURIComponent(id)).catch(() => [] as RefRow[]),
           api<PivotRow[]>('/pivots/project/' + encodeURIComponent(id)).catch(() => [] as PivotRow[]),
           api<VetoRow[]>('/vetos/project/' + encodeURIComponent(id)).catch(() => [] as VetoRow[]),
+          api<MediaItem[]>('/media/project/' + encodeURIComponent(id)).catch(() => [] as MediaItem[]),
         ])
         if (cancelled) return
 
         setTraces(traceRes)
+        setMediaItems(mediaRes)
 
         const entries: TimelineEntry[] = []
         for (const t of traceRes) {
@@ -112,6 +133,26 @@ export default function ProjectDetailPage() {
 
   const isActive = project?.status === 'active'
   const contributors = project?.contributors ?? []
+  const myContrib = contributors.find((c) => c.alias === meAlias)
+  const myPendingInvite = myContrib?.accepted === null || myContrib?.accepted === undefined
+    ? myContrib
+    : null
+
+  async function respondContributor(accept: boolean) {
+    if (!id) return
+    setRespondBusy(true)
+    try {
+      await api('/projects/' + encodeURIComponent(id) + '/contributors/respond', {
+        method: 'POST',
+        body: { accept },
+      })
+      reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to respond')
+    } finally {
+      setRespondBusy(false)
+    }
+  }
 
   function toggle(form: ActiveForm) {
     setActiveForm((prev) => (prev === form ? null : form))
@@ -161,6 +202,33 @@ export default function ProjectDetailPage() {
               )}
             </section>
 
+            {/* Pending contributor invitation for current user */}
+            {myPendingInvite && (
+              <section className="border border-black p-4 space-y-3 bg-yellow-50">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
+                  You have been invited as a contributor to this project
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={respondBusy}
+                    onClick={() => respondContributor(true)}
+                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    disabled={respondBusy}
+                    onClick={() => respondContributor(false)}
+                    className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-grey-600 hover:border-black hover:text-black transition disabled:opacity-60"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* Contributors */}
             <section className="space-y-2">
               <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
@@ -169,12 +237,19 @@ export default function ProjectDetailPage() {
               {contributors.length ? (
                 <ul className="space-y-1 text-small font-mono">
                   {contributors.map((c) => (
-                    <li key={c.alias}>
-                      {c.alias}{' '}
+                    <li key={c.alias} className="flex items-center gap-2">
+                      <Link to={`/nodes/${encodeURIComponent(c.alias)}`} className="hover:underline">
+                        {c.alias}
+                      </Link>
                       {c.role ? <span className="text-grey-400">({c.role})</span> : null}{' '}
                       {c.isPrimary ? (
                         <span className="inline-block border border-black bg-black px-1 py-0.5 text-[10px] uppercase tracking-[0.16em] text-yellow-400">
                           Primary
+                        </span>
+                      ) : null}
+                      {c.accepted === null ? (
+                        <span className="inline-block border border-grey-300 px-1 py-0.5 text-[10px] uppercase tracking-[0.12em] text-grey-400">
+                          Pending
                         </span>
                       ) : null}
                     </li>
@@ -212,10 +287,67 @@ export default function ProjectDetailPage() {
               <CreditForm projectId={project._id} contributors={contributors} onDone={reload} />
             )}
 
+            {/* Media proof panel */}
+            <section className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowMedia((v) => !v)}
+                className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400 hover:text-black"
+              >
+                <span>{showMedia ? '▾' : '▸'}</span>
+                Proof & Media ({mediaItems.length} file{mediaItems.length !== 1 ? 's' : ''})
+              </button>
+
+              {showMedia && (
+                <div className="space-y-2">
+                  <div className="border border-dashed border-grey-300 bg-grey-50 px-4 py-3 space-y-1">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-grey-500">How verification works</p>
+                    <p className="text-[12px] text-grey-600">
+                      Every uploaded file is hashed with SHA-256 before it's stored. The hash is recorded on the trace entry (on-chain). To verify a file hasn't been tampered with: download it, compute its SHA-256, and compare to the hash shown here — they must match exactly.
+                    </p>
+                  </div>
+
+                  {mediaItems.length === 0 ? (
+                    <p className="text-small text-grey-400 font-mono">No proof files yet. Attach an image, video, or audio file when logging work.</p>
+                  ) : (
+                    <ul className="divide-y divide-grey-100 border border-grey-200">
+                      {mediaItems.map((m) => (
+                        <li key={m.mediaId} className="px-4 py-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-0.5 min-w-0">
+                              <p className="font-mono text-[12px] truncate">{m.originalName}</p>
+                              <p className="font-mono text-[10px] text-grey-400">
+                                {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
+                              </p>
+                            </div>
+                            <a
+                              href={`${window.location.origin.replace(/\/$/, '')}${m.url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-black transition"
+                            >
+                              Open →
+                            </a>
+                          </div>
+                          <div className="space-y-0.5">
+                            <p className="font-mono text-[10px] text-grey-400">
+                              Media ID — <span className="text-black tracking-wider">{m.mediaId}</span>
+                            </p>
+                            <p className="font-mono text-[10px] text-grey-400">SHA-256 fingerprint</p>
+                            <p className="font-mono text-[10px] break-all text-grey-700">{m.hash}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </section>
+
             {/* Timeline */}
             <section className="space-y-2">
               <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
-                Timeline
+                Activity Timeline
               </h2>
               <ProjectTimeline entries={timeline} />
             </section>

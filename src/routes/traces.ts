@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -5,6 +6,7 @@ import { createTraceSchema, confirmProxySchema } from '../schemas/trace';
 import { Trace } from '../models/Trace';
 import { Project } from '../models/Project';
 import { ChainNode } from '../models/Node';
+import { Media } from '../models/Media';
 import { addBlock } from '../services/chain';
 import { onTraceCreated } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
@@ -53,6 +55,7 @@ router.post(
       toolSoftware,
       mode,
       proxyForAlias,
+      mediaId,
     } = req.body;
     const alias = req.node!.alias;
 
@@ -84,6 +87,23 @@ router.post(
 
     const traceTimestamp = timestamp ? new Date(timestamp) : new Date();
 
+    // Resolve mediaId → hash for chain integrity
+    let resolvedMediaId: mongoose.Types.ObjectId | null = null;
+    let resolvedMediaHash = '';
+    if (mediaId && mongoose.Types.ObjectId.isValid(mediaId)) {
+      const media = await Media.findById(mediaId);
+      if (!media) throw new NotFoundError('Media attachment');
+      if (media.uploaderAlias !== alias) {
+        throw new ForbiddenError('You can only attach your own uploads as proof');
+      }
+      resolvedMediaId = media._id as mongoose.Types.ObjectId;
+      resolvedMediaHash = media.hash;
+      // Bind the media to this project if not already
+      if (!media.projectId) {
+        await Media.findByIdAndUpdate(mediaId, { projectId });
+      }
+    }
+
     const block = await addBlock('trace', alias, {
       projectId,
       nodeAlias: alias,
@@ -91,6 +111,7 @@ router.post(
       timestamp: traceTimestamp.toISOString(),
       isProxy,
       proxyForAlias: proxyForAlias || null,
+      mediaHash: resolvedMediaHash || null,
     });
 
     const trace = await Trace.create({
@@ -99,6 +120,8 @@ router.post(
       activityType,
       otherDescription: otherDescription || '',
       timestamp: traceTimestamp,
+      mediaHash: resolvedMediaHash,
+      mediaId: resolvedMediaId,
       description: description || '',
       duration: duration || 0,
       toolSoftware: toolSoftware || '',

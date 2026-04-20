@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
-import { getToken, setSession } from '../lib/session'
+import { setSession } from '../lib/session'
 
 type RegisterResponse = {
   alias: string
@@ -34,12 +34,7 @@ function Progress({ step }: { step: 1 | 2 | 3 }) {
 }
 
 export default function RegisterPage() {
-  const existingToken = getToken()
   const [step, setStep] = useState<1 | 2 | 3>(1)
-  if (existingToken && step === 1) {
-    return <Navigate to="/dashboard" replace />
-  }
-
   const [error, setError] = useState<string | null>(null)
   const [alias, setAlias] = useState('')
   const [seedWords, setSeedWords] = useState<string[]>([])

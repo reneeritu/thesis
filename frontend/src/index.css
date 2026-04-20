@@ -66,3 +66,478 @@ h3 {
     @apply px-4 sm:px-8 md:px-[60px];
   }
 }
+
+/*
+ * Default layout locks html/body to 100vh and scrolls *body*, so window.scrollY stays ~0 and
+ * GSAP ScrollTrigger (viewport scroller) never advances. Welcome route adds this class pair so
+ * the document grows and the window is the scroller — pin + scrub work reliably.
+ */
+html.welcome-full-page-scroll,
+html.welcome-full-page-scroll body {
+  max-height: none !important;
+  height: auto !important;
+}
+
+html.welcome-full-page-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html.welcome-full-page-scroll body {
+  overflow-y: visible;
+  min-height: 100vh;
+}
+
+/* ScrollTrigger pin wrappers default to overflow:hidden — clips large display type in the hero */
+html.welcome-full-page-scroll .pin-spacer {
+  overflow: visible !important;
+}
+
+/* ─── Welcome / hero: plum #18101F + deep teal #004d4d + magenta #b30059 — oil-slick drift ─── */
+.hero-section-oil {
+  --hero-plum: #18101f;
+  --hero-teal: #004d4d;
+  --hero-magenta: #b30059;
+  background-color: var(--hero-plum);
+  isolation: isolate;
+  background-image:
+    radial-gradient(
+      ellipse 92% 78% at 22% 18%,
+      color-mix(in srgb, var(--hero-teal) 42%, transparent) 0%,
+      color-mix(in srgb, var(--hero-teal) 14%, transparent) 48%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 78% 72% at 82% 78%,
+      color-mix(in srgb, var(--hero-magenta) 38%, transparent) 0%,
+      color-mix(in srgb, var(--hero-magenta) 12%, transparent) 50%,
+      transparent 64%
+    ),
+    radial-gradient(
+      ellipse 64% 58% at 48% 92%,
+      color-mix(in srgb, var(--hero-magenta) 28%, transparent) 0%,
+      color-mix(in srgb, var(--hero-plum) 55%, transparent) 52%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 88% 70% at 70% 12%,
+      color-mix(in srgb, var(--hero-teal) 36%, transparent) 0%,
+      color-mix(in srgb, var(--hero-teal) 10%, transparent) 54%,
+      transparent 66%
+    );
+  background-repeat: no-repeat;
+  background-size: 145% 145%, 138% 138%, 128% 128%, 142% 142%;
+  background-position:
+    8% 12%,
+    92% 88%,
+    45% 95%,
+    78% 8%;
+  animation: hero-plum-swirl 44s ease-in-out infinite alternate;
+}
+
+.hero-section-oil::before,
+.hero-section-oil::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.5;
+  will-change: transform;
+}
+
+.hero-section-oil::before {
+  background: radial-gradient(
+    ellipse 55% 50% at 35% 40%,
+    color-mix(in srgb, var(--hero-teal) 32%, transparent) 0%,
+    transparent 62%
+  );
+  animation: hero-oil-veil-spin-a 56s ease-in-out infinite alternate;
+}
+
+.hero-section-oil::after {
+  background: radial-gradient(
+    ellipse 50% 48% at 68% 55%,
+    color-mix(in srgb, var(--hero-magenta) 28%, transparent) 0%,
+    transparent 58%
+  );
+  animation: hero-oil-veil-spin-b 48s ease-in-out infinite alternate;
+}
+
+@keyframes hero-plum-swirl {
+  0% {
+    background-position:
+      2% 8%,
+      98% 92%,
+      38% 100%,
+      72% 4%;
+    background-size:
+      150% 150%,
+      132% 132%,
+      122% 122%,
+      148% 148%;
+  }
+  50% {
+    background-position:
+      18% 22%,
+      84% 72%,
+      58% 78%,
+      90% 28%;
+    background-size:
+      138% 142%,
+      146% 134%,
+      134% 126%,
+      136% 152%;
+  }
+  100% {
+    background-position:
+      12% 28%,
+      88% 68%,
+      52% 70%,
+      68% 18%;
+    background-size:
+      142% 138%,
+      140% 140%,
+      130% 132%,
+      144% 146%;
+  }
+}
+
+@keyframes hero-oil-veil-spin-a {
+  0% {
+    transform: translate(-6%, -4%) rotate(-8deg) scale(1);
+    opacity: 0.42;
+  }
+  100% {
+    transform: translate(8%, 10%) rotate(12deg) scale(1.18);
+    opacity: 0.58;
+  }
+}
+
+@keyframes hero-oil-veil-spin-b {
+  0% {
+    transform: translate(10%, 6%) rotate(6deg) scale(1.08);
+    opacity: 0.38;
+  }
+  100% {
+    transform: translate(-8%, -8%) rotate(-10deg) scale(1);
+    opacity: 0.55;
+  }
+}
+
+/* ─── “etch” disintegrates: blur + radial erode × noise mask (--hero-dispersal, --hero-etch-blur) ─── */
+.hero-etch-dispersal {
+  --hero-dispersal: 0;
+  --hero-etch-blur: 0px;
+  position: relative;
+  z-index: 180;
+  transform-style: preserve-3d;
+  will-change: filter, mask-image, transform;
+  filter: blur(var(--hero-etch-blur)) url(#etchTearDispersion);
+  -webkit-mask-image:
+    radial-gradient(
+      ellipse 108% 94% at 50% 48%,
+      #000 calc(4% + (1 - var(--hero-dispersal)) * 58%),
+      transparent calc(14% + (1 - var(--hero-dispersal)) * 58% + var(--hero-dispersal) * 34%)
+    ),
+    var(--hero-noise-mask, none);
+  mask-image:
+    radial-gradient(
+      ellipse 108% 94% at 50% 48%,
+      #000 calc(4% + (1 - var(--hero-dispersal)) * 58%),
+      transparent calc(14% + (1 - var(--hero-dispersal)) * 58% + var(--hero-dispersal) * 34%)
+    ),
+    var(--hero-noise-mask, none);
+  -webkit-mask-size: 100% 100%, 200px 200px;
+  mask-size: 100% 100%, 200px 200px;
+  -webkit-mask-repeat: no-repeat, repeat;
+  mask-repeat: no-repeat, repeat;
+  -webkit-mask-position:
+    center,
+    calc(var(--hero-dispersal) * 80px) calc(var(--hero-dispersal) * -48px);
+  mask-position:
+    center,
+    calc(var(--hero-dispersal) * 80px) calc(var(--hero-dispersal) * -48px);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/* Orbital copy around the centered logo (no rotation on type) */
+.hero-orbital-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+/* Same center as the GLB: lives inside .hero-logo-viewport-inner (sized to canvas) */
+.hero-orbital-layer--glb-origin {
+  z-index: 0;
+}
+
+.hero-orbital-block {
+  position: absolute;
+  width: min(500px, 92vw);
+  max-width: min(500px, 92vw);
+  opacity: 0;
+  padding: 2.5rem;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid rgba(122, 191, 176, 0.20);
+  border-radius: 4px;
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 16px 56px rgba(0, 0, 0, 0.35);
+  will-change: transform, opacity, filter;
+  pointer-events: auto;
+  transition: border-color 0.3s ease;
+}
+
+.hero-orbital-block:hover {
+  border-color: rgba(122, 191, 176, 0.40);
+}
+
+.hero-orbital-block h3 {
+  font-family: 'Boldonse', serif;
+  font-size: clamp(0.7rem, 1.4vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(250, 246, 239, 0.94);
+  margin: 0 0 0.55rem;
+}
+
+.hero-orbital-block .hero-orbital-sub {
+  font-family: 'Cormorant Garamond', 'Cormorant_Garamond', Georgia, serif;
+  font-size: clamp(1.05rem, 2.2vw, 1.28rem);
+  font-weight: 500;
+  font-style: italic;
+  color: rgba(222, 185, 106, 0.92);
+  margin: 0 0 0.55rem;
+  line-height: 1.28;
+}
+
+.hero-orbital-block .hero-orbital-body {
+  font-family: 'Cormorant Garamond', 'Cormorant_Garamond', Georgia, serif;
+  font-size: clamp(0.82rem, 1.65vw, 0.98rem);
+  font-weight: 400;
+  line-height: 1.58;
+  color: rgba(250, 246, 239, 0.76);
+  margin: 0;
+}
+
+/* Alche-style quadrants (absolute %); GSAP x/y nudge from here */
+.hero-orbital-q1 {
+  top: 15%;
+  left: 70%;
+  text-align: right;
+}
+
+.hero-orbital-q2 {
+  top: 75%;
+  left: 10%;
+  text-align: left;
+}
+
+.hero-orbital-q3 {
+  top: 45%;
+  left: 75%;
+  text-align: right;
+}
+
+.hero-orbital-q4 {
+  top: 20%;
+  left: 15%;
+  text-align: left;
+}
+
+/* Alche-style spatial grid: perspective floor, rotates with scroll (--hero-grid-rot) */
+.hero-alche-grid {
+  position: absolute;
+  inset: -30%;
+  z-index: 45;
+  pointer-events: none;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(0, 77, 77, 0.5) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(179, 0, 89, 0.22) 1px,
+      transparent 1px
+    );
+  background-size:
+    min(11vmin, 120px) min(11vmin, 120px),
+    min(11vmin, 120px) min(11vmin, 120px);
+  transform-origin: 50% 42%;
+  transform: perspective(950px) rotateX(62deg) rotateZ(var(--hero-grid-rot, 0deg))
+    translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Hero grain: below “etch” type (z-40) so load state is crisp; logo is portaled above at z-200 */
+.welcome-global-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.72'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+  mix-blend-mode: overlay;
+  opacity: var(--hero-grain-opacity, 0.34);
+  filter: url(#noiseFilter) contrast(var(--hero-grain-contrast, 2.15))
+    brightness(var(--hero-grain-brightness, 0.87));
+}
+
+/* 3D stage: “etch” pushes back behind the GLB after 10% scroll */
+.hero-etch-stage {
+  position: relative;
+  z-index: 180;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+/* Full-screen glass + grain for final 50vh of hero */
+.hero-fractal-haze-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 215;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cfilter id='hz'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23hz)' opacity='0.35'/%3E%3C/svg%3E"),
+    linear-gradient(
+      to bottom,
+      rgba(24, 16, 31, 0.15),
+      rgba(24, 16, 31, 0.35)
+    );
+  background-size:
+    200px 200px,
+    100% 100%;
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  transition: opacity 0.15s linear;
+}
+
+.hero-canvas-haze-wrap {
+  transform-style: preserve-3d;
+}
+
+/* Full-viewport anchor — sun locked to viewport center (Alche orbital) */
+.hero-logo-viewport-anchor {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.hero-logo-viewport-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  isolation: isolate;
+  overflow: visible;
+  perspective: 2200px;
+}
+
+/* WebGL orbit: title at ~80vh; bar slides in from left when snapped to center */
+.hero-orbit-focus-ui {
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  width: min(94%, 440px);
+  z-index: 25;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.hero-orbit-focus-ui__title {
+  display: inline-block;
+  margin: 0;
+  padding: 0.55rem 1.35rem;
+  background: #0a0a0a;
+  color: #fdfcf5;
+  font-family: 'Boldonse', serif;
+  font-size: clamp(0.62rem, 1.15vw, 0.74rem);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  transform: translateX(-130%);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-orbit-focus-ui--bar-in .hero-orbit-focus-ui__title {
+  transform: translateX(0);
+}
+
+.hero-orbit-focus-ui__body {
+  margin: 0.7rem 0 0;
+  padding: 0 0.5rem;
+  font-family: 'Cormorant Garamond', 'Cormorant_Garamond', Georgia, serif;
+  font-size: clamp(0.88rem, 1.7vw, 1.05rem);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.45;
+  color: rgba(24, 22, 20, 0.82);
+}
+
+.hero-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 72% 72% at 50% 50%,
+    transparent 38%,
+    rgba(0, 0, 0, 0.42) 75%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+}
+
+/* Warm cream hero — sketch ref #FDFCF5 */
+.hero-section-cream {
+  background-color: #fdfcf5;
+  isolation: isolate;
+  background-image:
+    radial-gradient(
+      ellipse 92% 74% at 20% 18%,
+      rgba(0, 77, 77, 0.1) 0%,
+      transparent 56%
+    ),
+    radial-gradient(
+      ellipse 70% 58% at 86% 80%,
+      rgba(179, 0, 89, 0.07) 0%,
+      transparent 60%
+    );
+  background-repeat: no-repeat;
+}
+
+.hero-section-cream .hero-alche-grid {
+  opacity: 0.12;
+}
+
+.hero-section-cream .welcome-global-grain {
+  mix-blend-mode: multiply;
+  opacity: var(--hero-grain-opacity, 0.14);
+  filter: url(#noiseFilter) contrast(1.5) brightness(1.04);
+}
+
+.hero-vignette--cream {
+  background: radial-gradient(
+    ellipse 80% 80% at 50% 48%,
+    transparent 44%,
+    rgba(42, 37, 32, 0.05) 76%,
+    rgba(42, 37, 32, 0.12) 100%
+  );
+}

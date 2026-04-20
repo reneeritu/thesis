@@ -5,6 +5,9 @@ export interface IContributor {
   role: string;
   isPrimary: boolean;
   signedAt: Date | null;
+  /** true = accepted; false = declined; null = pending (invited, no response yet) */
+  accepted: boolean | null;
+  invitedAt: Date | null;
 }
 
 export interface IProject extends Document {
@@ -29,6 +32,8 @@ const contributorSchema = new Schema<IContributor>(
     role: { type: String, default: 'contributor' },
     isPrimary: { type: Boolean, default: false },
     signedAt: { type: Date, default: null },
+    accepted: { type: Schema.Types.Mixed, default: null },
+    invitedAt: { type: Date, default: null },
   },
   { _id: false },
 );

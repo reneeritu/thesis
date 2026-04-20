@@ -26,6 +26,8 @@ export interface ITrace extends Document {
   otherDescription: string;
   timestamp: Date;
   mediaHash: string;
+  /** Reference to the Media document attached as proof (image / video / audio). */
+  mediaId: mongoose.Types.ObjectId | null;
   description: string;
   duration: number;
   toolSoftware: string;
@@ -56,6 +58,7 @@ const traceSchema = new Schema<ITrace>(
     otherDescription: { type: String, default: '' },
     timestamp: { type: Date, required: true },
     mediaHash: { type: String, default: '' },
+    mediaId: { type: Schema.Types.ObjectId, ref: 'Media', default: null },
     description: { type: String, default: '' },
     duration: { type: Number, default: 0 },
     toolSoftware: { type: String, default: '' },
