@@ -1,4 +1,5 @@
 import { beginLoading, endLoading } from './cursor'
+import { getToken } from './session'
 
 function apiBase(): string {
   const m = document.querySelector('meta[name="aura-api-base"]')
@@ -20,7 +21,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     if (opts.body != null) {
       headers['Content-Type'] = 'application/json'
     }
-    const tok = opts.token !== undefined ? opts.token : localStorage.getItem('aura2_token')
+    const tok = opts.token !== undefined ? opts.token : getToken()
     if (tok) headers['Authorization'] = 'Bearer ' + tok
 
     const res = await fetch(apiBase() + path, {
