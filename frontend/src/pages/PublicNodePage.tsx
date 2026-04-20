@@ -13,9 +13,20 @@ type NodePublic = {
   badges?: string[]
 }
 
+type NodeProject = {
+  _id: string
+  title: string
+  status: string
+  visibility: string
+  spaceId: string
+  spaceName: string
+  role: string
+}
+
 export default function PublicNodePage() {
   const { alias: aliasParam } = useParams<{ alias: string }>()
   const [node, setNode] = useState<NodePublic | null>(null)
+  const [projects, setProjects] = useState<NodeProject[]>([])
   const [error, setError] = useState<string | null>(null)
   const authed = !!getToken()
 
@@ -24,8 +35,16 @@ export default function PublicNodePage() {
     async function load() {
       if (!aliasParam) return
       try {
-        const n = await api<NodePublic>('/nodes/' + encodeURIComponent(aliasParam))
-        if (!cancelled) setNode(n)
+        const [n, ps] = await Promise.all([
+          api<NodePublic>('/nodes/' + encodeURIComponent(aliasParam)),
+          api<NodeProject[]>('/projects/by-node/' + encodeURIComponent(aliasParam)).catch(
+            () => [] as NodeProject[],
+          ),
+        ])
+        if (!cancelled) {
+          setNode(n)
+          setProjects(ps)
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load node')
       }
@@ -113,6 +132,33 @@ export default function PublicNodePage() {
                 </a>
               </p>
             ) : null}
+            <div>
+              <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+                Projects
+              </h2>
+              {projects.length === 0 ? (
+                <p className="text-body text-grey-400">No visible projects.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {projects.map((p) => (
+                    <li key={p._id}>
+                      <Link
+                        to={`/projects/${encodeURIComponent(p._id)}`}
+                        className="flex flex-wrap items-center gap-2 border border-black bg-white px-3 py-2 font-mono text-small transition hover:bg-black hover:text-yellow-400"
+                      >
+                        <span className="truncate">{p.title}</span>
+                        <span className="text-[10px] uppercase tracking-[0.16em] text-grey-400">
+                          {p.spaceName}
+                        </span>
+                        <span className="ml-auto text-[10px] uppercase tracking-[0.16em]">
+                          {p.role} · {p.status}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <p className="text-small text-grey-400">
               This profile is public. No personal data is stored beyond what you see.
             </p>

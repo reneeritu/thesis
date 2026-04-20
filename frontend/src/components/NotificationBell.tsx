@@ -17,6 +17,7 @@ type Notification = {
     projectId?: string
     projectTitle?: string
     pendingVeto?: string[]
+    requesterAlias?: string
     [k: string]: unknown
   }
 }
@@ -83,6 +84,25 @@ export function NotificationBell() {
       await api('/projects/' + encodeURIComponent(projectId) + '/contributors/respond', {
         method: 'POST',
         body: { accept },
+      })
+      await markRead(n._id)
+      load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally { setBusy(null) }
+  }
+
+  async function collabRequestRespond(n: Notification, accept: boolean) {
+    const projectId = n.metadata?.projectId || n.relatedId
+    const requesterAlias = typeof n.metadata?.requesterAlias === 'string'
+      ? n.metadata.requesterAlias
+      : ''
+    if (!projectId || !requesterAlias) return
+    setBusy(n._id)
+    try {
+      await api('/projects/' + encodeURIComponent(projectId) + '/join-request/respond', {
+        method: 'POST',
+        body: { requesterAlias, accept },
       })
       await markRead(n._id)
       load()
@@ -213,6 +233,28 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => contribRespond(n, false)}
+                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-grey-500 hover:border-black transition disabled:opacity-60"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
+
+                {/* Incoming collaboration request — primary accepts or declines */}
+                {n.type === 'collab_request' && !n.read && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      disabled={busy === n._id}
+                      onClick={() => collabRequestRespond(n, true)}
+                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy === n._id}
+                      onClick={() => collabRequestRespond(n, false)}
                       className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-grey-500 hover:border-black transition disabled:opacity-60"
                     >
                       Decline

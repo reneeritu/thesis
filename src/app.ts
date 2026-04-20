@@ -24,6 +24,7 @@ import mediationRoutes from './routes/mediations';
 import flagRoutes from './routes/flags';
 import governanceRoutes from './routes/governance';
 import discoverRoutes from './routes/discover';
+import endorsementRoutes from './routes/endorsements';
 
 // TODO: All list endpoints (e.g. /traces/project/:id, /vetos/project/:id,
 // /references/project/:id, /forks/parent/:id, etc.) currently return every
@@ -87,6 +88,7 @@ app.use('/mediations', mediationRoutes);
 app.use('/flags', flagRoutes);
 app.use('/governance', governanceRoutes);
 app.use('/discover', discoverRoutes);
+app.use('/endorsements', endorsementRoutes);
 
 app.use('/notifications', notificationRoutes);
 
@@ -115,6 +117,7 @@ app.use((req, res, next) => {
     p.startsWith('/flags') ||
     p.startsWith('/governance') ||
     p.startsWith('/discover') ||
+    p.startsWith('/endorsements') ||
     p.startsWith('/notifications') ||
     p.startsWith('/health') ||
     p.startsWith('/upload')

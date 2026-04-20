@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { DefTerm } from '../components/DefTerm'
 import { RadarChart } from '../components/RadarChart'
+import { useDefinitions } from '../context/DefinitionsContext'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
 
@@ -56,6 +58,7 @@ function isActiveStatus(status: string | undefined) {
 export default function DashboardPage() {
   const [state, setState] = useState<DashboardState>(initialState)
   const [error, setError] = useState<string | null>(null)
+  const { definitionsOn, setDefinitionsOn } = useDefinitions()
 
   useEffect(() => {
     let cancelled = false
@@ -112,6 +115,17 @@ export default function DashboardPage() {
   return (
     <AppShell title="Dashboard">
       <div className="space-y-6">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setDefinitionsOn(!definitionsOn)}
+            className="border border-grey-300 bg-white px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition hover:border-black hover:text-black [touch-action:manipulation]"
+            aria-pressed={definitionsOn}
+          >
+            Definitions: {definitionsOn ? 'on' : 'off'}
+          </button>
+        </div>
+
         {error ? (
           <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
             {error}
@@ -125,25 +139,43 @@ export default function DashboardPage() {
                 to="/archive/new"
                 className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
               >
-                Archive work
+                <DefTerm term="archive_work">Archive work</DefTerm>
               </Link>
               <Link
                 to="/discover"
                 className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
               >
-                Discover
+                <DefTerm term="discover">Discover</DefTerm>
               </Link>
             </div>
             <p className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
-              Node
+              <DefTerm term="node_label">Node</DefTerm>
             </p>
-            <p className="text-h3 font-mono">{me.alias}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-h3 font-mono">{me.alias}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin.replace(/\/$/, '')}/nodes/${encodeURIComponent(me.alias)}`
+                  void navigator.clipboard.writeText(url).catch(() => {})
+                }}
+                title="Copy a link to your public node profile"
+                className="border border-grey-300 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition hover:border-black hover:text-black"
+              >
+                Copy profile link
+              </button>
+            </div>
             <div className="max-w-[340px] border border-black bg-white p-3 text-black">
-              <RadarChart categories={me.reputationCategories} className="w-full h-auto" />
+              <RadarChart
+                categories={me.reputationCategories}
+                className="w-full h-auto"
+                showDefinitions={definitionsOn}
+              />
             </div>
             {me.reputationScore != null ? (
               <p className="text-small font-mono">
-                CURRENT SCORE — <span className="font-mono">{me.reputationScore}</span>
+                <DefTerm term="reputation_score">CURRENT SCORE</DefTerm> —{' '}
+                <span className="font-mono">{me.reputationScore}</span>
               </p>
             ) : null}
             {badges.length ? (
@@ -170,8 +202,8 @@ export default function DashboardPage() {
               Getting started
             </p>
             <p className="text-body">
-              The chain lets you document creative work so it's permanently traceable — who made what, when, with what evidence.
-              Here's how it works in three steps:
+              <DefTerm term="chain">The chain</DefTerm> lets you document creative work so it's permanently traceable —
+              who made what, when, with what evidence. Here's how it works in three steps:
             </p>
             <ol className="space-y-4">
               <li className="flex gap-3">
@@ -200,9 +232,13 @@ export default function DashboardPage() {
               <li className="flex gap-3">
                 <span className="font-mono text-[13px] font-bold shrink-0 w-5">3.</span>
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">Log Work (Traces) with proof</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                    Log Work (<DefTerm term="trace">Traces</DefTerm>) with proof
+                  </p>
                   <p className="text-small text-grey-600 mt-0.5">
-                    Each trace is a timestamped record of activity. Attach an image, video, or audio file as proof — its SHA-256 fingerprint is stored on the chain so anyone can verify the file hasn't changed.
+                    Each <DefTerm term="trace">trace</DefTerm> is a timestamped record of activity. Attach an image,
+                    video, or audio file as <DefTerm term="media_proof">proof</DefTerm> — its SHA-256 fingerprint is
+                    stored on the chain so anyone can verify the file hasn't changed.
                   </p>
                 </div>
               </li>
@@ -211,7 +247,9 @@ export default function DashboardPage() {
         ) : spaces.length > 0 ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-h3">Spaces</h2>
+              <h2 className="text-h3">
+                <DefTerm term="spaces_section">Spaces</DefTerm>
+              </h2>
               <div className="flex gap-2 text-small font-mono uppercase tracking-[0.18em]">
                 <Link to="/spaces/new" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">+ Create</Link>
                 <Link to="/spaces/join" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">+ Join</Link>
@@ -234,7 +272,9 @@ export default function DashboardPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-h3">Active projects</h2>
+            <h2 className="text-h3">
+              <DefTerm term="active_projects">Active projects</DefTerm>
+            </h2>
             <div className="flex gap-2 text-small font-mono uppercase tracking-[0.18em]">
               <Link
                 to="/projects"
@@ -267,7 +307,8 @@ export default function DashboardPage() {
                       {row.spaceName ? `In ${row.spaceName}` : null}
                     </span>
                     <span className="text-[11px] font-mono uppercase tracking-[0.18em]">
-                      STATUS — {row.project.status.toUpperCase()}
+                      STATUS —{' '}
+                      <DefTerm term={row.project.status}>{row.project.status.toUpperCase()}</DefTerm>
                     </span>
                   </Link>
                 ) : null,

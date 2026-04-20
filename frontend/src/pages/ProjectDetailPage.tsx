@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
 import { AppShell } from '../components/AppShell'
+import { MediaPreview } from '../components/MediaPreview'
 import { ProjectTimeline, type TimelineEntry } from '../components/contracts/ProjectTimeline'
 import { TraceForm } from '../components/contracts/TraceForm'
 import { ReferenceForm } from '../components/contracts/ReferenceForm'
@@ -137,6 +138,83 @@ export default function ProjectDetailPage() {
   const myPendingInvite = myContrib?.accepted === null || myContrib?.accepted === undefined
     ? myContrib
     : null
+  const amPrimary = Boolean(myContrib?.isPrimary && myContrib?.accepted)
+  const amListed = Boolean(myContrib)
+  const isPublic = project ? ['process_visible', 'fully_public'].includes((project as unknown as { visibility?: string }).visibility || '') : false
+
+  const [joinReqNote, setJoinReqNote] = useState('')
+  const [joinReqBusy, setJoinReqBusy] = useState(false)
+  const [joinReqMsg, setJoinReqMsg] = useState<string | null>(null)
+
+  async function sendJoinRequest() {
+    if (!id) return
+    setJoinReqBusy(true)
+    setJoinReqMsg(null)
+    try {
+      await api('/projects/' + encodeURIComponent(id) + '/join-request', {
+        method: 'POST',
+        body: { note: joinReqNote.trim() },
+      })
+      setJoinReqMsg('Request sent. The primary contributors will see it in their notifications.')
+      setJoinReqNote('')
+    } catch (e) {
+      setJoinReqMsg(e instanceof Error ? e.message : 'Failed to send request')
+    } finally {
+      setJoinReqBusy(false)
+    }
+  }
+
+  const [exportBusy, setExportBusy] = useState(false)
+  async function exportProject() {
+    if (!id) return
+    setExportBusy(true)
+    try {
+      const data = await api<Record<string, unknown>>(
+        '/projects/' + encodeURIComponent(id) + '/export',
+      )
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `project-${id}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Export failed')
+    } finally {
+      setExportBusy(false)
+    }
+  }
+
+  const [inviteAlias, setInviteAlias] = useState('')
+  const [inviteRole, setInviteRole] = useState('')
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null)
+
+  async function sendInvite() {
+    if (!id || !inviteAlias.trim()) return
+    setInviteBusy(true)
+    setInviteMsg(null)
+    try {
+      await api('/projects/' + encodeURIComponent(id) + '/contributors', {
+        method: 'POST',
+        body: {
+          alias: inviteAlias.trim().toLowerCase(),
+          role: inviteRole.trim() || undefined,
+        },
+      })
+      setInviteMsg(`Invite sent to ${inviteAlias.trim()}.`)
+      setInviteAlias('')
+      setInviteRole('')
+      reload()
+    } catch (e) {
+      setInviteMsg(e instanceof Error ? e.message : 'Failed to invite')
+    } finally {
+      setInviteBusy(false)
+    }
+  }
 
   async function respondContributor(accept: boolean) {
     if (!id) return
@@ -200,7 +278,46 @@ export default function ProjectDetailPage() {
                   View Provenance Record
                 </Link>
               )}
+              {amListed ? (
+                <button
+                  type="button"
+                  onClick={() => void exportProject()}
+                  disabled={exportBusy}
+                  className="border border-black bg-white px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  title="Download project + its chain slice (traces, references, pivots, vetos) as JSON"
+                >
+                  {exportBusy ? 'Exporting…' : 'Export JSON'}
+                </button>
+              ) : null}
             </section>
+
+            {/* Non-contributor: request to collaborate */}
+            {isActive && !amListed && isPublic ? (
+              <section className="border border-grey-200 bg-white p-3 space-y-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+                  Want to collaborate?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={joinReqNote}
+                    onChange={(e) => setJoinReqNote(e.target.value)}
+                    placeholder="short note (optional)"
+                    className="min-w-[220px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                  />
+                  <button
+                    type="button"
+                    disabled={joinReqBusy}
+                    onClick={() => void sendJoinRequest()}
+                    className="border border-black bg-yellow-400 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-black hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  >
+                    {joinReqBusy ? 'Sending…' : 'Request to collaborate'}
+                  </button>
+                </div>
+                {joinReqMsg ? (
+                  <p className="font-mono text-[11px] text-grey-600">{joinReqMsg}</p>
+                ) : null}
+              </section>
+            ) : null}
 
             {/* Pending contributor invitation for current user */}
             {myPendingInvite && (
@@ -258,6 +375,49 @@ export default function ProjectDetailPage() {
               ) : (
                 <p className="text-small text-grey-400">—</p>
               )}
+
+              {isActive && amPrimary ? (
+                <div className="border border-grey-200 bg-white p-3 space-y-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+                    Invite a collaborator
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      value={inviteAlias}
+                      onChange={(e) => setInviteAlias(e.target.value)}
+                      placeholder="alias"
+                      className="min-w-[160px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                    />
+                    <input
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                      placeholder="role (optional)"
+                      className="min-w-[140px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                    />
+                    <button
+                      type="button"
+                      disabled={inviteBusy || !inviteAlias.trim()}
+                      onClick={() => void sendInvite()}
+                      className="border border-black bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-60"
+                    >
+                      {inviteBusy ? 'Sending…' : 'Send invite'}
+                    </button>
+                  </div>
+                  {inviteMsg ? (
+                    <p className="font-mono text-[11px] text-grey-600">{inviteMsg}</p>
+                  ) : null}
+                  <p className="font-mono text-[10px] text-grey-400">
+                    They'll get a notification to accept or decline. Share your own details with{' '}
+                    <Link
+                      to={`/nodes/${encodeURIComponent(meAlias)}`}
+                      className="underline hover:text-black"
+                    >
+                      /nodes/{meAlias}
+                    </Link>
+                    .
+                  </p>
+                </div>
+              ) : null}
             </section>
 
             {/* Action bar */}
@@ -313,22 +473,18 @@ export default function ProjectDetailPage() {
                     <ul className="divide-y divide-grey-100 border border-grey-200">
                       {mediaItems.map((m) => (
                         <li key={m.mediaId} className="px-4 py-3 space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="space-y-0.5 min-w-0">
-                              <p className="font-mono text-[12px] truncate">{m.originalName}</p>
-                              <p className="font-mono text-[10px] text-grey-400">
-                                {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
-                              </p>
-                            </div>
-                            <a
-                              href={`${window.location.origin.replace(/\/$/, '')}${m.url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="shrink-0 border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-black transition"
-                            >
-                              Open →
-                            </a>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="font-mono text-[12px] truncate">{m.originalName}</p>
+                            <p className="font-mono text-[10px] text-grey-400">
+                              {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
+                            </p>
                           </div>
+                          <MediaPreview
+                            mediaId={m.mediaId}
+                            mimeType={m.mimeType}
+                            hash={m.hash}
+                            originalName={m.originalName}
+                          />
                           <div className="space-y-0.5">
                             <p className="font-mono text-[10px] text-grey-400">
                               Media ID — <span className="text-black tracking-wider">{m.mediaId}</span>
@@ -349,7 +505,7 @@ export default function ProjectDetailPage() {
               <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
                 Activity Timeline
               </h2>
-              <ProjectTimeline entries={timeline} />
+              <ProjectTimeline entries={timeline} projectId={id} />
             </section>
 
             <p className="pt-2">

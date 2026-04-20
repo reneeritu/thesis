@@ -1,7 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { DefTerm } from '../DefTerm'
+import { LiveCapture } from '../LiveCapture'
+import { useDefinitions } from '../../context/DefinitionsContext'
 import { api } from '../../lib/api'
-import { Button } from '../Button'
+import { GLOSSARY } from '../../lib/glossary'
 import { getToken } from '../../lib/session'
+import { Button } from '../Button'
 
 const ACTIVITY_TYPES = [
   'brainstorm',
@@ -45,6 +49,7 @@ function apiBase() {
 }
 
 export function TraceForm({ projectId, onDone }: Props) {
+  const { definitionsOn } = useDefinitions()
   const [activityType, setActivityType] = useState<(typeof ACTIVITY_TYPES)[number]>(ACTIVITY_TYPES[0])
   const [otherDescription, setOtherDescription] = useState('')
   const [description, setDescription] = useState('')
@@ -62,6 +67,7 @@ export function TraceForm({ projectId, onDone }: Props) {
   const [uploadBusy, setUploadBusy] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadedMedia, setUploadedMedia] = useState<MediaResult | null>(null)
+  const [proofSource, setProofSource] = useState<'upload' | 'record'>('upload')
 
   async function uploadProof(file: File) {
     setUploadBusy(true)
@@ -136,6 +142,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             key={m}
             type="button"
             onClick={() => setMode(m)}
+            title={definitionsOn ? GLOSSARY[`mode_${m}`] : undefined}
             className={`px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] border border-black transition ${mode === m ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'}`}
           >
             {MODE_LABELS[m]}
@@ -145,16 +152,24 @@ export function TraceForm({ projectId, onDone }: Props) {
 
       <form onSubmit={onSubmit} className="space-y-3 text-small">
         <div>
-          <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Activity</label>
+          <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+            <DefTerm term="activity_field">Activity</DefTerm>
+          </label>
           <select
             value={activityType}
-            onChange={(e) => setActivityType(e.target.value as typeof activityType)}
+            onChange={(e) => setActivityType(e.target.value as (typeof ACTIVITY_TYPES)[number])}
+            title={definitionsOn ? GLOSSARY[activityType] : undefined}
             className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
           >
             {ACTIVITY_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t} title={definitionsOn ? GLOSSARY[t] : undefined}>
+                {t}
+              </option>
             ))}
           </select>
+          {definitionsOn && GLOSSARY[activityType] ? (
+            <p className="mt-1 text-[11px] font-mono leading-snug text-grey-500">{GLOSSARY[activityType]}</p>
+          ) : null}
         </div>
 
         {activityType === 'other' && (
@@ -181,7 +196,9 @@ export function TraceForm({ projectId, onDone }: Props) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Duration (min)</label>
+            <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <DefTerm term="duration_field">Duration (min)</DefTerm>
+            </label>
             <input
               type="number"
               min={0}
@@ -191,7 +208,9 @@ export function TraceForm({ projectId, onDone }: Props) {
             />
           </div>
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Tool / Software</label>
+            <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <DefTerm term="tool_software_field">Tool / Software</DefTerm>
+            </label>
             <input
               value={toolSoftware}
               onChange={(e) => setToolSoftware(e.target.value)}
@@ -203,7 +222,7 @@ export function TraceForm({ projectId, onDone }: Props) {
         {/* ── Proof (image / video / audio) ── */}
         <div className="border border-grey-200 p-3 space-y-2">
           <p className="font-mono uppercase tracking-[0.18em] text-grey-400 text-[10px]">
-            Attach proof (image / video / audio) — optional
+            <DefTerm term="media_proof">Attach proof</DefTerm> (image / video / audio) — optional
           </p>
           <input
             ref={fileRef}
@@ -216,14 +235,43 @@ export function TraceForm({ projectId, onDone }: Props) {
             }}
           />
           {!uploadedMedia && (
-            <button
-              type="button"
-              disabled={uploadBusy}
-              onClick={() => fileRef.current?.click()}
-              className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] bg-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
-            >
-              {uploadBusy ? 'Uploading…' : 'Choose file'}
-            </button>
+            <>
+              <div className="flex gap-1">
+                {(['upload', 'record'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setProofSource(s)}
+                    className={`px-3 py-1 text-[10px] font-mono uppercase tracking-[0.14em] border border-black transition ${
+                      proofSource === s ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'
+                    }`}
+                  >
+                    {s === 'upload' ? 'Upload file' : 'Record live'}
+                  </button>
+                ))}
+              </div>
+
+              {proofSource === 'upload' ? (
+                <button
+                  type="button"
+                  disabled={uploadBusy}
+                  onClick={() => fileRef.current?.click()}
+                  className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] bg-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                >
+                  {uploadBusy ? 'Uploading…' : 'Choose file'}
+                </button>
+              ) : (
+                <LiveCapture
+                  disabled={uploadBusy}
+                  onCapture={(file) => {
+                    void uploadProof(file)
+                  }}
+                />
+              )}
+              {uploadBusy && proofSource === 'record' ? (
+                <p className="font-mono text-[10px] text-grey-500">Uploading capture…</p>
+              ) : null}
+            </>
           )}
           {uploadError && (
             <p className="font-mono text-[11px] text-red-600">{uploadError}</p>
@@ -257,7 +305,9 @@ export function TraceForm({ projectId, onDone }: Props) {
         </div>
 
         <details className="text-small">
-          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-grey-400">Proxy log</summary>
+          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-grey-400">
+            <DefTerm term="proxy_log">Proxy log</DefTerm>
+          </summary>
           <div className="mt-2 space-y-2 pl-2">
             <label className="flex items-center gap-2 font-mono">
               <input type="checkbox" checked={proxy} onChange={(e) => setProxy(e.target.checked)} />

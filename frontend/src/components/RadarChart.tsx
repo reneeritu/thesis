@@ -1,3 +1,5 @@
+import { GLOSSARY } from '../lib/glossary'
+
 type ReputationCategories = {
   craft: number
   research: number
@@ -31,9 +33,12 @@ function pt(cx: number, cy: number, r: number, i: number, total: number) {
 export function RadarChart({
   categories,
   className = '',
+  showDefinitions = false,
 }: {
   categories?: Partial<ReputationCategories>
   className?: string
+  /** When true, each axis label shows a hover definition (native SVG title). */
+  showDefinitions?: boolean
 }) {
   const cx = 110
   const cy = 110
@@ -73,6 +78,8 @@ export function RadarChart({
 
       {LABELS.map((label, i) => {
         const p = pt(cx, cy, r + 20, i, total)
+        const axisKey = KEYS[i]
+        const hint = showDefinitions ? GLOSSARY[axisKey] : undefined
         return (
           <text
             key={label}
@@ -82,6 +89,7 @@ export function RadarChart({
             className="font-mono text-[9px]"
             style={{ fontSize: 9 }}
           >
+            {hint ? <title>{hint}</title> : null}
             {label}
           </text>
         )

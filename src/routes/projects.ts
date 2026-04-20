@@ -1,11 +1,15 @@
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import { startProjectSchema, addContributorSchema } from '../schemas/project';
 import { Project } from '../models/Project';
 import { Space } from '../models/Space';
 import { ChainNode } from '../models/Node';
 import { Trace } from '../models/Trace';
+import { Reference } from '../models/Reference';
+import { Pivot } from '../models/Pivot';
+import { Veto } from '../models/Veto';
 import { Notification } from '../models/Notification';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
@@ -212,6 +216,75 @@ router.get(
 );
 
 /**
+ * GET /projects/by-node/:alias
+ * Public listing of projects an alias contributes to.
+ * Visibility rules:
+ *   - Own projects are always returned (if authed as that alias).
+ *   - 'fully_public' + 'process_visible' projects are visible to anyone.
+ *   - 'space_only' projects are only visible to space members.
+ */
+router.get(
+  '/by-node/:alias',
+  optionalAuth,
+  async (req: AuthRequest, res: Response) => {
+    const target = String(req.params.alias);
+    const callerAlias = req.node?.alias;
+    const isSelf = callerAlias === target;
+
+    const projects = await Project.find({
+      $or: [{ creatorAlias: target }, { 'contributors.alias': target }],
+    })
+      .select('_id title status spaceId visibility creatorAlias contributors createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (projects.length === 0) return res.json([]);
+
+    // Figure out which space_only ones the caller is allowed to see.
+    let allowedSpaceIds = new Set<string>();
+    if (callerAlias) {
+      const spaceIds = [...new Set(projects.map((p) => String(p.spaceId)))];
+      const spaces = await Space.find({
+        _id: { $in: spaceIds },
+        members: callerAlias,
+      })
+        .select('_id name')
+        .lean();
+      allowedSpaceIds = new Set(spaces.map((s) => String(s._id)));
+    }
+
+    const allSpaceIds = [...new Set(projects.map((p) => String(p.spaceId)))];
+    const spaceNames = await Space.find({ _id: { $in: allSpaceIds } })
+      .select('_id name')
+      .lean();
+    const spaceNameById = new Map(spaceNames.map((s) => [String(s._id), String(s.name || '')]));
+
+    const filtered = projects.filter((p) => {
+      if (isSelf) return true;
+      if (p.visibility === 'fully_public' || p.visibility === 'process_visible') return true;
+      // space_only
+      return allowedSpaceIds.has(String(p.spaceId));
+    });
+
+    const out = filtered.map((p) => ({
+      _id: String(p._id),
+      title: p.title,
+      status: p.status,
+      visibility: p.visibility,
+      spaceId: String(p.spaceId),
+      spaceName: spaceNameById.get(String(p.spaceId)) || String(p.spaceId),
+      creatorAlias: p.creatorAlias,
+      role:
+        p.creatorAlias === target
+          ? 'creator'
+          : (p.contributors?.find((c) => c.alias === target)?.role || 'contributor'),
+    }));
+
+    res.json(out);
+  },
+);
+
+/**
  * GET /projects/:id
  */
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -220,6 +293,164 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 
   res.json(project);
 });
+
+/**
+ * GET /projects/:id/export
+ * Download the project plus all its chain slice (traces, references,
+ * pivots, vetos) as a single JSON blob. NDA-sealed traces are only
+ * included if the caller owns them. Caller must be a contributor.
+ */
+router.get(
+  '/:id/export',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const project = await Project.findById(req.params.id);
+    if (!project) throw new NotFoundError('Project');
+
+    const alias = req.node!.alias;
+    const isContributor = project.contributors.some(
+      (c) => c.alias === alias && c.accepted !== false,
+    );
+    if (!isContributor) {
+      throw new ForbiddenError('Only contributors can export this project');
+    }
+
+    const [traces, references, pivots, vetos] = await Promise.all([
+      Trace.find({ projectId: project._id }).sort({ timestamp: 1 }).lean(),
+      Reference.find({ projectId: project._id }).sort({ createdAt: 1 }).lean(),
+      Pivot.find({ projectId: project._id }).sort({ createdAt: 1 }).lean(),
+      Veto.find({ projectId: project._id }).sort({ createdAt: 1 }).lean(),
+    ]);
+
+    const ownTraces = traces.filter(
+      (t) => !(t as { ndaSealed?: boolean }).ndaSealed || t.nodeAlias === alias,
+    );
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="project-${String(project._id)}.json"`,
+    );
+    res.json({
+      exportedAt: new Date().toISOString(),
+      exportedBy: alias,
+      project,
+      traces: ownTraces,
+      references,
+      pivots,
+      vetos,
+    });
+  },
+);
+
+/**
+ * POST /projects/:id/join-request
+ * Non-contributor asks to collaborate on a project. Notifies all primary
+ * contributors; they can accept (adds as pending contributor) or decline
+ * via the regular notification flow.
+ */
+router.post(
+  '/:id/join-request',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const project = await Project.findById(req.params.id);
+    if (!project) throw new NotFoundError('Project');
+    if (project.status !== 'active') throw new AppError('Project is not active');
+
+    const alias = req.node!.alias;
+    if (project.contributors.some((c) => c.alias === alias)) {
+      throw new AppError('You are already listed on this project');
+    }
+
+    const note = String(req.body?.note ?? '').slice(0, 500);
+    const primaries = project.contributors.filter((c) => c.isPrimary && c.accepted);
+    if (primaries.length === 0) {
+      throw new AppError('No primary contributor available to receive the request');
+    }
+
+    for (const p of primaries) {
+      await Notification.create({
+        recipientAlias: p.alias,
+        type: 'collab_request',
+        relatedId: String(project._id),
+        relatedType: 'project',
+        metadata: {
+          projectId: String(project._id),
+          projectTitle: project.title,
+          requesterAlias: alias,
+          note,
+          message: `${alias} asks to collaborate on "${project.title}".${note ? ' Note: ' + note : ''}`,
+        },
+      });
+    }
+
+    res.status(201).json({ ok: true, sentTo: primaries.map((p) => p.alias) });
+  },
+);
+
+/**
+ * POST /projects/:id/join-request/respond
+ * Primary responds to a collab request. Body: { requesterAlias, accept, role? }.
+ */
+router.post(
+  '/:id/join-request/respond',
+  requireAuth,
+  async (req: AuthRequest, res: Response) => {
+    const project = await Project.findById(req.params.id);
+    if (!project) throw new NotFoundError('Project');
+
+    const alias = req.node!.alias;
+    const amPrimary = project.contributors.some(
+      (c) => c.alias === alias && c.isPrimary && c.accepted,
+    );
+    if (!amPrimary) throw new ForbiddenError('Only primary contributors can respond');
+
+    const { requesterAlias, accept, role } = req.body as {
+      requesterAlias?: string;
+      accept?: boolean;
+      role?: string;
+    };
+    if (!requesterAlias || typeof accept !== 'boolean') {
+      throw new AppError('requesterAlias and accept are required');
+    }
+    if (project.contributors.some((c) => c.alias === requesterAlias)) {
+      throw new AppError(`${requesterAlias} is already a contributor`);
+    }
+
+    if (accept) {
+      const exists = await ChainNode.findOne({ alias: requesterAlias, status: 'active' });
+      if (!exists) throw new NotFoundError(`Node "${requesterAlias}"`);
+      const now = new Date();
+      project.contributors.push({
+        alias: requesterAlias,
+        role: role || 'contributor',
+        isPrimary: false,
+        signedAt: now,
+        accepted: true,
+        invitedAt: now,
+      });
+      await project.save();
+    }
+
+    await Notification.create({
+      recipientAlias: requesterAlias,
+      type: 'collab_request_response',
+      relatedId: String(project._id),
+      relatedType: 'project',
+      metadata: {
+        projectId: String(project._id),
+        projectTitle: project.title,
+        accepted: accept,
+        responderAlias: alias,
+        message: accept
+          ? `${alias} accepted your request to collaborate on "${project.title}". You are now a contributor.`
+          : `${alias} declined your request to collaborate on "${project.title}".`,
+      },
+    });
+
+    res.json({ accepted: accept });
+  },
+);
 
 /**
  * POST /projects/:id/contributors
