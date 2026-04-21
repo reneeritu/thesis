@@ -40,14 +40,30 @@ type ProjectRow = {
   error?: string
 }
 
+type RecentReputation = {
+  days: number
+  since: string
+  traceCount: number
+  categories: {
+    craft: number
+    research: number
+    collaboration: number
+    pedagogy: number
+    consistency: number
+    community: number
+  }
+}
+
 type DashboardState = {
   me: NodeProfile | null
   rows: ProjectRow[]
+  recent: RecentReputation | null
 }
 
 const initialState: DashboardState = {
   me: null,
   rows: [],
+  recent: null,
 }
 
 function isActiveStatus(status: string | undefined) {
@@ -66,7 +82,12 @@ export default function DashboardPage() {
     async function load() {
       try {
         const alias = getAlias()
-        const me = await api<NodeProfile>('/nodes/' + encodeURIComponent(alias))
+        const [me, recent] = await Promise.all([
+          api<NodeProfile>('/nodes/' + encodeURIComponent(alias)),
+          api<RecentReputation>('/nodes/' + encodeURIComponent(alias) + '/reputation/recent?days=90').catch(
+            () => null,
+          ),
+        ])
         const spaces = me.spacesWithNames ?? []
         const rows: ProjectRow[] = []
 
@@ -91,7 +112,7 @@ export default function DashboardPage() {
         }
 
         if (!cancelled) {
-          setState({ me, rows })
+          setState({ me, rows, recent })
         }
       } catch (e) {
         if (!cancelled) {
@@ -106,11 +127,18 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const { me, rows } = state
+  const { me, rows, recent } = state
   const spaces = me?.spacesWithNames ?? []
   const badges = me?.badges ?? []
   const activeRows = rows.filter((r) => isActiveStatus(r.project?.status)).slice(0, 4)
   const errorRows = rows.filter((r) => r.error)
+
+  const catVals = Object.values(me?.reputationCategories ?? {})
+  const emptyChain = me != null
+    && catVals.length > 0
+    && catVals.every((v) => !v || v === 0)
+    && (me.reputationScore == null || me.reputationScore === 0)
+    && spaces.length > 0
 
   return (
     <AppShell title="Dashboard">
@@ -121,8 +149,9 @@ export default function DashboardPage() {
             onClick={() => setDefinitionsOn(!definitionsOn)}
             className="border border-grey-300 bg-white px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition hover:border-black hover:text-black [touch-action:manipulation]"
             aria-pressed={definitionsOn}
+            title="Show or hide inline definitions under form fields"
           >
-            Definitions: {definitionsOn ? 'on' : 'off'}
+            Hints: {definitionsOn ? 'on' : 'off'}
           </button>
         </div>
 
@@ -168,9 +197,16 @@ export default function DashboardPage() {
             <div className="max-w-[340px] border border-black bg-white p-3 text-black">
               <RadarChart
                 categories={me.reputationCategories}
+                recentCategories={recent?.categories}
                 className="w-full h-auto"
                 showDefinitions={definitionsOn}
               />
+              {recent ? (
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-grey-400">
+                  <span className="inline-block h-2 w-3 align-middle bg-cyan-500/40 border border-cyan-500" />{' '}
+                  last {recent.days} d · {recent.traceCount} trace{recent.traceCount === 1 ? '' : 's'}
+                </p>
+              ) : null}
             </div>
             {me.reputationScore != null ? (
               <p className="text-small font-mono">
@@ -194,6 +230,31 @@ export default function DashboardPage() {
         ) : (
           <p className="text-small font-mono text-grey-400">Loading node…</p>
         )}
+
+        {emptyChain ? (
+          <section className="border-l-4 border-yellow-400 bg-white p-5 space-y-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
+              Your chain is empty
+            </p>
+            <p className="text-body">
+              Your chain starts here — log your first <DefTerm term="trace">trace</DefTerm> to see it appear.
+            </p>
+            <div className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
+              <Link
+                to="/projects"
+                className="border border-black bg-yellow-400 px-4 py-1.5 text-black hover:bg-black hover:text-yellow-400 transition"
+              >
+                Log work on a project
+              </Link>
+              <Link
+                to="/projects/new"
+                className="border border-black bg-white px-4 py-1.5 hover:bg-black hover:text-yellow-400 transition"
+              >
+                + New project
+              </Link>
+            </div>
+          </section>
+        ) : null}
 
         {spaces.length === 0 && me ? (
           /* ── First-time user guide ── */

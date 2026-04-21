@@ -135,6 +135,9 @@ export function TraceForm({ projectId, onDone }: Props) {
   return (
     <div className="border border-black bg-white p-4 space-y-3">
       <h3 className="text-small font-mono uppercase tracking-[0.18em]">Log Work</h3>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-500">
+        Contributors have 7 days to confirm or dispute this trace. Silence counts as confirm.
+      </p>
 
       <div className="flex gap-1">
         {(['micro', 'memo', 'reflection'] as const).map((m) => (

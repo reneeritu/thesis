@@ -18,10 +18,41 @@
   body {
     @apply m-0 min-h-[80vh] max-h-[100vh] min-w-[80vw] max-w-[100vw] w-full overflow-x-hidden overflow-y-auto;
     @apply bg-grey-50 text-body leading-snug text-black font-sans;
+    /* Near-white paper base + neutral grey fibres (fractal noise) + soft grid dots.
+       Texture reads as plain white paper — warmth has been pulled out of the colour
+       matrices so the fibres tint neutral rather than cream / yellow. */
+    background-color: #fbfbf9;
     background-image:
-      radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.035) 1px, transparent 0),
-      radial-gradient(circle at 3px 3px, rgba(0, 0, 0, 0.02) 1px, transparent 0);
-    background-size: 8px 8px, 10px 10px;
+      url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.22  0 0 0 0 0.22  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+      radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.03) 1px, transparent 0),
+      radial-gradient(circle at 3px 3px, rgba(0, 0, 0, 0.018) 1px, transparent 0);
+    background-size: 320px 320px, 180px 180px, 8px 8px, 10px 10px;
+    background-repeat: repeat, repeat, repeat, repeat;
+  }
+
+  /* Fixed paper overlay: adds a second pass of fibres over every page so the
+     texture stays put while you scroll. Pointer-events:none keeps it inert.
+     Disabled on /welcome (html.welcome-full-page-scroll) so the hero keeps
+     its own grain untouched. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2147483000;
+    opacity: 0.22;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.20  0 0 0 0 0.20  0 0 0 0 0.20  0 0 0 0.45 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 420px 420px;
+  }
+
+  html.welcome-full-page-scroll body::before {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* No motion in the texture today, but reserve the hook. */
   }
 
   #root {

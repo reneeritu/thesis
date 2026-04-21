@@ -10,9 +10,37 @@ import {
 import { ChainNode } from '../models/Node';
 import { Space } from '../models/Space';
 import { Project } from '../models/Project';
+import { Trace } from '../models/Trace';
 import { NFT } from '../models/NFT';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+
+/**
+ * Activity-to-category map, duplicated here to avoid depending on the engine's internal
+ * constant shape. Keep in sync with reputationEngine.ACTIVITY_CATEGORY_MAP.
+ */
+const ACTIVITY_TO_CATEGORY: Record<string, keyof RecentCategories> = {
+  skillwork: 'craft',
+  fabrication: 'craft',
+  primary_research: 'research',
+  secondary_research: 'research',
+  brainstorm: 'research',
+  iterate: 'research',
+  pedagogy: 'pedagogy',
+  admin: 'consistency',
+  review: 'consistency',
+  ai_tool: 'research',
+  other: 'consistency',
+};
+
+type RecentCategories = {
+  craft: number;
+  research: number;
+  collaboration: number;
+  pedagogy: number;
+  consistency: number;
+  community: number;
+};
 
 const router = Router();
 
@@ -80,6 +108,54 @@ router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
     completedProjects,
     ...(isSelf && { reputationScore: node.reputationScore }),
   });
+});
+
+/**
+ * GET /nodes/:alias/reputation/recent?days=90
+ *
+ * Approximate reputation-by-category slice for the last N days. Computed by scanning
+ * traces authored (or proxy-logged to) this alias in the window and summing 1 point per
+ * trace under the mapped category. This is the lightweight "motion = recent change"
+ * overlay the radar shows; it intentionally omits project completions / attestations,
+ * which move the all-time polygon but are sparse relative to trace cadence.
+ */
+router.get('/:alias/reputation/recent', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const { alias } = req.params;
+  const rawDays = Number.parseInt(String(req.query.days ?? '90'), 10);
+  const days = Number.isFinite(rawDays) && rawDays > 0 && rawDays <= 365 ? rawDays : 90;
+
+  const node = await ChainNode.findOne({ alias }).select('_id status blockedNodes');
+  if (!node || node.status === 'removed') throw new NotFoundError('Node');
+  if (req.node && node.blockedNodes?.includes(req.node.alias)) {
+    throw new ForbiddenError('You are blocked by this node');
+  }
+
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const traces = await Trace.find({
+    $or: [
+      { nodeAlias: alias, timestamp: { $gte: since } },
+      { proxyForAlias: alias, proxyConfirmed: true, timestamp: { $gte: since } },
+    ],
+  })
+    .select('activityType')
+    .lean();
+
+  const cats: RecentCategories = {
+    craft: 0,
+    research: 0,
+    collaboration: 0,
+    pedagogy: 0,
+    consistency: 0,
+    community: 0,
+  };
+
+  for (const t of traces) {
+    const cat = ACTIVITY_TO_CATEGORY[t.activityType];
+    if (cat) cats[cat] += 1;
+  }
+
+  res.json({ days, since, traceCount: traces.length, categories: cats });
 });
 
 /**

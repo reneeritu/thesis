@@ -103,12 +103,12 @@ export function CreditForm({ projectId, contributors, onDone }: Props) {
 
       {existingNft && (
         <div className="border border-black bg-grey-100 p-3 space-y-2">
-          <p className="text-small font-mono">Existing credit found. NFT: {existingNft.nft._id}</p>
+          <p className="text-small font-mono">Existing credit found. Certificate: {existingNft.nft._id}</p>
           <Link
             to={`/nfts/${encodeURIComponent(existingNft.nft._id)}`}
             className="text-small font-mono underline underline-offset-4"
           >
-            View Provenance Record
+            View provenance certificate
           </Link>
           <form onSubmit={onSign} className="space-y-2 pt-2">
             <label className="flex items-center gap-2 font-mono text-small">

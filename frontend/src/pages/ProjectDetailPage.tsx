@@ -274,8 +274,9 @@ export default function ProjectDetailPage() {
                 <Link
                   to={`/nfts/${encodeURIComponent(nftId)}`}
                   className="border border-black bg-yellow-400 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-black hover:bg-black hover:text-yellow-400 transition"
+                  title="Open the certificate minted at the end of this project"
                 >
-                  View Provenance Record
+                  Provenance certificate
                 </Link>
               )}
               {amListed ? (

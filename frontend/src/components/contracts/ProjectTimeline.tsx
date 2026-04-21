@@ -92,9 +92,15 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
   const me = getAlias()
   const isAuthor = !!me && me === authorAlias
   const myEndorsement = endorsements.find((e) => e.endorserAlias === me)
+  const ndaSealed = Boolean(data.ndaSealed)
 
   return (
     <div className="space-y-2">
+      {ndaSealed ? (
+        <div className="border-l-2 border-black bg-grey-50 px-3 py-2 font-mono text-[11px] text-grey-600">
+          Trace sealed under NDA — hidden from contributors who were not parties.
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px] font-sans">
         <span className="text-grey-400">Activity</span>
         <span className="font-mono uppercase tracking-[0.12em]">

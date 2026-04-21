@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { DefTerm } from '../components/DefTerm'
 import { api } from '../lib/api'
 
 type NftBundle = {
@@ -26,7 +27,7 @@ export default function NftPage() {
         const b = await api<NftBundle>('/nfts/' + encodeURIComponent(id))
         if (!cancelled) setBundle(b)
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load NFT')
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load certificate')
       }
     }
     load()
@@ -36,8 +37,13 @@ export default function NftPage() {
   }, [id])
 
   return (
-    <AppShell title="Provenance">
+    <AppShell title="Provenance certificate">
       <div className="space-y-4">
+        <p className="text-small text-grey-600 max-w-xl">
+          A <DefTerm term="provenance_certificate">provenance certificate</DefTerm> is the
+          art piece minted at the end of a project — it proves who made what, when, with
+          what evidence.
+        </p>
         {error ? (
           <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
             {error}{' '}
@@ -49,7 +55,7 @@ export default function NftPage() {
         ) : null}
         {bundle ? (
           <>
-            <h2 className="text-h3 font-mono">{bundle.nft.title || 'NFT'}</h2>
+            <h2 className="text-h3 font-mono">{bundle.nft.title || 'Certificate'}</h2>
             {bundle.archive ? (
               <span className="inline-block border border-black bg-grey-100 px-2 py-1 text-[11px] font-mono uppercase">
                 Archive

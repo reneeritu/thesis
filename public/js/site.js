@@ -1,4 +1,4 @@
-/* untitled — vanilla front-end, hash router, real API */
+/* Etch — vanilla front-end, hash router, real API */
 (function () {
   'use strict';
 
@@ -302,7 +302,7 @@
   function topbar(crumb) {
     if (!getToken()) {
       return (
-        '<header class="topbar"><a class="topbar__brand" href="#/">untitled</a><div></div><div></div></header>'
+        '<header class="topbar"><a class="topbar__brand" href="#/">Etch</a><div></div><div></div></header>'
       );
     }
     var alias = getAlias();
@@ -312,7 +312,7 @@
       '<a class="topbar__home" href="#/dashboard" aria-label="Home">' +
       iconHome() +
       '</a>' +
-      '<a class="topbar__brand" href="#/dashboard">untitled</a>' +
+      '<a class="topbar__brand" href="#/dashboard">Etch</a>' +
       '<details class="topbar__nav">' +
       '<summary><span class="mono">' +
       escapeHtml(crumb) +
@@ -553,7 +553,7 @@
           '<div class="landing-hero">' +
           '<div class="landing-hero__center">' +
           '<div class="landing-halftone" aria-hidden="true"></div>' +
-          '<div class="landing-wordmark t-64">untitled</div>' +
+          '<div class="landing-wordmark t-64">Etch</div>' +
           '<p class="landing-tagline mono">a chain for documenting what making actually looks like</p>' +
           '<div class="landing-cta-row">' +
           '<a class="btn btn--landing-primary" href="#/register">ENTER THE CHAIN</a>' +
@@ -1145,7 +1145,7 @@
         var node = await api('/nodes/' + encodeURIComponent(route.alias), { token: getToken() || '' });
         var pubHeader = getToken()
           ? topbar('nodes / ' + route.alias)
-          : '<header class="topbar"><a class="topbar__brand" href="#/">untitled</a><div></div><div></div></header>';
+          : '<header class="topbar"><a class="topbar__brand" href="#/">Etch</a><div></div><div></div></header>';
         var pubCallout = '';
         if (!getToken()) {
           pubCallout =

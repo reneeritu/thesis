@@ -26,6 +26,23 @@ type FlagRow = {
   status: string
   createdAt?: string
   reason?: string
+  complexityLevel?: number
+  timeLockHours?: number
+}
+
+/** Friendly labels + copy for the complexity tiers the backend assigns. */
+const COMPLEXITY_COPY: Record<number, { label: string; blurb: string; hours: number }> = {
+  1: { label: 'Level 1 — quick review', blurb: 'Most straightforward cases.',                       hours: 48 },
+  2: { label: 'Level 2 — dispute',      blurb: 'Needs review from multiple parties.',                hours: 168 },
+  3: { label: 'Level 3 — chain panel',  blurb: 'Sent to a moderation panel for structured review.',  hours: 336 },
+  4: { label: 'Level 4 — mediation',    blurb: 'Full mediation with structured phases.',             hours: 720 },
+}
+
+function prettyWindow(hours?: number): string {
+  if (!hours || !Number.isFinite(hours)) return ''
+  if (hours < 48) return `~${hours} h`
+  const days = Math.round(hours / 24)
+  return `~${days} day${days === 1 ? '' : 's'} (${hours} h)`
 }
 
 type MediationRow = {
@@ -63,6 +80,7 @@ export default function GovernancePage() {
 
   const [flags, setFlags] = useState<FlagRow[]>([])
   const [mediations, setMediations] = useState<MediationRow[]>([])
+  const [lastFlag, setLastFlag] = useState<FlagRow | null>(null)
   const { definitionsOn } = useDefinitions()
 
   const types = useMemo(() => CATEGORY_TO_TYPES[flagCategory] || [], [flagCategory])
@@ -100,8 +118,9 @@ export default function GovernancePage() {
         reason,
       }
       if (spaceId.trim()) body.spaceId = spaceId.trim()
-      const res = await api<{ flag?: { _id?: string } }>('/flags', { method: 'POST', body })
+      const res = await api<{ flag?: FlagRow }>('/flags', { method: 'POST', body })
       setOk(`Flag raised${res?.flag?._id ? `: ${res.flag._id}` : '.'}`)
+      if (res?.flag) setLastFlag(res.flag)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to raise flag')
@@ -216,6 +235,21 @@ export default function GovernancePage() {
             </div>
             {error ? <p className="md:col-span-2 border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p> : null}
             {ok ? <p className="md:col-span-2 border border-black bg-white px-3 py-2 font-mono">{ok}</p> : null}
+            {lastFlag?.complexityLevel ? (() => {
+              const info = COMPLEXITY_COPY[lastFlag.complexityLevel]
+              const hours = lastFlag.timeLockHours ?? info?.hours
+              return (
+                <div className="md:col-span-2 border-l-4 border-yellow-400 bg-grey-50 px-3 py-2 space-y-0.5">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                    This looks like {info?.label ?? `Level ${lastFlag.complexityLevel}`}
+                  </p>
+                  <p className="text-[12px] text-grey-600">
+                    {info?.blurb ?? ''}{' '}
+                    {hours ? `${prettyWindow(hours)} time-lock.` : ''}
+                  </p>
+                </div>
+              )
+            })() : null}
             <div className="md:col-span-2">
               <Button type="submit" variant="primary" loading={busy}>Raise Flag</Button>
             </div>

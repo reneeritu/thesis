@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { clearSession, getToken } from '../lib/session'
 import { NotificationBell } from './NotificationBell'
+import { HelpButton } from './HelpDrawer'
 
 type Props = {
   children: ReactNode
@@ -67,6 +68,7 @@ export function AppShell({ children, title }: Props) {
                 </details>
               </div>
               <NotificationBell />
+              <HelpButton />
               <button
                 type="button"
                 className={`${navBtn} bg-white`}
@@ -89,6 +91,7 @@ export function AppShell({ children, title }: Props) {
               <Link to="/recover" className={navBtn}>
                 Recover
               </Link>
+              <HelpButton />
             </nav>
           )}
         </div>

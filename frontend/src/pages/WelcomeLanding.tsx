@@ -111,19 +111,29 @@ export default function WelcomeLanding() {
             Document what making actually looks like — a tactile pause between the depth of the studio and
             the clarity of the page.
           </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link
-              to="/register"
-              className="inline-flex justify-center border border-black bg-[#C8963E] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-black transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
-            >
-              Enter the chain
-            </Link>
-            <Link
-              to="/discover"
-              className="inline-flex justify-center border border-black bg-white px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-black transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
-            >
-              Discover
-            </Link>
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex flex-col">
+              <Link
+                to="/register"
+                className="inline-flex justify-center border border-black bg-[#C8963E] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-black transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
+              >
+                Enter the chain
+              </Link>
+              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#6a5448]">
+                Create an account
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <Link
+                to="/discover"
+                className="inline-flex justify-center border border-black bg-white px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-black transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
+              >
+                Discover
+              </Link>
+              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#6a5448]">
+                Browse public spaces
+              </span>
+            </div>
           </div>
         </div>
       </section>

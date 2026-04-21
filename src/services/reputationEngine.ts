@@ -43,10 +43,15 @@ const ACTIVITY_CATEGORY_MAP: Partial<Record<string, ReputationCategory>> = {
   other: 'consistency',
 };
 
+/**
+ * Re-weighted so shipping a project reads meaningfully differently from logging traces.
+ * Previously trace=1 / project=10 made radars look flat; completions now weigh 25x a trace
+ * so "doers" and "loggers" produce visibly different shapes.
+ */
 const POINTS = {
   trace: 1,
-  completed_project: 10,
-  cross_space_project: 5,
+  completed_project: 25,
+  cross_space_project: 10,
   attestation_given: 2,
   attestation_received_independent: 5,
   attestation_received_collaborator: 2,

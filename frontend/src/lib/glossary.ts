@@ -23,31 +23,36 @@ export const GLOSSARY: Record<string, string> = {
   nudity: 'Sexual or graphic nudity outside allowed contexts.',
 
   // Attribution types
-  plagiarism: 'Presenting someone else’s work or ideas as your own.',
-  false_credit: 'Wrong names, shares, or roles on attributed work.',
-  undeclared_ai: 'AI assistance not disclosed where your space requires it.',
-  missing_lineage: 'Broken or missing citation / provenance trail.',
+  plagiarism: 'plagiarism — someone copied your work or ideas and presented them as their own.',
+  false_credit: 'false_credit — wrong names, shares, or roles were attached to attributed work.',
+  undeclared_ai: 'undeclared_ai — AI assistance was used but not disclosed where it was required.',
+  missing_lineage: 'missing_lineage — the citation / provenance trail is broken or missing.',
 
   // Governance types
-  space_misconduct: 'Misuse of space roles, invites, or internal rules.',
-  moderator_bad_faith: 'Moderation used to harass, silence unfairly, or self-deal.',
-  contract_violation: 'Breaking explicit agreements or contributor duties.',
-  false_flagging: 'Raising flags in bad faith to harm another user.',
+  space_misconduct: 'space_misconduct — roles, invites, or internal rules were abused inside a space.',
+  moderator_bad_faith: 'moderator_bad_faith — moderation was used to harass, silence unfairly, or self-deal.',
+  contract_violation: 'contract_violation — an explicit agreement or contributor duty was broken.',
+  false_flagging: 'false_flagging — flags were raised in bad faith to harm another user.',
 
   // Dispute types
-  credit_dispute: 'Disagreement over contributor splits or credit on a project.',
-  veto_dispute: 'Conflict over a co-founder veto or refusal decision.',
-  space_ban_dispute: 'Appeal or challenge about removal from a space.',
-  classification_appeal: 'Disagreement with how a flag or category was applied.',
+  credit_dispute: 'credit_dispute — someone took sole credit when you contributed, or shares are wrong.',
+  veto_dispute: 'veto_dispute — a co-founder veto or refusal decision is being contested.',
+  space_ban_dispute: 'space_ban_dispute — appeal or challenge about removal from a space.',
+  classification_appeal: 'classification_appeal — you disagree with how a flag was categorised.',
 
   // Target types
   node: 'Your identity on the network — alias plus reputation.',
   trace: 'One timestamped work log, optionally with media proof.',
   project: 'A single tracked artwork or research thread inside a space.',
   space: 'A shared studio or group with members, rules, and projects.',
-  nft: 'A minted token representing a work and its provenance.',
+  nft: 'Provenance certificate — the art piece minted at the end of a project as proof of the work.',
+  provenance_certificate: 'The art piece minted at the end of a project. Proves who made what, when, with what evidence. Formally an NFT on the Etch chain.',
   contract: 'An on-chain agreement or obligation tied to a project.',
   media: 'An uploaded file whose fingerprint is stored for verification.',
+  endorsement: 'A peer-signed mark on a trace: I was there, I co-authored, I reviewed, I mentored.',
+  alias: 'Your handle on the chain — public, permanent, not your legal name unless you chose it.',
+  seed_phrase: 'A list of words that is the only way to recover your account — keep it safe, keep it offline.',
+  trustees: 'People you trust to help restore your account if you lose the seed phrase. Optional at signup.',
 
   // Form labels / dashboard
   flag_category: 'High-level bucket for your report.',
