@@ -1,9 +1,14 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { DefTerm } from '../DefTerm'
 import { LiveCapture } from '../LiveCapture'
 import { useDefinitions } from '../../context/DefinitionsContext'
 import { api } from '../../lib/api'
 import { GLOSSARY } from '../../lib/glossary'
+import {
+  CATEGORY_COLOURS,
+  CATEGORY_LABELS,
+  categoryForActivity,
+} from '../../lib/reputationColours'
 import { getToken } from '../../lib/session'
 import { Button } from '../Button'
 
@@ -61,6 +66,9 @@ export function TraceForm({ projectId, onDone }: Props) {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const activityCategory = useMemo(() => categoryForActivity(activityType), [activityType])
+  const activityCategoryColour = activityCategory ? CATEGORY_COLOURS[activityCategory] : '#e5e5e5'
 
   // Media proof upload
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -158,18 +166,43 @@ export function TraceForm({ projectId, onDone }: Props) {
           <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
             <DefTerm term="activity_field">Activity</DefTerm>
           </label>
-          <select
-            value={activityType}
-            onChange={(e) => setActivityType(e.target.value as (typeof ACTIVITY_TYPES)[number])}
-            title={definitionsOn ? GLOSSARY[activityType] : undefined}
-            className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
-          >
-            {ACTIVITY_TYPES.map((t) => (
-              <option key={t} value={t} title={definitionsOn ? GLOSSARY[t] : undefined}>
-                {t}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-stretch">
+            <span
+              aria-hidden
+              className="w-1 border border-black border-r-0 transition-colors"
+              style={{ backgroundColor: activityCategoryColour }}
+            />
+            <select
+              value={activityType}
+              onChange={(e) => setActivityType(e.target.value as (typeof ACTIVITY_TYPES)[number])}
+              title={definitionsOn ? GLOSSARY[activityType] : undefined}
+              className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+            >
+              {ACTIVITY_TYPES.map((t) => (
+                <option key={t} value={t} title={definitionsOn ? GLOSSARY[t] : undefined}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono">
+            <span className="text-grey-400 uppercase tracking-[0.12em]">Counts toward</span>
+            {activityCategory ? (
+              <span
+                className="inline-flex items-center gap-1 border border-black px-1.5 py-0.5 uppercase tracking-[0.14em]"
+                style={{ backgroundColor: activityCategoryColour, color: '#0b0b0b' }}
+              >
+                <span
+                  aria-hidden
+                  className="inline-block h-1.5 w-1.5 rounded-full border border-black"
+                  style={{ backgroundColor: '#0b0b0b' }}
+                />
+                {CATEGORY_LABELS[activityCategory]}
+              </span>
+            ) : (
+              <span className="text-grey-400 uppercase tracking-[0.14em]">General reputation only</span>
+            )}
+          </div>
           {definitionsOn && GLOSSARY[activityType] ? (
             <p className="mt-1 text-[11px] font-mono leading-snug text-grey-500">{GLOSSARY[activityType]}</p>
           ) : null}

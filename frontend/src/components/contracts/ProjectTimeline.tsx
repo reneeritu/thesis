@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MediaPreview } from '../MediaPreview'
 import { api } from '../../lib/api'
+import {
+  CATEGORY_LABELS,
+  categoryForActivity,
+  colourForActivity,
+} from '../../lib/reputationColours'
 import { getAlias } from '../../lib/session'
 
 type TimelineEntry = {
@@ -93,9 +98,12 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
   const isAuthor = !!me && me === authorAlias
   const myEndorsement = endorsements.find((e) => e.endorserAlias === me)
   const ndaSealed = Boolean(data.ndaSealed)
+  const activityType = String(data.activityType || '')
+  const activityCategory = categoryForActivity(activityType)
+  const activityColour = colourForActivity(activityType)
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 border-l-4 pl-3" style={{ borderColor: activityColour }}>
       {ndaSealed ? (
         <div className="border-l-2 border-black bg-grey-50 px-3 py-2 font-mono text-[11px] text-grey-600">
           Trace sealed under NDA — hidden from contributors who were not parties.
@@ -103,8 +111,18 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
       ) : null}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px] font-sans">
         <span className="text-grey-400">Activity</span>
-        <span className="font-mono uppercase tracking-[0.12em]">
-          {String(data.activityType || '—').replace(/_/g, ' ')}
+        <span className="flex items-center gap-2 font-mono uppercase tracking-[0.12em]">
+          <span
+            aria-hidden
+            className="inline-block h-2 w-2 rounded-full border border-black"
+            style={{ backgroundColor: activityColour }}
+          />
+          {activityType ? activityType.replace(/_/g, ' ') : '—'}
+          {activityCategory ? (
+            <span className="ml-1 border border-black px-1 py-[1px] text-[9px] tracking-[0.14em] text-grey-600">
+              {CATEGORY_LABELS[activityCategory]}
+            </span>
+          ) : null}
         </span>
         {data.description ? (
           <>

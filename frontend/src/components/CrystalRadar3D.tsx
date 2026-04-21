@@ -26,6 +26,10 @@ import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Edges, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { GLOSSARY } from '../lib/glossary'
+import {
+  CATEGORY_COLOURS,
+  CATEGORY_LABELS,
+} from '../lib/reputationColours'
 
 type ReputationCategories = {
   craft: number
@@ -45,24 +49,8 @@ const KEYS: Array<keyof ReputationCategories> = [
   'community',
 ]
 
-const LABELS: Record<keyof ReputationCategories, string> = {
-  craft: 'Craft',
-  research: 'Research',
-  collaboration: 'Collab',
-  pedagogy: 'Pedagogy',
-  consistency: 'Consist',
-  community: 'Community',
-}
-
-/** One colour per arm — pulled from the house primary palette. */
-const ARM_COLOURS: Record<keyof ReputationCategories, string> = {
-  craft: '#f5c518', // yellow
-  research: '#2563eb', // blue
-  collaboration: '#dc2626', // red
-  pedagogy: '#16a34a', // green
-  consistency: '#9333ea', // violet
-  community: '#0891b2', // cyan
-}
+const LABELS = CATEGORY_LABELS
+const ARM_COLOURS = CATEGORY_COLOURS
 
 const ARM_HINT: Record<keyof ReputationCategories, string> = {
   craft: 'Grows when you log execution traces — making the thing.',
