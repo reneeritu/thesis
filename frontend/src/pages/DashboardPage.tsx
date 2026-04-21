@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { DefTerm } from '../components/DefTerm'
-import { RadarChart } from '../components/RadarChart'
+import { CrystalRadar3D } from '../components/CrystalRadar3D'
 import { useDefinitions } from '../context/DefinitionsContext'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
@@ -194,17 +194,16 @@ export default function DashboardPage() {
                 Copy profile link
               </button>
             </div>
-            <div className="max-w-[340px] border border-black bg-white p-3 text-black">
-              <RadarChart
+            <div className="max-w-[380px] border border-black bg-white p-3 text-black">
+              <CrystalRadar3D
                 categories={me.reputationCategories}
                 recentCategories={recent?.categories}
-                className="w-full h-auto"
+                className="w-full"
                 showDefinitions={definitionsOn}
               />
               {recent ? (
                 <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-grey-400">
-                  <span className="inline-block h-2 w-3 align-middle bg-cyan-500/40 border border-cyan-500" />{' '}
-                  last {recent.days} d · {recent.traceCount} trace{recent.traceCount === 1 ? '' : 's'}
+                  Inner ghost crystal = last {recent.days} d · {recent.traceCount} trace{recent.traceCount === 1 ? '' : 's'}
                 </p>
               ) : null}
             </div>

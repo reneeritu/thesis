@@ -17,6 +17,55 @@ export type ArchiveEvidenceUploadResult = {
   size: number
 }
 
+export type CertArtworkUploadResult = {
+  mediaId: string
+  hash: string
+  mimeType: string
+  size: number
+  width?: number
+  height?: number
+  url: string
+}
+
+/**
+ * Upload a candidate artwork file for a provenance certificate.
+ * Server enforces format allow-list, size, image dimensions, and SVG sanitisation.
+ */
+export async function uploadCertArtwork(
+  nftId: string,
+  file: File,
+): Promise<CertArtworkUploadResult> {
+  beginLoading()
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('nftId', nftId)
+    const tok = getToken()
+    const res = await fetch(apiBase() + '/upload/cert-artwork', {
+      method: 'POST',
+      headers: tok ? { Authorization: 'Bearer ' + tok } : undefined,
+      body: fd,
+    })
+    const text = await res.text()
+    let data: unknown = null
+    if (text) {
+      try {
+        data = JSON.parse(text) as unknown
+      } catch {
+        data = { raw: text }
+      }
+    }
+    if (!res.ok) {
+      const d = data as { error?: unknown; message?: unknown } | null
+      const msg = (d && (d.error ?? d.message)) || text || res.statusText
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
+    }
+    return data as CertArtworkUploadResult
+  } finally {
+    endLoading()
+  }
+}
+
 /** Upload file bytes; server stores file on disk and a Media row in MongoDB. */
 export async function uploadArchiveEvidence(
   spaceId: string,

@@ -7,6 +7,7 @@ import { getAlias } from '../lib/session'
 type SpaceWithName = {
   id: string
   name: string
+  status?: string
 }
 
 type NodeProfile = {
@@ -73,20 +74,31 @@ export default function SpacesPage() {
           <p className="text-small text-grey-400">You’re not in any spaces yet.</p>
         ) : (
           <div className="space-y-2">
-            {spaces.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between border border-black bg-white px-3 py-2 text-small font-mono"
-              >
-                <span className="truncate">{s.name}</span>
-                <Link
-                  to={`/spaces/${encodeURIComponent(s.id)}`}
-                  className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+            {spaces.map((s) => {
+              const dormant = s.status === 'dormant'
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-2 border border-black bg-white px-3 py-2 text-small font-mono"
                 >
-                  Open
-                </Link>
-              </div>
-            ))}
+                  <span
+                    className={`inline-block border border-black px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                      dormant ? 'bg-grey-100 text-grey-500' : 'bg-black text-yellow-400'
+                    }`}
+                    title={dormant ? 'No recent activity' : 'Active'}
+                  >
+                    {dormant ? 'Dormant' : 'Active'}
+                  </span>
+                  <span className="truncate flex-1 min-w-0">{s.name}</span>
+                  <Link
+                    to={`/spaces/${encodeURIComponent(s.id)}`}
+                    className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+                  >
+                    Open
+                  </Link>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

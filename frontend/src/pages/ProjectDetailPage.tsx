@@ -366,8 +366,11 @@ export default function ProjectDetailPage() {
                         </span>
                       ) : null}
                       {c.accepted === null ? (
-                        <span className="inline-block border border-grey-300 px-1 py-0.5 text-[10px] uppercase tracking-[0.12em] text-grey-400">
-                          Pending
+                        <span
+                          className="inline-block border border-black bg-white px-1 py-0.5 text-[10px] uppercase tracking-[0.14em]"
+                          title="Primary has invited this alias. Waiting on their response."
+                        >
+                          Invite sent
                         </span>
                       ) : null}
                     </li>
@@ -445,7 +448,20 @@ export default function ProjectDetailPage() {
             {activeForm === 'veto' && <VetoForm projectId={project._id} traces={traces} onDone={reload} />}
             {activeForm === 'fork' && <ForkForm projectId={project._id} onDone={reload} />}
             {activeForm === 'credit' && (
-              <CreditForm projectId={project._id} contributors={contributors} onDone={reload} />
+              <CreditForm
+                projectId={project._id}
+                contributors={contributors}
+                onDone={reload}
+                isPrimary={amPrimary}
+                genInput={{
+                  projectId: project._id,
+                  title: project.title,
+                  contributors: contributors.map((c) => ({ alias: c.alias })),
+                  traceCount: timeline.filter((e) => e.kind === 'trace').length,
+                  pivotCount: timeline.filter((e) => e.kind === 'pivot').length,
+                  referenceCount: timeline.filter((e) => e.kind === 'reference').length,
+                }}
+              />
             )}
 
             {/* Media proof panel */}

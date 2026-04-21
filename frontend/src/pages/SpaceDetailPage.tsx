@@ -79,6 +79,7 @@ export default function SpaceDetailPage() {
   const isMember = space?.members?.includes(meAlias) ?? false
   const isAdmin = space?.admins?.includes(meAlias) ?? false
   const hasPendingVeto = space?.pendingVeto?.some((p) => p.alias === meAlias) ?? false
+  const isDormant = space?.status === 'dormant'
 
   async function leaveSpace() {
     if (!id) return
@@ -147,19 +148,47 @@ export default function SpaceDetailPage() {
           <>
             {/* ── Info ── */}
             <section className="space-y-2">
-              <p className="font-mono text-[10px] text-grey-400">
-                ID: <span className="break-all">{space._id}</span>
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-block border border-black px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
+                    isDormant ? 'bg-grey-100 text-grey-500' : 'bg-black text-yellow-400'
+                  }`}
+                  title={
+                    isDormant
+                      ? 'No recent activity. Invites remain active but no new contracts are expected.'
+                      : 'Active — new contracts and invites are open.'
+                  }
+                >
+                  {isDormant ? 'Dormant' : 'Active'}
+                </span>
+                <p className="font-mono text-[10px] text-grey-400">
+                  ID: <span className="break-all">{space._id}</span>
+                </p>
+              </div>
               {space.description && <p className="text-body text-grey-700">{space.description}</p>}
               <p className="font-mono text-[11px] text-grey-400">
                 Created by <strong>{space.creatorAlias}</strong> · {space.members.length} members
                 {space.settings?.vetoAuthority?.length
                   ? ` · Veto: ${space.settings.vetoAuthority.join(', ')}`
                   : ''}
-                {(space.pendingVeto?.length ?? 0) > 0
-                  ? ` · Veto pending: ${space.pendingVeto!.map((p) => p.alias).join(', ')}`
-                  : ''}
               </p>
+              {(space.pendingVeto?.length ?? 0) > 0 ? (
+                <div className="border border-grey-200 bg-grey-50 px-3 py-2 space-y-1">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+                    Pending veto invites
+                  </p>
+                  <ul className="flex flex-wrap gap-1">
+                    {space.pendingVeto!.map((p) => (
+                      <li key={p.alias}>
+                        <span className="inline-flex items-center gap-1 border border-black bg-white px-2 py-0.5 font-mono text-[11px]">
+                          <span className="text-grey-400 text-[9px] uppercase tracking-[0.14em]">Veto invite</span>
+                          <span>{p.alias}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </section>
 
             {/* ── Veto invitation for current user ── */}
@@ -327,25 +356,53 @@ export default function SpaceDetailPage() {
                 {/* Existing codes */}
                 {(space.inviteCodes?.length ?? 0) > 0 && (
                   <ul className="divide-y divide-grey-100 border border-grey-200">
-                    {space.inviteCodes!.map((ic, i) => (
-                      <li key={i} className="px-3 py-2 font-mono text-[11px] space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <code className="tracking-widest break-all">{ic.code}</code>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(ic.code, 'ic-' + i)}
-                            className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
-                          >
-                            {copied === 'ic-' + i ? 'Copied!' : 'Copy'}
-                          </button>
-                        </div>
-                        <p className="text-grey-400">
-                          {ic.mode === 'multi_use' ? 'Multi-use' : 'Single-use'}
-                          {' · '}used {ic.usedCount ?? (ic.used ? 1 : 0)}×
-                          {ic.expiresAt ? ` · expires ${new Date(ic.expiresAt).toLocaleDateString()}` : ' · no expiry'}
-                        </p>
-                      </li>
-                    ))}
+                    {space.inviteCodes!.map((ic, i) => {
+                      const isSingle = ic.mode !== 'multi_use'
+                      const expired = ic.expiresAt ? new Date(ic.expiresAt).getTime() < Date.now() : false
+                      const consumed = isSingle && (ic.used || (ic.usedCount ?? 0) >= 1)
+                      return (
+                        <li key={i} className="px-3 py-2 font-mono text-[11px] space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`inline-block px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] border border-black ${
+                                isSingle
+                                  ? 'bg-black text-yellow-400'
+                                  : 'bg-white text-black'
+                              }`}
+                              title={
+                                isSingle
+                                  ? 'Single-use: one person can join with this code.'
+                                  : 'Multi-use: everyone with the link can join until it expires.'
+                              }
+                            >
+                              {isSingle ? 'Single-use' : 'Multi-use'}
+                            </span>
+                            {consumed ? (
+                              <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-grey-500">
+                                Used
+                              </span>
+                            ) : null}
+                            {expired ? (
+                              <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-grey-500">
+                                Expired
+                              </span>
+                            ) : null}
+                            <code className="tracking-widest break-all flex-1 min-w-0">{ic.code}</code>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(ic.code, 'ic-' + i)}
+                              className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                            >
+                              {copied === 'ic-' + i ? 'Copied!' : 'Copy'}
+                            </button>
+                          </div>
+                          <p className="text-grey-400">
+                            used {ic.usedCount ?? (ic.used ? 1 : 0)}×
+                            {ic.expiresAt ? ` · expires ${new Date(ic.expiresAt).toLocaleDateString()}` : ' · no expiry'}
+                          </p>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </section>

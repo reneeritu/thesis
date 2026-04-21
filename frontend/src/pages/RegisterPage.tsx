@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
+import { DefTerm } from '../components/DefTerm'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
 import { setSession } from '../lib/session'
@@ -12,15 +13,21 @@ type RegisterResponse = {
   seedPhrase: string
 }
 
+type Step = 1 | 2 | 3 | 4
+
 const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1'
 const fieldInput =
   'w-full border border-black bg-white px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 
-function Progress({ step }: { step: 1 | 2 | 3 }) {
+const MIN_TRUSTEES = 3
+const MAX_TRUSTEES = 5
+
+function Progress({ step }: { step: Step }) {
   const items = [
     { n: 1, label: 'Identity' },
     { n: 2, label: 'Seed phrase' },
-    { n: 3, label: 'Confirmed' },
+    { n: 3, label: 'Trustees' },
+    { n: 4, label: 'Done' },
   ] as const
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
@@ -34,11 +41,15 @@ function Progress({ step }: { step: 1 | 2 | 3 }) {
 }
 
 export default function RegisterPage() {
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<Step>(1)
   const [error, setError] = useState<string | null>(null)
   const [alias, setAlias] = useState('')
   const [seedWords, setSeedWords] = useState<string[]>([])
   const [seedAck, setSeedAck] = useState(false)
+
+  const [trustees, setTrustees] = useState<string[]>([''])
+  const [trusteeBusy, setTrusteeBusy] = useState(false)
+  const [trusteeMsg, setTrusteeMsg] = useState<string | null>(null)
 
   async function onStep1(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -68,6 +79,56 @@ export default function RegisterPage() {
     e.preventDefault()
     if (!seedAck) return
     setStep(3)
+    setError(null)
+  }
+
+  function setTrusteeAt(i: number, val: string) {
+    setTrustees((prev) => {
+      const next = [...prev]
+      next[i] = val.trim().toLowerCase()
+      return next
+    })
+  }
+  function addTrustee() {
+    setTrustees((prev) => (prev.length < MAX_TRUSTEES ? [...prev, ''] : prev))
+  }
+  function removeTrustee(i: number) {
+    setTrustees((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function onSaveTrustees(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const cleaned = trustees.map((t) => t.trim().toLowerCase()).filter(Boolean)
+    if (cleaned.length < MIN_TRUSTEES) {
+      setTrusteeMsg(`Need at least ${MIN_TRUSTEES} trustees. Or skip and set up later.`)
+      return
+    }
+    if (new Set(cleaned).size !== cleaned.length) {
+      setTrusteeMsg('Duplicate aliases — each trustee must be unique.')
+      return
+    }
+    if (cleaned.includes(alias)) {
+      setTrusteeMsg('You cannot list yourself as a trustee.')
+      return
+    }
+    setTrusteeBusy(true)
+    setTrusteeMsg(null)
+    try {
+      await api('/nodes/me/trustees', {
+        method: 'PUT',
+        body: { trustees: cleaned },
+      })
+      setStep(4)
+      flashDone()
+    } catch (err) {
+      setTrusteeMsg(err instanceof Error ? err.message : 'Failed to save trustees')
+    } finally {
+      setTrusteeBusy(false)
+    }
+  }
+
+  function skipTrustees() {
+    setStep(4)
     flashDone()
   }
 
@@ -170,6 +231,85 @@ export default function RegisterPage() {
           ) : null}
 
           {step === 3 ? (
+            <div className="space-y-4 max-w-xl">
+              <div className="space-y-2">
+                <h2 className="text-h3 font-mono">Pick your trustees (optional)</h2>
+                <p className="text-body text-grey-600">
+                  <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who
+                  can help you recover this account if you lose your seed phrase. A majority of them
+                  must agree before any recovery happens. Pick people who know you.
+                </p>
+                <p className="text-small text-grey-400">
+                  You can skip this now and set it up from your settings later — but without trustees,
+                  losing your seed phrase means losing the account.
+                </p>
+              </div>
+
+              {trusteeMsg ? (
+                <p
+                  className="border border-black bg-grey-100 px-3 py-2 text-small font-mono"
+                  role="alert"
+                >
+                  {trusteeMsg}
+                </p>
+              ) : null}
+
+              <form onSubmit={onSaveTrustees} className="space-y-3">
+                <div className="space-y-2">
+                  {trustees.map((t, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        value={t}
+                        onChange={(e) => setTrusteeAt(i, e.target.value)}
+                        placeholder={`Trustee alias ${i + 1}`}
+                        className={fieldInput + ' flex-1'}
+                        autoComplete="off"
+                      />
+                      {trustees.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => removeTrustee(i)}
+                          className="border border-black px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-grey-100"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {trustees.length < MAX_TRUSTEES ? (
+                    <button
+                      type="button"
+                      onClick={addTrustee}
+                      className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-grey-100"
+                    >
+                      + Add another
+                    </button>
+                  ) : null}
+                  <p className="text-[11px] font-mono text-grey-400 self-center">
+                    {trustees.filter(Boolean).length} / {MAX_TRUSTEES} · need ≥ {MIN_TRUSTEES}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-grey-200">
+                  <Button type="submit" variant="primary" loading={trusteeBusy}>
+                    Save trustees
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={skipTrustees}
+                    className="border border-black bg-white px-4 py-2 font-mono text-small uppercase tracking-[0.18em] hover:bg-grey-100"
+                  >
+                    Skip and set up later
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : null}
+
+          {step === 4 ? (
             <div className="space-y-4">
               <p className="text-h3 font-mono">Welcome to the chain</p>
               <p className="text-body">

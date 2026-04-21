@@ -9,10 +9,25 @@ import { ChainNode } from '../models/Node';
 import { Media } from '../models/Media';
 import { Project } from '../models/Project';
 import { Space } from '../models/Space';
+import { NFT } from '../models/NFT';
 import { hashFile, createThumbnail } from '../services/media';
+import { sanitiseSvg, MAX_SVG_BYTES } from '../services/svgSanitise';
 import { config } from '../config';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+
+const ARTWORK_IMAGE_MIME = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/svg+xml',
+]);
+const ARTWORK_VIDEO_MIME = new Set(['video/mp4', 'video/webm']);
+const ARTWORK_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const ARTWORK_VIDEO_MAX_BYTES = 25 * 1024 * 1024;
+const ARTWORK_IMAGE_MIN_SIDE = 256;
+const ARTWORK_IMAGE_MAX_SIDE = 4096;
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
@@ -231,6 +246,141 @@ router.get(
 
     if (!fs.existsSync(media.path)) throw new NotFoundError('Media');
     return res.sendFile(media.path);
+  },
+);
+
+/**
+ * POST /upload/cert-artwork
+ * Upload a candidate artwork file for a provenance certificate.
+ *
+ * - Must be a primary contributor on the project owning the NFT.
+ * - Allow-list: PNG / JPEG / WebP / GIF / SVG / MP4 / WebM.
+ * - Size: images ≤ 5 MB, video ≤ 25 MB.
+ * - Image dimension guard: 256–4096 px per side.
+ * - SVG is sanitised (scripts / foreign content stripped) before being stored.
+ *
+ * The file is stored via the Media model; use PUT /nfts/:id/artwork with
+ * { type: 'uploaded', mediaId } to attach it to the certificate.
+ */
+const artworkUpload = multer({
+  storage,
+  limits: { fileSize: ARTWORK_VIDEO_MAX_BYTES },
+});
+
+router.post(
+  '/upload/cert-artwork',
+  requireAuth,
+  artworkUpload.single('file'),
+  async (req: AuthRequest, res: Response) => {
+    if (!req.file) throw new AppError('No file provided');
+
+    const nftId = String(req.body.nftId || '').trim();
+    if (!/^[a-fA-F0-9]{24}$/.test(nftId)) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new AppError('Valid nftId is required');
+    }
+
+    const nft = await NFT.findById(nftId);
+    if (!nft) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new NotFoundError('Certificate');
+    }
+
+    const project = await Project.findById(nft.projectId);
+    if (!project) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new NotFoundError('Project');
+    }
+
+    const isPrimary = project.contributors.some(
+      (c) => c.alias === req.node!.alias && c.isPrimary,
+    );
+    if (!isPrimary) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new ForbiddenError('Only primary contributors can set certificate artwork');
+    }
+
+    const mime = req.file.mimetype;
+    const isImage = ARTWORK_IMAGE_MIME.has(mime);
+    const isVideo = ARTWORK_VIDEO_MIME.has(mime);
+    if (!isImage && !isVideo) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new AppError(
+        `Unsupported format ${mime}. Allowed: PNG, JPEG, WebP, GIF, SVG, MP4, WebM.`,
+      );
+    }
+
+    if (isImage && req.file.size > ARTWORK_IMAGE_MAX_BYTES) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new AppError('Image must be ≤ 5 MB');
+    }
+    if (isVideo && req.file.size > ARTWORK_VIDEO_MAX_BYTES) {
+      fs.unlink(req.file.path, () => undefined);
+      throw new AppError('Video must be ≤ 25 MB');
+    }
+
+    let width: number | undefined;
+    let height: number | undefined;
+
+    try {
+      if (mime === 'image/svg+xml') {
+        if (req.file.size > MAX_SVG_BYTES) {
+          throw new AppError('SVG must be ≤ 400 KB');
+        }
+        const raw = await fs.promises.readFile(req.file.path, 'utf8');
+        const clean = sanitiseSvg(raw);
+        await fs.promises.writeFile(req.file.path, clean, 'utf8');
+      } else if (isImage) {
+        const sharp = (await import('sharp')).default;
+        const meta = await sharp(req.file.path).metadata();
+        width = meta.width;
+        height = meta.height;
+        if (!width || !height) {
+          throw new AppError('Could not read image dimensions');
+        }
+        const min = Math.min(width, height);
+        const max = Math.max(width, height);
+        if (min < ARTWORK_IMAGE_MIN_SIDE || max > ARTWORK_IMAGE_MAX_SIDE) {
+          throw new AppError(
+            `Image must be between ${ARTWORK_IMAGE_MIN_SIDE}px and ${ARTWORK_IMAGE_MAX_SIDE}px on each side`,
+          );
+        }
+        try {
+          await createThumbnail(req.file.path);
+        } catch {
+          // thumbnail is best-effort
+        }
+      }
+    } catch (err) {
+      fs.unlink(req.file.path, () => undefined);
+      if (err instanceof AppError) throw err;
+      throw new AppError(err instanceof Error ? err.message : 'Failed to process upload');
+    }
+
+    const fileHash = await hashFile(req.file.path);
+    const finalSize = (await fs.promises.stat(req.file.path)).size;
+
+    const media = await Media.create({
+      traceId: null,
+      projectId: nft.projectId,
+      uploaderAlias: req.node!.alias,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: mime,
+      size: finalSize,
+      hash: fileHash,
+      path: req.file.path,
+    });
+
+    res.status(201).json({
+      mediaId: String(media._id),
+      hash: fileHash,
+      mimeType: mime,
+      size: finalSize,
+      width,
+      height,
+      url: `/media/${String(media._id)}`,
+    });
   },
 );
 

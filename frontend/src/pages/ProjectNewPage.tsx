@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
@@ -18,6 +18,7 @@ type Project = {
 }
 
 export default function ProjectNewPage() {
+  const navigate = useNavigate()
   const [search] = useSearchParams()
   const [spaces, setSpaces] = useState<SpaceWithName[]>([])
   const [spaceId, setSpaceId] = useState<string>('')
@@ -80,7 +81,7 @@ export default function ProjectNewPage() {
         method: 'POST',
         body,
       })
-      window.location.href = `/projects/${encodeURIComponent(pr._id)}`
+      navigate(`/projects/${encodeURIComponent(pr._id)}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create project')
     } finally {

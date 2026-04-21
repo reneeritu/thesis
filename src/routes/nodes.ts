@@ -66,14 +66,22 @@ router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
 
   const isSelf = req.node?.alias === alias;
 
-  let spacesWithNames: { id: string; name: string }[] = [];
+  let spacesWithNames: { id: string; name: string; status?: string }[] = [];
   if (node.spaces && node.spaces.length > 0) {
-    const spaceDocs = await Space.find({ _id: { $in: node.spaces } }).select('name').lean();
-    const nameById = new Map(spaceDocs.map((s) => [String(s._id), s.name as string]));
-    spacesWithNames = node.spaces.map((id) => ({
-      id: String(id),
-      name: nameById.get(String(id)) || String(id),
-    }));
+    const spaceDocs = await Space.find({ _id: { $in: node.spaces } })
+      .select('name status')
+      .lean();
+    const byId = new Map(
+      spaceDocs.map((s) => [String(s._id), { name: s.name as string, status: s.status as string }]),
+    );
+    spacesWithNames = node.spaces.map((id) => {
+      const meta = byId.get(String(id));
+      return {
+        id: String(id),
+        name: meta?.name || String(id),
+        status: meta?.status,
+      };
+    });
   }
 
   const portfolioProjects = await Project.find({

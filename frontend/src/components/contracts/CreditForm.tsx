@@ -2,11 +2,13 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/api'
 import { Button } from '../Button'
+import { CertificateArtEditor } from '../CertificateArtEditor'
+import type { GenInput } from '../../lib/provenanceArt'
 
 type Contributor = { alias: string; role?: string; isPrimary?: boolean }
 
 type NftBundle = {
-  nft: { _id: string; title?: string }
+  nft: { _id: string; title?: string; artwork?: { type?: string } | null }
   contributorTokens?: unknown[]
 }
 
@@ -14,9 +16,13 @@ type Props = {
   projectId: string
   contributors: Contributor[]
   onDone: () => void
+  /** Project facts used to drive the generative artwork engine. */
+  genInput?: GenInput
+  /** True when the logged-in user is a primary contributor. Controls whether the artwork editor shows. */
+  isPrimary?: boolean
 }
 
-export function CreditForm({ projectId, contributors, onDone }: Props) {
+export function CreditForm({ projectId, contributors, onDone, genInput, isPrimary }: Props) {
   const [weights, setWeights] = useState<Record<string, string>>({})
   const [medium, setMedium] = useState('')
   const [offChain, setOffChain] = useState('')
@@ -102,21 +108,31 @@ export function CreditForm({ projectId, contributors, onDone }: Props) {
       <h3 className="text-small font-mono uppercase tracking-[0.18em]">Credit Split / End Project</h3>
 
       {existingNft && (
-        <div className="border border-black bg-grey-100 p-3 space-y-2">
-          <p className="text-small font-mono">Existing credit found. Certificate: {existingNft.nft._id}</p>
-          <Link
-            to={`/nfts/${encodeURIComponent(existingNft.nft._id)}`}
-            className="text-small font-mono underline underline-offset-4"
-          >
-            View provenance certificate
-          </Link>
-          <form onSubmit={onSign} className="space-y-2 pt-2">
-            <label className="flex items-center gap-2 font-mono text-small">
-              <input type="checkbox" checked={signAccepted} onChange={(e) => setSignAccepted(e.target.checked)} />
-              I accept this credit split
-            </label>
-            <Button type="submit" variant="primary" loading={signBusy}>Sign</Button>
-          </form>
+        <div className="space-y-3">
+          <div className="border border-black bg-grey-100 p-3 space-y-2">
+            <p className="text-small font-mono">Existing credit found. Certificate: {existingNft.nft._id}</p>
+            <Link
+              to={`/nfts/${encodeURIComponent(existingNft.nft._id)}`}
+              className="text-small font-mono underline underline-offset-4"
+            >
+              View provenance certificate
+            </Link>
+            <form onSubmit={onSign} className="space-y-2 pt-2">
+              <label className="flex items-center gap-2 font-mono text-small">
+                <input type="checkbox" checked={signAccepted} onChange={(e) => setSignAccepted(e.target.checked)} />
+                I accept this credit split
+              </label>
+              <Button type="submit" variant="primary" loading={signBusy}>Sign</Button>
+            </form>
+          </div>
+
+          {isPrimary && genInput ? (
+            <CertificateArtEditor
+              nftId={existingNft.nft._id}
+              input={genInput}
+              onSaved={onDone}
+            />
+          ) : null}
         </div>
       )}
 

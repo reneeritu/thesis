@@ -18,6 +18,21 @@ export interface IContributorToken extends Document {
   createdAt: Date;
 }
 
+export type ArtworkType = 'none' | 'generated' | 'uploaded';
+
+export interface INftArtwork {
+  type: ArtworkType;
+  rendererVersion?: string;
+  paramsJson?: string;
+  svg?: string;
+  mediaId?: mongoose.Types.ObjectId;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  updatedAt?: Date;
+  updatedBy?: string;
+}
+
 export interface INFT extends Document {
   projectId: mongoose.Types.ObjectId;
   title: string;
@@ -28,6 +43,7 @@ export interface INFT extends Document {
   disputed: boolean;
   status: 'active' | 'expired';
   creditBlockIndex: number;
+  artwork?: INftArtwork;
   createdAt: Date;
 }
 
@@ -37,6 +53,22 @@ const contributorWeightSchema = new Schema<IContributorWeight>(
     role: { type: String, required: true },
     weight: { type: Number, required: true },
     timeLogged: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+const artworkSchema = new Schema<INftArtwork>(
+  {
+    type: { type: String, enum: ['none', 'generated', 'uploaded'], default: 'none' },
+    rendererVersion: { type: String },
+    paramsJson: { type: String },
+    svg: { type: String },
+    mediaId: { type: Schema.Types.ObjectId, ref: 'Media' },
+    mimeType: { type: String },
+    width: { type: Number },
+    height: { type: Number },
+    updatedAt: { type: Date },
+    updatedBy: { type: String },
   },
   { _id: false },
 );
@@ -52,6 +84,7 @@ const nftSchema = new Schema<INFT>(
     disputed: { type: Boolean, default: false },
     status: { type: String, enum: ['active', 'expired'], default: 'active' },
     creditBlockIndex: { type: Number, required: true },
+    artwork: { type: artworkSchema, default: () => ({ type: 'none' }) },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
