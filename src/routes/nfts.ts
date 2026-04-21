@@ -4,6 +4,9 @@ import { NFT, ContributorToken } from '../models/NFT';
 import { Project } from '../models/Project';
 import { Archive } from '../models/Archive';
 import { Media } from '../models/Media';
+import { Trace } from '../models/Trace';
+import { Pivot } from '../models/Pivot';
+import { Reference } from '../models/Reference';
 import { sanitiseSvg, MAX_SVG_BYTES } from '../services/svgSanitise';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
@@ -24,11 +27,19 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 
   const archive = await Archive.findOne({ nftId: nft._id });
 
+  // Timeline counts drive the generative artwork engine on the frontend.
+  const [traceCount, pivotCount, referenceCount] = await Promise.all([
+    Trace.countDocuments({ projectId: nft.projectId }),
+    Pivot.countDocuments({ projectId: nft.projectId }),
+    Reference.countDocuments({ projectId: nft.projectId }),
+  ]);
+
   res.json({
     nft,
     contributorTokens,
     project,
     archive: archive || null,
+    counts: { traceCount, pivotCount, referenceCount },
   });
 });
 

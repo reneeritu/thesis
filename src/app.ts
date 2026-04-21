@@ -96,34 +96,29 @@ app.use('/notifications', notificationRoutes);
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendDist));
 
-// SPA fallback for non-API GET requests
+// SPA fallback for non-API GET requests.
+//
+// Rule: if the request looks like a browser page navigation (Accept includes
+// text/html), always serve index.html and let React Router handle the path.
+// API calls from the SPA always include "application/json" in Accept so they
+// correctly pass through to the Express routes above.
+//
+// This replaces the old blocklist approach which caused "Cannot GET /:spa-path"
+// errors whenever a new SPA route shared a prefix with an API route (e.g.
+// /nfts/:id navigating to /nfts/:id/artwork in the browser).
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
-  const p = req.path;
-  if (
-    p.startsWith('/auth') ||
-    p.startsWith('/nodes') ||
-    p.startsWith('/spaces') ||
-    p.startsWith('/projects') ||
-    p.startsWith('/traces') ||
-    p.startsWith('/vetos') ||
-    p.startsWith('/pivots') ||
-    p.startsWith('/references') ||
-    p.startsWith('/credits') ||
-    p.startsWith('/nfts') ||
-    p.startsWith('/forks') ||
-    p.startsWith('/archives') ||
-    p.startsWith('/mediations') ||
-    p.startsWith('/flags') ||
-    p.startsWith('/governance') ||
-    p.startsWith('/discover') ||
-    p.startsWith('/endorsements') ||
-    p.startsWith('/notifications') ||
-    p.startsWith('/health') ||
-    p.startsWith('/upload')
-  ) {
+  const accept = req.headers.accept ?? '';
+  // Pass through if the caller wants JSON (API call from the SPA / curl).
+  if (accept.includes('application/json') && !accept.includes('text/html')) {
     return next();
   }
+  // Let static assets pass through to errorHandler (they'll 404 gracefully).
+  const p = req.path;
+  if (p.startsWith('/health') || p.startsWith('/upload') || p.startsWith('/media')) {
+    return next();
+  }
+  // Everything else (browser navigation) → SPA entry point.
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
