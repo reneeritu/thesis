@@ -26,14 +26,32 @@ type NftBundle = {
   archive: unknown
 }
 
-function ArtworkPanel({ nftId, artwork }: { nftId: string; artwork?: Artwork | null }) {
+function ArtworkPanel({
+  nftId,
+  artwork,
+  projectId,
+}: {
+  nftId: string
+  artwork?: Artwork | null
+  /** Lets us link straight to the project where the editor lives (not on this page). */
+  projectId?: string
+}) {
   if (!artwork || !artwork.type || artwork.type === 'none') {
     return (
-      <div className="aspect-square border border-dashed border-black bg-grey-100 flex items-center justify-center text-center p-6">
-        <p className="text-small font-mono text-grey-400 max-w-[32ch]">
-          No artwork attached yet. A primary contributor can generate or upload one from
-          the project's End-Project flow.
+      <div className="aspect-square border border-dashed border-black bg-grey-100 flex flex-col items-center justify-center text-center gap-3 p-6">
+        <p className="text-small font-mono text-grey-400 max-w-[38ch] leading-relaxed">
+          No artwork attached yet. The editor is not on this page — open the linked project, use End Project →
+          Certificate artwork after credit is initiated. You must be a logged-in, accepted primary contributor;
+          otherwise ask a primary to attach artwork from that same flow.
         </p>
+        {projectId ? (
+          <Link
+            to={`/projects/${encodeURIComponent(projectId)}`}
+            className="border border-black bg-white px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition"
+          >
+            Open project
+          </Link>
+        ) : null}
       </div>
     )
   }
@@ -114,7 +132,7 @@ export default function NftPage() {
         {bundle ? (
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
             <div>
-              <ArtworkPanel nftId={bundle.nft._id} artwork={bundle.nft.artwork} />
+              <ArtworkPanel nftId={bundle.nft._id} artwork={bundle.nft.artwork} projectId={bundle.project._id} />
             </div>
             <div className="space-y-3">
               <h2 className="text-h3 font-mono">{bundle.nft.title || 'Certificate'}</h2>

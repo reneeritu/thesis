@@ -76,6 +76,13 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
       }
       await api('/credits', { method: 'POST', body })
       setResult('Credit initiated.')
+      // Refetch so CertificateArtEditor mounts immediately (useEffect only keyed on projectId).
+      try {
+        const b = await api<NftBundle>('/credits/project/' + encodeURIComponent(projectId))
+        setExistingNft(b)
+      } catch {
+        /* bundle may lag briefly; parent reload still refreshes project */
+      }
       onDone()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed')
