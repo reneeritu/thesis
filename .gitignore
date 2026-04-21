@@ -9,3 +9,6 @@ Thumbs.db
 # Local API test payloads (do not commit)
 register.json
 tmp-register-body.json
+
+# Dev-time contact sheets and preview artefacts
+previews/

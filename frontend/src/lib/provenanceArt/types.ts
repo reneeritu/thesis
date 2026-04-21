@@ -84,7 +84,7 @@ export const DEFAULT_OPTIONS: GenOptions = {
   rerollIndex: 0,
 }
 
-export const RENDERER_VERSION = 'etch-gen-0.1'
+export const RENDERER_VERSION = 'etch-gen-0.2'
 
 /** Max number of rerolls per session (user preference confirmed). */
 export const MAX_REROLLS = 10

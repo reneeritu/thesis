@@ -35,8 +35,8 @@ export function CertificateArt({ input, options = DEFAULT_OPTIONS, className = '
 const motifs: { id: Motif; label: string }[] = [
   { id: 'facet', label: 'Facet' },
   { id: 'scatter', label: 'Scatter' },
-  { id: 'sigil', label: 'Sigil (preview)' },
-  { id: 'nebula', label: 'Nebula (preview)' },
+  { id: 'sigil', label: 'Sigil' },
+  { id: 'nebula', label: 'Nebula' },
 ]
 
 const lineWeights: { id: LineWeight; label: string }[] = [
