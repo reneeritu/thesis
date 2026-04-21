@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
@@ -35,40 +35,95 @@ type DiscoverNode = {
   joinedAt: string
 }
 
+type Envelope<T> = { items: T[]; total: number; limit: number; offset: number }
+
 type Tab = 'spaces' | 'projects' | 'nodes'
+
+const PAGE_SIZE = 50
+
+/**
+ * Keeps items + total per tab in one place so the state for list fetching,
+ * appending pages, and search resets stays symmetrical across the three feeds.
+ */
+type FeedState<T> = {
+  items: T[]
+  total: number
+  offset: number
+  loading: boolean
+  error: string | null
+}
+
+function emptyFeed<T>(): FeedState<T> {
+  return { items: [], total: 0, offset: 0, loading: false, error: null }
+}
 
 export default function DiscoverPage() {
   const [tab, setTab] = useState<Tab>('spaces')
-  const [spaces, setSpaces] = useState<DiscoverSpace[]>([])
-  const [projects, setProjects] = useState<DiscoverProject[]>([])
-  const [nodes, setNodes] = useState<DiscoverNode[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
 
+  const [spaces, setSpaces] = useState<FeedState<DiscoverSpace>>(emptyFeed)
+  const [projects, setProjects] = useState<FeedState<DiscoverProject>>(emptyFeed)
+  const [nodes, setNodes] = useState<FeedState<DiscoverNode>>(emptyFeed)
+
+  // Debounce the search input so every keystroke doesn't thrash the backend.
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      setError(null)
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), 200)
+    return () => clearTimeout(id)
+  }, [query])
+
+  const reqIdRef = useRef(0)
+
+  const fetchPage = useCallback(
+    async <T,>(
+      url: string,
+      setter: (updater: (prev: FeedState<T>) => FeedState<T>) => void,
+      offset: number,
+      append: boolean,
+    ) => {
+      const myReq = ++reqIdRef.current
+      setter((p) => ({ ...p, loading: true, error: null }))
       try {
-        const [sp, pr, nd] = await Promise.all([
-          api<DiscoverSpace[]>('/discover/spaces'),
-          api<DiscoverProject[]>('/discover/projects'),
-          api<DiscoverNode[]>('/discover/nodes'),
-        ])
-        if (cancelled) return
-        setSpaces(sp)
-        setProjects(pr)
-        setNodes(nd)
+        const qs = new URLSearchParams()
+        if (debouncedQuery) qs.set('q', debouncedQuery)
+        qs.set('limit', String(PAGE_SIZE))
+        qs.set('offset', String(offset))
+        const env = await api<Envelope<T>>(`${url}?${qs.toString()}`)
+        if (myReq !== reqIdRef.current) return
+        setter((p) => ({
+          items: append ? [...p.items, ...env.items] : env.items,
+          total: env.total,
+          offset: env.offset + env.items.length,
+          loading: false,
+          error: null,
+        }))
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load')
-      } finally {
-        if (!cancelled) setLoading(false)
+        if (myReq !== reqIdRef.current) return
+        setter((p) => ({ ...p, loading: false, error: e instanceof Error ? e.message : 'Failed to load' }))
       }
-    }
-    void load()
-    return () => { cancelled = true }
-  }, [])
+    },
+    [debouncedQuery],
+  )
+
+  // Re-fetch from scratch whenever the active tab or the search term changes.
+  useEffect(() => {
+    if (tab === 'spaces') void fetchPage<DiscoverSpace>('/discover/spaces', setSpaces, 0, false)
+    if (tab === 'projects') void fetchPage<DiscoverProject>('/discover/projects', setProjects, 0, false)
+    if (tab === 'nodes') void fetchPage<DiscoverNode>('/discover/nodes', setNodes, 0, false)
+  }, [tab, debouncedQuery, fetchPage])
+
+  const current =
+    tab === 'spaces' ? spaces :
+    tab === 'projects' ? projects :
+    nodes
+
+  const onLoadMore = () => {
+    if (tab === 'spaces') void fetchPage<DiscoverSpace>('/discover/spaces', setSpaces, current.offset, true)
+    if (tab === 'projects') void fetchPage<DiscoverProject>('/discover/projects', setProjects, current.offset, true)
+    if (tab === 'nodes') void fetchPage<DiscoverNode>('/discover/nodes', setNodes, current.offset, true)
+  }
+
+  const hasMore = current.items.length < current.total
 
   const tabBtn = (t: Tab, label: string) => (
     <button
@@ -85,26 +140,55 @@ export default function DiscoverPage() {
   return (
     <AppShell title="Discover">
       <div className="space-y-4">
-        {error && (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">{error}</p>
+        {current.error && (
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">{current.error}</p>
         )}
 
         <div className="flex gap-2 flex-wrap">
-          {tabBtn('spaces', `Spaces (${spaces.length})`)}
-          {tabBtn('projects', `Projects (${projects.length})`)}
-          {tabBtn('nodes', `Nodes (${nodes.length})`)}
+          {tabBtn('spaces', `Spaces (${spaces.total || spaces.items.length})`)}
+          {tabBtn('projects', `Projects (${projects.total || projects.items.length})`)}
+          {tabBtn('nodes', `Nodes (${nodes.total || nodes.items.length})`)}
         </div>
 
-        {loading && <p className="font-mono text-[11px] text-grey-400">Loading…</p>}
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={
+              tab === 'spaces' ? 'Search spaces…' :
+              tab === 'projects' ? 'Search projects…' :
+              'Search aliases / interests / keywords…'
+            }
+            className="flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="border border-black bg-white px-2 py-2 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-grey-100"
+            >
+              Clear
+            </button>
+          )}
+        </div>
 
-        {/* ── Spaces ── */}
-        {tab === 'spaces' && !loading && (
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+          Showing {current.items.length} of {current.total}
+          {debouncedQuery ? ` — filtered by "${debouncedQuery}"` : ''}
+        </p>
+
+        {current.loading && current.items.length === 0 && (
+          <p className="font-mono text-[11px] text-grey-400">Loading…</p>
+        )}
+
+        {tab === 'spaces' && (
           <div className="space-y-2">
-            {spaces.length === 0 ? (
-              <p className="text-small text-grey-400">No spaces yet.</p>
+            {!current.loading && spaces.items.length === 0 ? (
+              <p className="text-small text-grey-400">No spaces match.</p>
             ) : (
               <ul className="divide-y divide-grey-100 border border-grey-200">
-                {spaces.map((s) => (
+                {spaces.items.map((s) => (
                   <li key={s._id} className="px-4 py-3 space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -146,14 +230,13 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {/* ── Projects ── */}
-        {tab === 'projects' && !loading && (
+        {tab === 'projects' && (
           <div className="space-y-2">
-            {projects.length === 0 ? (
-              <p className="text-small text-grey-400">No public projects yet.</p>
+            {!current.loading && projects.items.length === 0 ? (
+              <p className="text-small text-grey-400">No public projects match.</p>
             ) : (
               <ul className="divide-y divide-grey-100 border border-grey-200">
-                {projects.map((p) => (
+                {projects.items.map((p) => (
                   <li key={p._id} className="px-4 py-3 flex items-start justify-between gap-2">
                     <div>
                       <Link
@@ -178,14 +261,13 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {/* ── Nodes ── */}
-        {tab === 'nodes' && !loading && (
+        {tab === 'nodes' && (
           <div className="space-y-2">
-            {nodes.length === 0 ? (
-              <p className="text-small text-grey-400">No nodes yet.</p>
+            {!current.loading && nodes.items.length === 0 ? (
+              <p className="text-small text-grey-400">No nodes match.</p>
             ) : (
               <ul className="divide-y divide-grey-100 border border-grey-200">
-                {nodes.map((n) => (
+                {nodes.items.map((n) => (
                   <li key={n.alias} className="px-4 py-3 flex items-start justify-between gap-2">
                     <div>
                       <Link
@@ -214,6 +296,19 @@ export default function DiscoverPage() {
                 ))}
               </ul>
             )}
+          </div>
+        )}
+
+        {hasMore && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              disabled={current.loading}
+              onClick={onLoadMore}
+              className="border border-black bg-white px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-50"
+            >
+              {current.loading ? 'Loading…' : `Load more (${current.total - current.items.length} left)`}
+            </button>
           </div>
         )}
       </div>
