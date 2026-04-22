@@ -1,35 +1,47 @@
 /**
- * Reputation visualisation — 3D crystal facet.
+ * Reputation visualisation — Shard Mandala (kinetic data-art sculpture).
  *
- * Six tapered crystal arms radiate from a central gem, one per reputation category.
- * Arm length is the sqrt-normalised score (consistent with the 2D radar), so a mixed
- * profile reads as an asymmetric crystal rather than a flat blob.
+ * Six Fractal Cells arranged with 6-fold hexagonal radial symmetry. Each cell
+ * corresponds to one reputation category and elaborates itself recursively as
+ * its score grows:
  *
- * Interaction model (v1 — rotation kept static as requested):
- *   - Orbit camera (mouse drag) — polar angle clamped so the viewer can't go upside-down.
- *   - Pan + auto-rotate disabled.
- *   - Click / tap an arm → the side drawer opens with:
- *       • category name + 1-line definition
- *       • raw all-time score (out of 1000)
- *       • last-90-days score if provided
- *       • "activity hint" for what grows this axis
+ *   depth 0 (score 0–15)   — one clean base shard
+ *   depth 1 (score 16–49)  — shard + two flanking facets (first fracture)
+ *   depth 2 (score 50–85)  — + mid-tier grandchildren (layered self-similar)
+ *   depth 3 (score 86+)    — + filigree ring of tiny nested shards
  *
- * If `recentCategories` is provided, a translucent ghost crystal grows inside the main
- * one, representing the last ~90 days. This replaces the dashed 2D overlay.
+ * Shards are crumpled with 3D Perlin (FBM) displacement; the visible form is
+ * line-first: batched `WireframeGeometry` + helix filaments on `LineSegments2`
+ * with heatmap vertex colours, wide + core additive passes, and a very faint
+ * solid shell for depth and hit-testing. Bloom post-processing lifts bright
+ * overlaps. At low score, many chaos filaments still fill each cell. Sparse
+ * connector strokes avoid a hard hub at the origin. Particles only at depth ≥2.
  *
- * Palette: cream background (transparent canvas) + charcoal outlines + primary-ish
- * colours for each arm. Matches the Etch house palette.
+ * The whole mandala rotates slowly and wobbles on an irregular low-frequency
+ * path. Clicking any shard (or its legend chip) causes every cell to expand
+ * outward ~15% and ease back, like a kinetic glass sculpture unfolding, while
+ * opening the side drawer with raw / 90-day scores and a definition.
+ *
+ * Public API is unchanged: categories / recentCategories / theme / className
+ * / showDefinitions. The recent layer renders as a smaller inner "ghost"
+ * mandala with clamped depth so it sits legibly inside the main sculpture.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
-import { Edges, OrbitControls } from '@react-three/drei'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { LineMaterial, LineSegments2, LineSegmentsGeometry } from 'three-stdlib'
 import * as THREE from 'three'
 import { GLOSSARY } from '../lib/glossary'
 import {
   CATEGORY_COLOURS,
   CATEGORY_LABELS,
 } from '../lib/reputationColours'
+
+// ---------------------------------------------------------------------------
+// Types & constants
+// ---------------------------------------------------------------------------
 
 type ReputationCategories = {
   craft: number
@@ -40,7 +52,9 @@ type ReputationCategories = {
   community: number
 }
 
-const KEYS: Array<keyof ReputationCategories> = [
+type CategoryKey = keyof ReputationCategories
+
+const KEYS: CategoryKey[] = [
   'craft',
   'research',
   'collaboration',
@@ -52,284 +66,1420 @@ const KEYS: Array<keyof ReputationCategories> = [
 const LABELS = CATEGORY_LABELS
 const ARM_COLOURS = CATEGORY_COLOURS
 
-const ARM_HINT: Record<keyof ReputationCategories, string> = {
-  craft: 'Grows when you log execution traces — making the thing.',
-  research: 'Grows when you log reference / study traces — investigating.',
+/**
+ * Antiprism cell layout — instead of a flat ring, three cells radiate from an
+ * upper latitude and three from a lower latitude offset by 60°, so the mandala
+ * occupies real 3D volume and no orbit angle reveals it as a disk.
+ */
+const CELL_DIRECTIONS: ReadonlyArray<readonly [number, number, number]> = (() => {
+  const TILT = Math.PI / 5 // ~36°, balanced between equator and pole
+  const cosT = Math.cos(TILT)
+  const sinT = Math.sin(TILT)
+  const out: Array<[number, number, number]> = []
+  for (let i = 0; i < 6; i++) {
+    const upper = i % 2 === 0
+    const ringIdx = Math.floor(i / 2) // 0..2 per ring
+    const baseAng = (ringIdx / 3) * Math.PI * 2
+    const ang = baseAng + (upper ? 0 : Math.PI / 3) // lower ring offset 60°
+    const y = (upper ? 1 : -1) * sinT
+    const x = Math.sin(ang) * cosT
+    const z = Math.cos(ang) * cosT
+    out.push([x, y, z])
+  }
+  return out
+})()
+
+const ARM_HINT: Record<CategoryKey, string> = {
+  craft:         'Grows when you log execution traces — making the thing.',
+  research:      'Grows when you log reference / study traces — investigating.',
   collaboration: 'Grows when you log group work and co-authored traces.',
-  pedagogy: 'Grows when you mentor, teach, or review others.',
-  consistency: 'Grows from steady cadence — showing up across time.',
-  community: 'Grows from cross-space work and public-facing projects.',
+  pedagogy:      'Grows when you mentor, teach, or review others.',
+  consistency:   'Grows from steady cadence — showing up across time.',
+  community:     'Grows from cross-space work and public-facing projects.',
 }
 
-/** Match the 2D radar's compression so visuals stay consistent. */
-function norm(v: number): number {
-  const n = Number.isFinite(v) ? v : 0
-  const ratio = Math.max(0, Math.min(1, n / 1000))
-  return Math.sqrt(ratio)
+// ---------------------------------------------------------------------------
+// Helpers — score → recursion depth, colour, Perlin-ish noise
+// ---------------------------------------------------------------------------
+
+/** Map raw score (0–1000 ballpark) to recursion depth 0..3. */
+function scoreToDepth(score: number): number {
+  if (score >= 86) return 3
+  if (score >= 50) return 2
+  if (score >= 16) return 1
+  return 0
 }
 
-type ArmProps = {
-  angle: number
-  length: number
-  colour: string
-  width?: number
-  opacity?: number
-  onClick?: (e: ThreeEvent<MouseEvent>) => void
-  onPointerOver?: (e: ThreeEvent<PointerEvent>) => void
-  onPointerOut?: (e: ThreeEvent<PointerEvent>) => void
-  highlighted?: boolean
+/** Map raw score → outward arm length (world units). Minimum so cells exist. */
+function scoreToArmLen(score: number): number {
+  const n = Math.sqrt(Math.min(1, Math.max(0, score) / 1000))
+  return 0.32 + n * 0.78
+}
+
+/** Pull a hex colour toward black by `factor` (0..1) — deeper gem body. */
+function deepen(hex: string, factor: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex)
+  if (!m) return hex
+  const n = parseInt(m[1], 16)
+  const f = Math.max(0, Math.min(1, factor))
+  const r0 = (n >> 16) & 255
+  const g0 = (n >> 8) & 255
+  const b0 = n & 255
+  const r = Math.round(r0 * (1 - f))
+  const g = Math.round(g0 * (1 - f))
+  const b = Math.round(b0 * (1 - f))
+  return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')
+}
+
+/** Shift a hex colour's hue by `degrees` — two-tone neon emissive cores. */
+function shiftHue(hex: string, degrees: number): string {
+  const c = new THREE.Color(hex)
+  const hsl = { h: 0, s: 0, l: 0 }
+  c.getHSL(hsl)
+  hsl.h = (hsl.h + degrees / 360 + 1) % 1
+  c.setHSL(hsl.h, hsl.s, hsl.l)
+  return '#' + c.getHexString()
+}
+
+/** Smooth 0..1: how much extra geometric / line detail to add from score alone. */
+function scoreToDetailT(score: number): number {
+  return Math.sqrt(Math.min(1, Math.max(0, score) / 1000))
 }
 
 /**
- * One crystal arm — a 4-sided tapered cone lying along +X, rotated into position.
- * The arm mesh is scaled on its length axis to animate growth.
+ * Heatmap along fragment length: deep category anchor (t≈0) → mid chroma shift →
+ * hot tip (t≈1). Tuned for wire-mesh / contour reads (per-category anchor).
  */
-function Arm({
-  angle,
-  length,
-  colour,
-  width = 0.1,
-  opacity = 1,
-  onClick,
-  onPointerOver,
-  onPointerOut,
-  highlighted = false,
-}: ArmProps) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const lengthRef = useRef(length)
+function heatmapAlongT(
+  t: number,
+  baseHex: string,
+  _theme: 'dark' | 'light',
+  ghost: boolean,
+  out: THREE.Color,
+): THREE.Color {
+  const a = new THREE.Color(baseHex)
+  const mid = new THREE.Color(shiftHue(baseHex, 42))
+  mid.lerp(new THREE.Color(ghost ? '#6ec8ff' : '#00c8d4'), 0.35)
+  const hot = new THREE.Color(shiftHue(baseHex, -20))
+  hot.lerp(new THREE.Color('#e8f0ff'), 0.55)
+  const t1 = Math.max(0, Math.min(1, t))
+  if (t1 < 0.5) {
+    out.copy(a).lerp(mid, t1 * 2)
+  } else {
+    out.copy(mid).lerp(hot, (t1 - 0.5) * 2)
+  }
+  if (ghost) out.multiplyScalar(0.75)
+  return out
+}
 
-  useFrame((_state, delta) => {
-    if (!meshRef.current) return
-    // ease toward target length; linear interp with frame-rate independent factor
-    const current = lengthRef.current
-    const next = current + (length - current) * Math.min(1, delta * 6)
-    lengthRef.current = next
-    meshRef.current.scale.setScalar(1)
-    meshRef.current.scale.x = Math.max(0.001, next)
-  })
-
+/** Deterministic sum-of-sines — for edge jitter and motion. */
+function noise3(x: number, y: number, z: number, t: number): number {
   return (
-    <group rotation={[0, angle, 0]}>
-      <mesh
-        ref={meshRef}
-        position={[0.5, 0, 0]}
-        rotation={[0, 0, -Math.PI / 2]}
-        scale={[length, 1, 1]}
-        onClick={onClick}
-        onPointerOver={onPointerOver}
-        onPointerOut={onPointerOut}
-      >
-        {/* ConeGeometry(radius, height, radialSegments). Height=1, we scale on X. */}
-        <coneGeometry args={[width, 1, 4, 1]} />
-        <meshStandardMaterial
-          color={colour}
-          metalness={0.15}
-          roughness={0.35}
-          transparent={opacity < 1}
-          opacity={opacity}
-          emissive={highlighted ? colour : '#000000'}
-          emissiveIntensity={highlighted ? 0.45 : 0}
-        />
-        {opacity >= 1 ? <Edges color="#111111" threshold={15} /> : null}
-      </mesh>
-    </group>
+    Math.sin(x * 1.73 + t * 0.73) * 0.5 +
+    Math.sin(y * 2.31 + t * 1.17 + 1.3) * 0.3 +
+    Math.sin(z * 2.97 + t * 0.89 + 2.7) * 0.2
   )
 }
 
-type CrystalProps = {
-  categories?: Partial<ReputationCategories>
-  recentCategories?: Partial<ReputationCategories>
-  onSelect?: (key: keyof ReputationCategories) => void
-  selected?: keyof ReputationCategories | null
+// --- 3D Perlin noise (vertex displacement) ---------------------------------
+
+const PERM256: Uint8Array = (() => {
+  const a: number[] = Array.from({ length: 256 }, (_, i) => i)
+  let s = 196613
+  for (let i = 255; i > 0; i--) {
+    s = (s * 1103515245 + 12345) >>> 0
+    const j = s % (i + 1)
+    ;[a[i], a[j]] = [a[j]!, a[i]!]
+  }
+  return new Uint8Array(a)
+})()
+
+const PERM512: Uint8Array = new Uint8Array(512)
+for (let i = 0; i < 256; i++) {
+  PERM512[i] = PERM256[i]!
+  PERM512[i + 256] = PERM256[i]!
 }
 
-function Crystal({ categories, recentCategories, onSelect, selected }: CrystalProps) {
-  const armData = useMemo(() => {
-    return KEYS.map((key, i) => {
-      const angle = (i * 2 * Math.PI) / KEYS.length
-      const raw = Number(categories?.[key] ?? 0)
-      const recentRaw = Number(recentCategories?.[key] ?? 0)
-      return {
-        key,
-        angle,
-        // max arm length 1.35 world units at score = 1000
-        length: 0.25 + norm(raw) * 1.1,
-        recentLength: recentCategories ? 0.12 + norm(recentRaw) * 1.0 : 0,
-        colour: ARM_COLOURS[key],
-      }
+function perlinFade(t: number): number {
+  return t * t * t * (t * (t * 6 - 15) + 10)
+}
+function perlinLerp(t: number, a: number, b: number): number {
+  return a + t * (b - a)
+}
+/** Classic Perlin gradient (hash in 0..15). */
+function perlinGrad(h: number, x: number, y: number, z: number): number {
+  const hh = h & 15
+  const u = hh < 8 ? x : y
+  const v = hh < 4 ? y : hh === 12 || hh === 14 ? x : z
+  return (hh & 1 ? -u : u) + (hh & 2 ? -v : v)
+}
+
+/** One sample of 3D Perlin noise, approximately in [-1, 1]. */
+function perlin3(x: number, y: number, z: number): number {
+  const X = Math.floor(x) & 255
+  const Y = Math.floor(y) & 255
+  const Z = Math.floor(z) & 255
+  x -= Math.floor(x)
+  y -= Math.floor(y)
+  z -= Math.floor(z)
+  const u = perlinFade(x)
+  const v = perlinFade(y)
+  const w = perlinFade(z)
+  const A = PERM512[X]! + Y
+  const AA = PERM512[A]! + Z
+  const AB = PERM512[A + 1]! + Z
+  const B = PERM512[X + 1]! + Y
+  const BA = PERM512[B]! + Z
+  const BB = PERM512[B + 1]! + Z
+  return perlinLerp(
+    w,
+    perlinLerp(
+      v,
+      perlinLerp(
+        u,
+        perlinGrad(PERM512[AA]! & 15, x, y, z),
+        perlinGrad(PERM512[BA]! & 15, x - 1, y, z),
+      ),
+      perlinLerp(
+        u,
+        perlinGrad(PERM512[AB]! & 15, x, y - 1, z),
+        perlinGrad(PERM512[BB]! & 15, x - 1, y - 1, z),
+      ),
+    ),
+    perlinLerp(
+      v,
+      perlinLerp(
+        u,
+        perlinGrad(PERM512[AA + 1]! & 15, x, y, z - 1),
+        perlinGrad(PERM512[BA + 1]! & 15, x - 1, y, z - 1),
+      ),
+      perlinLerp(
+        u,
+        perlinGrad(PERM512[AB + 1]! & 15, x, y - 1, z - 1),
+        perlinGrad(PERM512[BB + 1]! & 15, x - 1, y - 1, z - 1),
+      ),
+    ),
+  )
+}
+
+/** Fractal Perlin (FBM) — organic, eroded surface detail. */
+function fbmPerlin3(
+  x: number,
+  y: number,
+  z: number,
+  octaves = 4,
+): number {
+  let v = 0
+  let a = 0.5
+  let f = 1.0
+  for (let o = 0; o < octaves; o++) {
+    v += a * perlin3(x * f, y * f, z * f)
+    f *= 2.0
+    a *= 0.5
+  }
+  return v
+}
+
+// ---------------------------------------------------------------------------
+// Shard geometry — stacked rings along +Z (twist-interpolated), then crumpled
+// with 3D Perlin (FBM) along vertex normals.
+// ---------------------------------------------------------------------------
+
+function lerpNum(a: number, b: number, t: number): number {
+  return a + (b - a) * t
+}
+
+function makeShardGeometry(
+  length: number,
+  baseW: number,
+  tipW: number,
+  noiseSeed: number,
+  segments = 1,
+): THREE.BufferGeometry {
+  const segs = Math.max(1, Math.floor(segments))
+  const bh = baseW / 2
+  const th = tipW / 2
+  const twistMax = Math.PI / 12
+  const positions: number[] = []
+  for (let k = 0; k <= segs; k++) {
+    const t = k / segs
+    const z = t * length
+    const half = lerpNum(bh, th, t)
+    const ang = twistMax * t
+    const cs = Math.cos(ang)
+    const sn = Math.sin(ang)
+    for (let c = 0; c < 4; c++) {
+      const corners: Array<readonly [number, number]> = [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ]
+      const bx = corners[c]![0]! * half
+      const by = corners[c]![1]! * half
+      const x2 = cs * bx - sn * by
+      const y2 = sn * bx + cs * by
+      positions.push(x2, y2, z)
+    }
+  }
+  const indices: number[] = []
+  indices.push(0, 2, 1, 0, 3, 2)
+  const T = segs * 4
+  indices.push(T + 0, T + 1, T + 2, T + 0, T + 2, T + 3)
+  for (let s = 0; s < segs; s++) {
+    for (let i = 0; i < 4; i++) {
+      const i2 = (i + 1) % 4
+      const a = s * 4 + i
+      const b = s * 4 + i2
+      const c = (s + 1) * 4 + i2
+      const d = (s + 1) * 4 + i
+      indices.push(a, b, c, a, c, d)
+    }
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
+  g.setIndex(indices)
+  g.computeVertexNormals()
+  {
+    const pos = g.attributes.position as THREE.BufferAttribute
+    const nrm = g.attributes.normal as THREE.BufferAttribute
+    // Hash the seed into three independent 0..1 variants so every shard is
+    // visibly unique: scale, amplitude, and axial warp all move independently.
+    const h1 = ((Math.sin(noiseSeed * 12.9898) * 43758.5453) % 1 + 1) % 1
+    const h2 = ((Math.sin(noiseSeed * 78.233) * 43758.5453) % 1 + 1) % 1
+    const h3 = ((Math.sin(noiseSeed * 39.3468) * 43758.5453) % 1 + 1) % 1
+    const scaleN = (2.0 + h2 * 1.8)
+    const sx = 1.6 + Math.sin(noiseSeed * 3.1) * 0.5 + h1 * 0.7
+    const sy = 1.8 + Math.cos(noiseSeed * 2.4) * 0.5 + h3 * 0.7
+    const sz = 1.6 + Math.sin(noiseSeed * 1.7) * 0.5 + h2 * 0.6
+    const offX = noiseSeed * 1.7 + h1 * 3.3
+    const offY = Math.sin(noiseSeed) * 1.1 + h2 * 2.7
+    const offZ = Math.cos(noiseSeed * 0.8) * 1.1 + h3 * 2.1
+    const ampVar = 0.65 + h1 * 1.05
+    const ref = Math.max(0.02, Math.min(baseW, length) * 0.14) * ampVar
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i)
+      const y = pos.getY(i)
+      const z = pos.getZ(i)
+      const nx = nrm.getX(i)
+      const ny = nrm.getY(i)
+      const nz = nrm.getZ(i)
+      const f =
+        fbmPerlin3(x * scaleN * sx + offX, y * scaleN * sy + offY, z * scaleN * sz + offZ) * ref
+      pos.setXYZ(i, x + nx * f, y + ny * f, z + nz * f)
+    }
+    pos.needsUpdate = true
+    g.computeVertexNormals()
+  }
+  return g
+}
+
+// ---------------------------------------------------------------------------
+// Recursive cell spec — given depth, produce a list of shards for one arm.
+// Each shard's tip points roughly along +Z in cell-local space.
+// ---------------------------------------------------------------------------
+
+type ShardSpec = {
+  pos: [number, number, number]
+  euler: [number, number, number]
+  length: number
+  baseW: number
+  tipW: number
+  depth: number
+}
+
+function buildCellSpecs(depth: number, armLen: number, seed: number, score: number): ShardSpec[] {
+  const out: ShardSpec[] = []
+  const detailT = scoreToDetailT(score)
+  // Dense chaos filaments at every score — keeps wiremesh lively when depth is 0.
+  const chaosN = 28 + Math.floor(detailT * 20)
+  for (let i = 0; i < chaosN; i++) {
+    const t = (i + seed * 1.3) * 0.37
+    const g = fbmPerlin3(t, seed * 0.2 - i, t * 0.8, 2)
+    const h = fbmPerlin3(seed, i * 0.11, t, 2)
+    const u = fbmPerlin3(i * 0.07, t, h, 2)
+    const ang = (i / Math.max(1, chaosN)) * Math.PI * 2 + g * 2.1
+    const r = armLen * (0.02 + 0.14 * (0.2 + (Math.abs(h) * 0.5 + 0.5) * 0.8))
+    out.push({
+      pos: [Math.sin(ang) * r * 0.9, Math.cos(ang) * r * 0.85 + u * r * 0.4, armLen * 0.02 * i + 0.02 * h * armLen],
+      euler: [g * 1.1 + 0.3, ang * 0.8 + u, h * 0.9 - g * 0.5 + (i % 6) * 0.15],
+      length: armLen * (0.045 + 0.11 * (0.2 + (Math.abs(g) * 0.5 + 0.5) * 0.8) + 0.04 * detailT),
+      baseW: armLen * (0.025 + 0.05 * detailT),
+      tipW: armLen * (0.006 + 0.012 * detailT),
+      depth: 0,
     })
-  }, [categories, recentCategories])
+  }
+
+  // --- depth 0 : primary base shard (same origin — chaos above fills around it) -------
+  out.push({
+    pos: [0, 0, 0],
+    euler: [0, 0, 0],
+    length: armLen,
+    baseW: armLen * 0.22,
+    tipW: armLen * 0.04,
+    depth: 0,
+  })
+
+  // --- depth 1 : two flanking facets (the first fracture) ---------------
+  if (depth >= 1) {
+    for (const sign of [-1, 1]) {
+      out.push({
+        pos: [0, 0, armLen * 0.04],
+        euler: [0, sign * 0.36, 0],
+        length: armLen * 0.72,
+        baseW: armLen * 0.14,
+        tipW: armLen * 0.03,
+        depth: 1,
+      })
+    }
+    // a thin vertical lift — breaks flat symmetry subtly
+    out.push({
+      pos: [0, armLen * 0.04, armLen * 0.02],
+      euler: [0.22, 0, 0],
+      length: armLen * 0.6,
+      baseW: armLen * 0.09,
+      tipW: armLen * 0.02,
+      depth: 1,
+    })
+  }
+
+  // --- depth 2 : mid-tier grandchildren attached along the arm ----------
+  if (depth >= 2) {
+    const offsets: Array<[number, number]> = [
+      [0.38, 1],
+      [0.38, -1],
+      [0.68, 1],
+      [0.68, -1],
+    ]
+    for (const [off, sign] of offsets) {
+      const s = (((seed + off * 31) | 0) % 7) / 7 // 0..1 deterministic
+      out.push({
+        pos: [sign * armLen * 0.05, 0, armLen * off],
+        euler: [0.12 * sign + s * 0.1, sign * (0.85 + s * 0.25), sign * 0.25],
+        length: armLen * (0.26 + s * 0.08),
+        baseW: armLen * 0.068,
+        tipW: armLen * 0.014,
+        depth: 2,
+      })
+    }
+    // one child pointing slightly up out of the plane
+    out.push({
+      pos: [0, armLen * 0.06, armLen * 0.52],
+      euler: [0.55, 0, 0],
+      length: armLen * 0.22,
+      baseW: armLen * 0.055,
+      tipW: armLen * 0.012,
+      depth: 2,
+    })
+  }
+
+  // --- depth 3 : nebula / filigree — dense cloud of micro-shards -------
+  if (depth >= 3) {
+    for (let i = 0; i < 96; i++) {
+      const t = (i + seed * 2.1) * 0.137
+      const g = fbmPerlin3(t * 1.1, t * 0.7 + seed, t * 1.3 - seed, 3)
+      const h = fbmPerlin3(t * 0.9 + 2, t * 1.2, seed * 0.3 - i * 0.01, 3)
+      const u = fbmPerlin3(seed * 0.2 + i * 0.11, t, h, 2)
+      const ang = (i / 96) * Math.PI * 2 + g * 1.2 + u * 0.9
+      const ringR = armLen * (0.04 + 0.18 * (0.2 + (Math.abs(h) * 0.5 + 0.5) * 0.8))
+      const zOff = armLen * (0.1 + 0.85 * (i / 96) + 0.25 * h + 0.1 * g)
+      const sizeV = 0.04 + 0.22 * (0.3 + (u * 0.5 + 0.5) * 0.7)
+      out.push({
+        pos: [Math.sin(ang) * ringR, Math.cos(ang) * ringR * (0.15 + 0.85 * (0.2 + h * 0.2)), zOff],
+        euler: [g * 1.4 + h * 0.8 + (i % 5) * 0.2, ang * 1.3 + u * 2.1, h * 1.6 - g * 0.9 + (i % 7) * 0.19],
+        length: armLen * sizeV,
+        baseW: armLen * (0.012 + 0.042 * (0.2 + (Math.abs(g) * 0.5 + 0.5) * 0.8)),
+        tipW: armLen * (0.0025 + 0.014 * (0.2 + (Math.abs(h) * 0.5 + 0.5) * 0.8)),
+        depth: 3,
+      })
+    }
+  }
+
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Helix + merge — extra segments for very high line density (wiremesh read)
+// ---------------------------------------------------------------------------
+
+function helixSegmentPositions(
+  length: number,
+  baseW: number,
+  tipW: number,
+  seed: number,
+  steps: number,
+): Float32Array {
+  const out: number[] = []
+  const turns = 2.5 + (Math.sin(seed * 2.1) * 0.5 + 0.5) * 0.6
+  for (let i = 0; i < steps; i++) {
+    const t0 = i / steps
+    const t1 = (i + 1) / steps
+    const z0 = t0 * length
+    const z1 = t1 * length
+    const r0 = (baseW * 0.5) * (1 - t0) + (tipW * 0.5) * t0
+    const r1 = (baseW * 0.5) * (1 - t1) + (tipW * 0.5) * t1
+    const a0 = t0 * Math.PI * 2 * turns + seed * 1.7
+    const a1 = t1 * Math.PI * 2 * turns + seed * 1.7
+    const wobble = fbmPerlin3(seed * 0.3, t0 * 3, t0, 2) * 0.04 * length
+    out.push(
+      Math.cos(a0) * r0 * 0.88 + wobble,
+      Math.sin(a0) * r0 * 0.88,
+      z0,
+      Math.cos(a1) * r1 * 0.88,
+      Math.sin(a1) * r1 * 0.88,
+      z1,
+    )
+  }
+  return new Float32Array(out)
+}
+
+function mergeFloat32(a: Float32Array, b: Float32Array): Float32Array {
+  const o = new Float32Array(a.length + b.length)
+  o.set(a, 0)
+  o.set(b, a.length)
+  return o
+}
+
+// ---------------------------------------------------------------------------
+// ContourWireMesh — batched LineSegments2 (tri edges + helix), heatmap colours,
+// wide + core passes (additive where useful). Very high segment count.
+// ---------------------------------------------------------------------------
+
+type ContourWireMeshProps = {
+  geometry: THREE.BufferGeometry
+  spec: ShardSpec
+  baseHex: string
+  theme: 'dark' | 'light'
+  ghost: boolean
+  seed: number
+}
+
+const _c0 = new THREE.Color()
+const _c1 = new THREE.Color()
+
+function ContourWireMesh({ geometry, spec, baseHex, theme, ghost, seed }: ContourWireMeshProps) {
+  const size = useThree((s) => s.size)
+  const matG = useMemo(
+    () =>
+      new LineMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        transparent: true,
+        opacity: ghost ? 0.12 : 0.16,
+        linewidth: ghost ? 1.8 : 2.4,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: true,
+      }),
+    [ghost],
+  )
+  const matC = useMemo(
+    () =>
+      new LineMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        transparent: true,
+        opacity: ghost ? 0.32 : 0.48,
+        linewidth: ghost ? 0.75 : 1.05,
+        blending: THREE.NormalBlending,
+        depthWrite: false,
+        depthTest: true,
+      }),
+    [ghost],
+  )
+
+  const batched = useMemo(() => {
+    const wire = new THREE.WireframeGeometry(geometry)
+    const wf = wire.attributes.position.array as Float32Array
+    const helixSteps = 32 + Math.floor((spec.depth + 1) * 6 + Math.sin(seed) * 4)
+    const helix = helixSegmentPositions(spec.length, spec.baseW, spec.tipW, seed, helixSteps)
+    const positions = mergeFloat32(wf, helix)
+    wire.dispose()
+
+    const nSeg = positions.length / 6
+    const colors = new Float32Array(nSeg * 6)
+    const L = Math.max(0.001, spec.length)
+    for (let i = 0; i < nSeg; i++) {
+      const b = i * 6
+      const z0 = positions[b + 2]!
+      const z1 = positions[b + 5]!
+      const t0 = Math.max(0, Math.min(1, z0 / L))
+      const t1 = Math.max(0, Math.min(1, z1 / L))
+      heatmapAlongT(t0, baseHex, theme, ghost, _c0)
+      heatmapAlongT(t1, baseHex, theme, ghost, _c1)
+      colors[b] = _c0.r
+      colors[b + 1] = _c0.g
+      colors[b + 2] = _c0.b
+      colors[b + 3] = _c1.r
+      colors[b + 4] = _c1.g
+      colors[b + 5] = _c1.b
+    }
+
+    const g = new LineSegmentsGeometry()
+    g.setPositions(positions)
+    g.setColors(colors, 3)
+    const wide = new LineSegments2(g, matG)
+    const core = new LineSegments2(g, matC)
+    return { geom: g, wide, core }
+  }, [geometry, spec.length, spec.baseW, spec.tipW, spec.depth, baseHex, theme, ghost, seed, matG, matC])
+
+  useEffect(() => {
+    return () => {
+      batched.geom.dispose()
+    }
+  }, [batched])
+
+  useEffect(() => {
+    return () => {
+      matG.dispose()
+      matC.dispose()
+    }
+  }, [matG, matC])
+
+  useLayoutEffect(() => {
+    matG.resolution.set(size.width, size.height)
+    matC.resolution.set(size.width, size.height)
+    matG.needsUpdate = true
+    matC.needsUpdate = true
+  }, [size.width, size.height, matG, matC])
 
   return (
-    <group>
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[3, 5, 4]} intensity={0.9} />
-      <directionalLight position={[-3, -2, -1]} intensity={0.25} />
+    <>
+      <primitive object={batched.wide} />
+      <primitive object={batched.core} />
+    </>
+  )
+}
 
-      {/* Central gem */}
-      <mesh>
-        <dodecahedronGeometry args={[0.18, 0]} />
-        <meshStandardMaterial color="#fafaf5" metalness={0.1} roughness={0.3} />
-        <Edges color="#111111" threshold={15} />
-      </mesh>
+// ---------------------------------------------------------------------------
+// Connectors — thin additive lines (roots / stalks) + nebula point dust
+// ---------------------------------------------------------------------------
 
-      {/* All-time arms */}
-      {armData.map((a) => (
-        <Arm
-          key={a.key}
-          angle={a.angle}
-          length={a.length}
-          colour={a.colour}
-          width={0.11}
-          highlighted={selected === a.key}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect?.(a.key)
-          }}
+function ConnectorLine({
+  from,
+  to,
+  color,
+  opacity = 0.1,
+}: {
+  from: [number, number, number]
+  to: [number, number, number]
+  color: string
+  opacity?: number
+}) {
+  const geom = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array([...from, ...to]), 3),
+    )
+    return g
+  }, [from, to, from[0], from[1], from[2], to[0], to[1], to[2]])
+  useEffect(() => () => geom.dispose(), [geom])
+  return (
+    <lineSegments geometry={geom}>
+      <lineBasicMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped
+      />
+    </lineSegments>
+  )
+}
+
+/** Faint filaments: anchor above true origin to avoid a visible “all spokes” hub. */
+function ShardConnectors({ specs, colour, armLen }: { specs: ShardSpec[]; colour: string; armLen: number }) {
+  const d2 = useMemo(() => specs.filter((s) => s.depth === 2), [specs])
+  const fromRoot: [number, number, number] = [0, 0, Math.max(0.02, armLen * 0.1)]
+  return (
+    <>
+      {specs
+        .filter((s) => s.depth === 1 || s.depth === 2)
+        .map((s, i) => (
+          <ConnectorLine key={`root-${i}`} from={fromRoot} to={s.pos} color={colour} opacity={0.09} />
+        ))}
+      {specs
+        .filter((s) => s.depth === 3)
+        .map((s, i) => {
+          let anchor: [number, number, number] = [0, 0, 0]
+          if (d2.length > 0) {
+            let best: ShardSpec = d2[0]!
+            let bestD = Infinity
+            for (const p of d2) {
+              const dx = s.pos[0] - p.pos[0]
+              const dy = s.pos[1] - p.pos[1]
+              const dz = s.pos[2] - p.pos[2]
+              const d2v = dx * dx + dy * dy + dz * dz
+              if (d2v < bestD) {
+                bestD = d2v
+                best = p
+              }
+            }
+            anchor = best.pos
+          }
+          return <ConnectorLine key={`d3-${i}`} from={anchor} to={s.pos} color={colour} />
+        })}
+    </>
+  )
+}
+
+function CellParticles({
+  armLen,
+  colour,
+  seed,
+  ghost,
+  score,
+}: {
+  armLen: number
+  colour: string
+  seed: number
+  ghost: boolean
+  score: number
+}) {
+  const geom = useMemo(() => {
+    const depth = scoreToDepth(score)
+    if (depth < 2) {
+      const g = new THREE.BufferGeometry()
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3))
+      return g
+    }
+    const n = 90
+    const pos = new Float32Array(n * 3)
+    for (let i = 0; i < n; i++) {
+      const t = i / n
+      const u = fbmPerlin3(seed * 0.3 + i * 0.02, t * 4, seed * 0.1, 3)
+      const v = fbmPerlin3(t * 3, seed * 0.2 - i * 0.01, u, 3)
+      const w = fbmPerlin3(i * 0.05, v, u * 2, 2)
+      const rz = armLen * (0.05 + t * 1.15 + u * 0.2)
+      const rx = armLen * (0.02 + v * 0.45) * Math.sin(t * Math.PI * 2 + seed)
+      const ry = armLen * (0.02 + w * 0.45) * Math.cos(t * Math.PI * 2 + seed * 0.7)
+      pos[i * 3] = rx
+      pos[i * 3 + 1] = ry
+      pos[i * 3 + 2] = rz
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    return g
+  }, [armLen, seed, score])
+  useEffect(() => () => geom.dispose(), [geom])
+  if (geom.attributes.position!.count === 0) return null
+  return (
+    <points geometry={geom}>
+      <pointsMaterial
+        color={colour}
+        size={0.012}
+        sizeAttenuation
+        transparent
+        opacity={ghost ? 0.04 : 0.08}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped
+      />
+    </points>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// GyroscopeRings — three slowly counter-rotating wireframe circles at
+// different tilts, sitting around the whole mandala. Architectural / orrery
+// feel, not generative noise. Gives low-score nodes atmosphere for free.
+// ---------------------------------------------------------------------------
+
+function GyroscopeRings({ radius, colour }: { radius: number; colour: string }) {
+  const r1 = useRef<THREE.Group>(null)
+  const r2 = useRef<THREE.Group>(null)
+  const r3 = useRef<THREE.Group>(null)
+
+  const circleGeom = useMemo(() => {
+    const n = 192
+    const pts = new Float32Array(n * 3)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2
+      pts[i * 3] = Math.cos(a) * radius
+      pts[i * 3 + 1] = 0
+      pts[i * 3 + 2] = Math.sin(a) * radius
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(pts, 3))
+    return g
+  }, [radius])
+
+  useEffect(() => () => circleGeom.dispose(), [circleGeom])
+
+  useFrame((_, dt) => {
+    if (r1.current) r1.current.rotation.y += dt * 0.05
+    if (r2.current) r2.current.rotation.z -= dt * 0.032
+    if (r3.current) r3.current.rotation.x += dt * 0.041
+  })
+
+  return (
+    <>
+      <group ref={r1}>
+        <lineLoop geometry={circleGeom}>
+          <lineBasicMaterial
+            color={colour}
+            transparent
+            opacity={0.12}
+            depthWrite={false}
+            toneMapped
+          />
+        </lineLoop>
+      </group>
+      <group ref={r2} rotation={[Math.PI / 3, 0, 0]}>
+        <lineLoop geometry={circleGeom}>
+          <lineBasicMaterial
+            color={colour}
+            transparent
+            opacity={0.1}
+            depthWrite={false}
+            toneMapped
+          />
+        </lineLoop>
+      </group>
+      <group ref={r3} rotation={[0, 0, Math.PI / 3]}>
+        <lineLoop geometry={circleGeom}>
+          <lineBasicMaterial
+            color={colour}
+            transparent
+            opacity={0.08}
+            depthWrite={false}
+            toneMapped
+          />
+        </lineLoop>
+      </group>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Shard — faint glass shell (depth / raycast) + batched wiremesh contours
+// ---------------------------------------------------------------------------
+
+type ShardProps = {
+  spec: ShardSpec
+  baseColour: string
+  /** Category anchor for heatmap (same as baseColour) */
+  theme: 'dark' | 'light'
+  /** Raw 0..1000 category score; boosts stack subdivision and line count. */
+  rawScore: number
+  seed: number
+  ghost: boolean
+  onPointerDown?: (e: ThreeEvent<PointerEvent>) => void
+  onPointerOver?: (e: ThreeEvent<PointerEvent>) => void
+  onPointerOut?: (e: ThreeEvent<PointerEvent>) => void
+}
+
+function Shard({
+  spec,
+  baseColour,
+  theme,
+  rawScore,
+  seed,
+  ghost,
+  onPointerDown,
+  onPointerOver,
+  onPointerOut,
+}: ShardProps) {
+  const noiseKey = seed * 0.13 + spec.depth * 0.9 + spec.length * 0.02
+  const detailT = useMemo(() => scoreToDetailT(rawScore), [rawScore])
+  const ringSeg = useMemo(() => {
+    const base = spec.depth === 0 ? 8 : spec.depth === 3 ? 2 : 4
+    const extra = Math.floor(detailT * 4) + (spec.depth === 0 ? 2 : 0) + (spec.depth === 3 ? 0 : 1)
+    return Math.min(12, base + extra)
+  }, [spec.depth, detailT])
+
+  const geometry = useMemo(
+    () => makeShardGeometry(spec.length, spec.baseW, spec.tipW, noiseKey, ringSeg),
+    [spec.length, spec.baseW, spec.tipW, noiseKey, ringSeg],
+  )
+  useEffect(() => () => geometry.dispose(), [geometry])
+
+  const body = useMemo(
+    () => deepen(baseColour, ghost ? 0.35 : 0.3 - spec.depth * 0.04),
+    [baseColour, spec.depth, ghost],
+  )
+
+  const meshRef = useRef<THREE.Mesh>(null)
+
+  useFrame(({ clock }) => {
+    const m = meshRef.current
+    if (!m) return
+    const t = clock.getElapsedTime()
+    const s = 1 + noise3(seed, seed * 0.7, seed * 1.3, t * 0.9) * 0.014
+    m.scale.setScalar(s)
+  })
+
+  return (
+    <group position={spec.pos} rotation={spec.euler}>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        onPointerDown={onPointerDown}
+        onPointerOver={onPointerOver}
+        onPointerOut={onPointerOut}
+      >
+        <meshStandardMaterial
+          color={body}
+          transparent
+          opacity={ghost ? 0.06 : 0.04}
+          metalness={0.08}
+          roughness={0.4}
+          emissive={body}
+          emissiveIntensity={ghost ? 0.02 : 0.03}
+          depthWrite={!ghost}
+          depthTest
+          toneMapped
+          side={THREE.DoubleSide}
         />
-      ))}
-
-      {/* 90-day ghost arms inside the main ones */}
-      {recentCategories
-        ? armData.map((a) => (
-            <Arm
-              key={`recent-${a.key}`}
-              angle={a.angle}
-              length={a.recentLength}
-              colour={a.colour}
-              width={0.05}
-              opacity={0.45}
-            />
-          ))
-        : null}
+      </mesh>
+      <ContourWireMesh
+        geometry={geometry}
+        spec={spec}
+        baseHex={baseColour}
+        theme={theme}
+        ghost={ghost}
+        seed={seed}
+      />
     </group>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Public component
+// FractalCell — one category's recursive cluster, rotated so +Z points outward
+// ---------------------------------------------------------------------------
+
+type FractalCellProps = {
+  category: CategoryKey
+  direction: readonly [number, number, number] // unit vector cell points along
+  score: number
+  expansionRef: React.MutableRefObject<number> // shared 0..1 spring
+  /** Theme (heatmap + shell read). */
+  theme: 'dark' | 'light'
+  ghost: boolean
+  onSelect: () => void
+  onHover: (hovered: boolean) => void
+  selected: boolean
+}
+
+function FractalCell({
+  category,
+  direction,
+  score,
+  expansionRef,
+  theme,
+  ghost,
+  onSelect,
+  onHover,
+  selected,
+}: FractalCellProps) {
+  const depth = useMemo(() => {
+    const d = scoreToDepth(score)
+    return ghost ? Math.min(1, d) : d
+  }, [score, ghost])
+
+  const armLen = useMemo(() => scoreToArmLen(score), [score])
+
+  // Stable seed per cell so jitter and sub-spec placement don't churn.
+  const seed = useMemo(() => {
+    let h = 0
+    for (const c of category) h = (h * 31 + c.charCodeAt(0)) >>> 0
+    return (h % 1000) / 17
+  }, [category])
+
+  const specs = useMemo(() => buildCellSpecs(depth, armLen, seed, score), [depth, armLen, seed, score])
+
+  const baseColour = ARM_COLOURS[category]
+  const groupRef = useRef<THREE.Group>(null)
+  const spinRef = useRef<THREE.Group>(null)
+  const spinRate = useMemo(() => {
+    let h = 0
+    for (const c of category) h = (h * 31 + c.charCodeAt(0)) >>> 0
+    return 0.04 + (h % 100) * 0.0008
+  }, [category])
+
+  // Orient the cell's local +Z to point along `direction` (from origin outward).
+  // Every shard inside the cell extrudes along +Z, so this rotation alone
+  // distributes them across the 3D antiprism without touching their specs.
+  const orientationQuat = useMemo(() => {
+    const q = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(direction[0], direction[1], direction[2]).normalize(),
+    )
+    return q
+  }, [direction[0], direction[1], direction[2]])
+
+  // Self-spin + click-expand along +Z; expansion spring avoids React renders.
+  useFrame((_, delta) => {
+    const spin = spinRef.current
+    if (spin) spin.rotation.z += delta * spinRate
+    const g = groupRef.current
+    if (!g) return
+    const exp = expansionRef.current
+    g.position.set(0, 0, exp * armLen * 0.18)
+    const s = selected ? 1.05 : 1
+    g.scale.setScalar(s)
+  })
+
+  return (
+    <group quaternion={orientationQuat}>
+      <group ref={spinRef}>
+        <group ref={groupRef}>
+          {specs.map((spec, idx) => (
+            <Shard
+              key={idx}
+              spec={spec}
+              baseColour={baseColour}
+              theme={theme}
+              rawScore={score}
+              seed={seed + idx * 0.37}
+              ghost={ghost}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                onSelect()
+              }}
+              onPointerOver={(e) => {
+                e.stopPropagation()
+                onHover(true)
+              }}
+              onPointerOut={() => onHover(false)}
+            />
+          ))}
+          <ShardConnectors specs={specs} colour={baseColour} armLen={armLen} />
+          <CellParticles armLen={armLen} colour={baseColour} seed={seed} ghost={ghost} score={score} />
+        </group>
+      </group>
+    </group>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Mandala — six cells + rotation + wobble + click-expand spring
+// ---------------------------------------------------------------------------
+
+type MandalaProps = {
+  categories?: Partial<ReputationCategories>
+  recentCategories?: Partial<ReputationCategories>
+  theme: 'dark' | 'light'
+  selected: CategoryKey | null
+  onSelect: (key: CategoryKey) => void
+  clickToken: number // increments on every click — Mandala captures own time
+}
+
+function Mandala({
+  categories,
+  recentCategories,
+  theme,
+  selected,
+  onSelect,
+  clickToken,
+}: MandalaProps) {
+  const rootRef = useRef<THREE.Group>(null)
+
+  // Capture pulse start in the same clock space as useFrame.
+  const pulseStartRef = useRef<number>(-1)
+  const lastTokenRef = useRef<number>(clickToken)
+  // Shared expansion value — cells read this per frame (no React state).
+  const expansionRef = useRef(0)
+
+  useFrame(({ clock }) => {
+    const root = rootRef.current
+    if (!root) return
+    const t = clock.getElapsedTime()
+
+    // Slow rotation around Y — the kinetic spine of the piece.
+    root.rotation.y = t * 0.065
+
+    // Irregular wobble: a small field driven by incommensurate sines.
+    root.position.x = noise3(0.1, 0.2, 0.3, t * 0.31) * 0.045
+    root.position.y = noise3(1.1, 1.7, 0.9, t * 0.23 + 1.7) * 0.03
+    root.position.z = noise3(2.3, 0.7, 1.9, t * 0.27 + 3.2) * 0.025
+    // Whisper of tilt so the whole mandala breathes.
+    root.rotation.x = noise3(3.1, 2.1, 1.1, t * 0.19) * 0.04
+    root.rotation.z = noise3(4.1, 3.3, 2.5, t * 0.17 + 2.9) * 0.035
+
+    // Detect a new click from the parent and timestamp it in our clock.
+    if (clickToken !== lastTokenRef.current) {
+      lastTokenRef.current = clickToken
+      pulseStartRef.current = t
+    }
+
+    // Click expansion spring — fast rise (~120 ms) then slow ease-out.
+    const pulseStart = pulseStartRef.current
+    let e = 0
+    if (pulseStart >= 0) {
+      const age = t - pulseStart
+      if (age >= 0 && age < 1.15) {
+        const rise = Math.min(1, age / 0.12)
+        const fall = age < 0.12 ? 1 : Math.max(0, 1 - (age - 0.12) / 1.0)
+        e = rise * fall
+      } else if (age >= 1.15) {
+        pulseStartRef.current = -1
+      }
+    }
+    expansionRef.current = e
+  })
+
+  return (
+    <group>
+      <ambientLight intensity={theme === 'dark' ? 0.14 : 0.3} />
+      <directionalLight position={[3, 4.5, 3]} intensity={0.35} color="#ffffff" />
+      <directionalLight position={[-2.5, -1.5, -2.5]} intensity={0.1} color="#aab4d6" />
+      <pointLight
+        position={[0, 0.3, 0]}
+        color={theme === 'dark' ? '#ffffff' : '#fff4d0'}
+        intensity={0.2}
+        distance={2.6}
+        decay={2}
+      />
+      {/* Soft category-coloured rim lights, one per antiprism pole, so each
+          cell gets a coloured fill from its own direction (keep low to avoid
+          HDRI-like blowout with bloom). */}
+      {KEYS.map((k, i) => {
+        const d = CELL_DIRECTIONS[i]!
+        return (
+          <pointLight
+            key={k}
+            position={[d[0] * 1.15, d[1] * 1.15, d[2] * 1.15]}
+            color={ARM_COLOURS[k]}
+            intensity={0.08}
+            distance={1.8}
+            decay={2}
+          />
+        )
+      })}
+
+      <group ref={rootRef}>
+        {/* Architectural reference frame — three slowly counter-rotating
+            wireframe rings at different tilts (orrery / astrolabe feel). */}
+        <GyroscopeRings
+          radius={1.35}
+          colour={theme === 'dark' ? '#3a3a5a' : '#222233'}
+        />
+
+        {/* Ghost (90-day) mandala — smaller, translucent, depth-clamped. */}
+        {recentCategories
+          ? (
+              <group scale={0.58} position={[0, 0, 0]}>
+                {KEYS.map((k, i) => {
+                  const dir = CELL_DIRECTIONS[i]!
+                  const raw = Number(recentCategories?.[k] ?? 0)
+                  return (
+                    <FractalCell
+                      key={`ghost-${k}`}
+                      category={k}
+                      direction={dir}
+                      score={raw}
+                      expansionRef={expansionRef}
+                      theme={theme}
+                      ghost
+                      selected={false}
+                      onHover={() => {}}
+                      onSelect={() => {}}
+                    />
+                  )
+                })}
+              </group>
+            )
+          : null}
+
+        {/* Main mandala. */}
+        {KEYS.map((k, i) => {
+          const dir = CELL_DIRECTIONS[i]!
+          const raw = Number(categories?.[k] ?? 0)
+          return (
+            <FractalCell
+              key={k}
+              category={k}
+              direction={dir}
+              score={raw}
+              expansionRef={expansionRef}
+              theme={theme}
+              ghost={false}
+              selected={selected === k}
+              onHover={(h) => {
+                document.body.style.cursor = h ? 'pointer' : ''
+              }}
+              onSelect={() => onSelect(k)}
+            />
+          )
+        })}
+      </group>
+    </group>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// CrystalRadar3D — public component (API preserved)
+// ---------------------------------------------------------------------------
 
 export type CrystalRadarProps = {
   categories?: Partial<ReputationCategories>
   recentCategories?: Partial<ReputationCategories>
+  /** Self profile / dashboard: total reputation (single running total, not sum of categories). */
+  aggregateReputationScore?: number | null
   className?: string
-  /** Show hint tooltips — driven by the Hints toggle in the dashboard. */
   showDefinitions?: boolean
+  theme?: 'dark' | 'light'
 }
 
 export function CrystalRadar3D({
   categories,
   recentCategories,
+  aggregateReputationScore,
   className = '',
   showDefinitions = false,
+  theme = 'dark',
 }: CrystalRadarProps) {
-  const [selected, setSelected] = useState<keyof ReputationCategories | null>(null)
+  const viewRootRef = useRef<HTMLDivElement>(null)
+  /** Stop the R3F loop when scrolled off-screen or tab in background (saves CPU while scrolling / idle tabs). */
+  const [inView, setInView] = useState(true)
+  const [tabVisible, setTabVisible] = useState(
+    () => (typeof document !== 'undefined' ? !document.hidden : true),
+  )
 
-  // close drawer when data changes from underneath us
   useEffect(() => {
-    if (!selected) return
-    if (categories && categories[selected] === undefined && categories[selected] !== 0) {
-      setSelected(null)
-    }
-  }, [categories, selected])
+    const t = () => setTabVisible(!document.hidden)
+    document.addEventListener('visibilitychange', t)
+    return () => document.removeEventListener('visibilitychange', t)
+  }, [])
 
-  const selectedRaw = selected ? Number(categories?.[selected] ?? 0) : 0
+  useEffect(() => {
+    const el = viewRootRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        setInView(e.isIntersecting)
+      },
+      { root: null, rootMargin: '100px 0px', threshold: 0 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  const runLoop = inView && tabVisible
+
+  const [selected, setSelected] = useState<CategoryKey | null>(null)
+  // Bump a token on every click; Mandala captures its own frame-clock start.
+  const [clickToken, setClickToken] = useState(0)
+  const triggerPulse = useCallback(() => {
+    setClickToken((x) => x + 1)
+  }, [])
+
+  // Derive the effective selection without an effect — if the selected key is
+  // no longer present in the data, treat the drawer as closed.
+  const effectiveSelected: CategoryKey | null =
+    selected && categories && categories[selected] !== undefined ? selected : null
+
+  const selectedRaw = effectiveSelected ? Number(categories?.[effectiveSelected] ?? 0) : 0
   const selectedRecent =
-    selected && recentCategories ? Number(recentCategories?.[selected] ?? 0) : null
+    effectiveSelected && recentCategories
+      ? Number(recentCategories?.[effectiveSelected] ?? 0)
+      : null
+
+  const bgPanel =
+    theme === 'dark'
+      ? 'bg-[#0d0d1a] border-[#1a1a2e] text-white'
+      : 'bg-white border-black text-black'
+  const mutedText = theme === 'dark' ? 'text-[#666688]' : 'text-grey-400'
+  const subtleText = theme === 'dark' ? 'text-[#9999bb]' : 'text-grey-600'
+
+  const handleSelect = useCallback(
+    (key: CategoryKey) => {
+      setSelected((prev) => (prev === key ? null : key))
+      triggerPulse()
+    },
+    [triggerPulse],
+  )
 
   return (
-    <div className={`relative ${className}`}>
-      <div className="aspect-square w-full border border-black bg-white">
+    <div ref={viewRootRef} className={`relative overflow-visible ${className}`}>
+      {/* Large square viewport; overflow visible on parents so layout never clips the art.
+          Camera is pulled back so gyro rings + mandala stay fully in frame. */}
+      <div className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] overflow-visible bg-transparent sm:max-w-[44rem]">
         <Canvas
-          camera={{ position: [0, 1.35, 3.3], fov: 38 }}
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true }}
+          className="!h-full !w-full touch-none"
+          frameloop={runLoop ? 'always' : 'never'}
+          style={{ display: 'block', overflow: 'visible' }}
+          camera={{ position: [0, 0.88, 3.75], fov: 48 }}
+          dpr={[1, 1.5]}
+          gl={{
+            antialias: true,
+            alpha: true,
+            premultipliedAlpha: true,
+            powerPreference: 'default',
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: theme === 'dark' ? 0.45 : 0.58,
+            outputColorSpace: THREE.SRGBColorSpace,
+            preserveDrawingBuffer: false,
+            stencil: false,
+            depth: true,
+          }}
           onPointerMissed={() => setSelected(null)}
+          onCreated={({ gl, scene }) => {
+            scene.background = null
+            gl.setClearColor(0x000000, 0)
+            gl.domElement.style.background = 'transparent'
+          }}
         >
-          <color attach="background" args={['#faf8f2']} />
-          <Crystal
+          <Mandala
             categories={categories}
             recentCategories={recentCategories}
-            onSelect={setSelected}
-            selected={selected}
+            theme={theme}
+            selected={effectiveSelected}
+            onSelect={handleSelect}
+            clickToken={clickToken}
           />
           <OrbitControls
             enableRotate
             enablePan={false}
             enableZoom={false}
-            rotateSpeed={0.6}
+            rotateSpeed={0.55}
             minPolarAngle={Math.PI / 4}
             maxPolarAngle={(Math.PI * 3) / 5}
             enableDamping
             dampingFactor={0.12}
           />
+          <EffectComposer enableNormalPass={false} multisampling={2}>
+            <Bloom
+              mipmapBlur
+              luminanceThreshold={0.78}
+              luminanceSmoothing={0.14}
+              intensity={0.22}
+              levels={4}
+            />
+          </EffectComposer>
         </Canvas>
       </div>
 
-      {/* Legend row below canvas */}
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {KEYS.map((k) => {
-          const isSel = selected === k
+          const isSel = effectiveSelected === k
+          const cat = Math.round(Number(categories?.[k] ?? 0))
           return (
             <button
               key={k}
               type="button"
-              onClick={() => setSelected(isSel ? null : k)}
+              onClick={() => handleSelect(k)}
               className={`flex items-center gap-1 border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] transition ${
                 isSel
-                  ? 'border-black bg-black text-yellow-400'
-                  : 'border-transparent text-grey-500 hover:text-black'
+                  ? theme === 'dark'
+                    ? 'border-white bg-white/10 text-white'
+                    : 'border-black bg-black text-yellow-400'
+                  : theme === 'dark'
+                    ? 'border-transparent text-[#666688] hover:text-white'
+                    : 'border-transparent text-grey-500 hover:text-black'
               }`}
-              title={showDefinitions ? `${LABELS[k]} — ${Math.round(Number(categories?.[k] ?? 0))} / 1000. ${GLOSSARY[k] ?? ''}` : undefined}
+              title={
+                showDefinitions
+                  ? `${LABELS[k]} — ${cat} / 1000. ${GLOSSARY[k] ?? ''}`
+                  : `${LABELS[k]} — ${cat} / 1000 (all-time category)`
+              }
             >
               <span
-                className="inline-block h-2.5 w-2.5 border border-black"
+                className="inline-block h-2.5 w-2.5 rounded-[1px]"
                 style={{ background: ARM_COLOURS[k] }}
               />
               {LABELS[k]}
+              <span className="tabular-nums normal-case tracking-normal opacity-85">{cat}</span>
             </button>
           )
         })}
       </div>
 
-      {/* Right-side arm detail drawer — absolute within the parent card */}
-      {selected ? (
+      <div
+        className={`mt-2 border-t pt-2 font-mono text-[10px] ${
+          theme === 'dark' ? 'border-[#1a1a2e]' : 'border-grey-200'
+        }`}
+      >
+        <p className={`mb-1 uppercase tracking-[0.14em] ${subtleText}`}>
+          Category scores (all-time, each cap 1000)
+        </p>
+        <ul className="space-y-0.5">
+          {KEYS.map((k) => {
+            const all = Math.round(Number(categories?.[k] ?? 0))
+            const recent =
+              recentCategories != null ? Math.round(Number(recentCategories[k] ?? 0)) : null
+            return (
+              <li key={k} className="flex justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span
+                    className="inline-block h-2 w-2 shrink-0 rounded-[1px]"
+                    style={{ background: ARM_COLOURS[k] }}
+                  />
+                  <span className={`truncate ${mutedText}`}>{LABELS[k]}</span>
+                </span>
+                <span className="shrink-0 tabular-nums text-right">
+                  <span className={theme === 'dark' ? 'text-white' : 'text-black'}>{all}</span>
+                  <span className="opacity-70"> / 1000</span>
+                  {recent !== null ? (
+                    <span className={`ml-2 ${subtleText}`}>· ~90d {recent}</span>
+                  ) : null}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+        {aggregateReputationScore != null && Number.isFinite(aggregateReputationScore) ? (
+          <>
+            <p
+              className={`mt-2 border-t pt-2 ${
+                theme === 'dark' ? 'border-[#1a1a2e]' : 'border-grey-200'
+              } ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            >
+              Aggregate score:{' '}
+              <strong className="tabular-nums">{Math.round(aggregateReputationScore)}</strong> / 1000
+            </p>
+            <p className={`mt-1 text-[10px] font-sans font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
+              The aggregate is derived from the six category buckets (sum, then clamped to the system cap).
+              Activity awards add points into a specific category; the headline score updates from those buckets.
+            </p>
+          </>
+        ) : null}
+      </div>
+
+      {effectiveSelected ? (
         <div
-          className="mt-3 border border-black bg-white p-3 space-y-1 text-small"
+          className={`mt-3 border p-3 space-y-1 text-small ${bgPanel}`}
           role="dialog"
-          aria-label={`${LABELS[selected]} detail`}
+          aria-label={`${LABELS[effectiveSelected]} detail`}
         >
           <div className="flex items-center gap-2">
             <span
-              className="inline-block h-3 w-3 border border-black"
-              style={{ background: ARM_COLOURS[selected] }}
+              className="inline-block h-3 w-3 rounded-[1px]"
+              style={{ background: ARM_COLOURS[effectiveSelected] }}
             />
             <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
-              {LABELS[selected]}
+              {LABELS[effectiveSelected]}
             </p>
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="ml-auto border border-black bg-white px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] hover:bg-grey-100"
+              className={`ml-auto border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] ${
+                theme === 'dark'
+                  ? 'border-[#333355] bg-transparent text-[#9999bb] hover:text-white'
+                  : 'border-black bg-white hover:bg-grey-100'
+              }`}
               aria-label="Close detail"
             >
               Close
             </button>
           </div>
           <p className="font-mono text-[11px]">
-            All-time: <strong>{Math.round(selectedRaw)}</strong> / 1000
+            This category (all-time): <strong>{Math.round(selectedRaw)}</strong> / 1000
           </p>
           {selectedRecent !== null ? (
-            <p className="font-mono text-[11px] text-grey-600">
+            <p className={`font-mono text-[11px] ${subtleText}`}>
               Last ~90 d: <strong>{Math.round(selectedRecent)}</strong>
             </p>
           ) : null}
-          <p className="text-[11px] text-grey-600">{GLOSSARY[selected] ?? ''}</p>
-          <p className="text-[11px] text-grey-400 italic">{ARM_HINT[selected]}</p>
+          <p className={`text-[11px] ${subtleText}`}>{GLOSSARY[effectiveSelected] ?? ''}</p>
+          <p className={`text-[11px] italic ${mutedText}`}>{ARM_HINT[effectiveSelected]}</p>
         </div>
       ) : (
-        <p className="mt-2 font-mono text-[10px] text-grey-400">
-          Drag to rotate. Tap an arm to see its score.
+        <p className={`mt-2 font-mono text-[10px] ${mutedText}`}>
+          Drag to rotate. Tap a cell to open its detail — the mandala unfolds.
         </p>
       )}
     </div>

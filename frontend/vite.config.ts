@@ -1,5 +1,11 @@
-import { defineConfig, type ProxyOptions } from 'vite'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { defineConfig, loadEnv, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+/** Repo root (parent of frontend/) — read PORT for API proxy target. */
+const repoRoot = path.resolve(__dirname, '..')
 
 /**
  * Backend route prefixes that must be forwarded to Express in dev.
@@ -42,35 +48,48 @@ function isApiRequest(method?: string, accept?: string): boolean {
   return a.includes('application/json')
 }
 
-const proxy: Record<string, ProxyOptions> = {}
-for (const prefix of API_PREFIXES) {
-  proxy[prefix] = {
-    target: 'http://localhost:3000',
-    changeOrigin: false,
-    bypass: (req: { method?: string; headers?: { accept?: string | string[] } }) => {
-      const accept = Array.isArray(req.headers?.accept)
-        ? req.headers!.accept.join(',')
-        : req.headers?.accept
-      if (isApiRequest(req.method, accept)) return undefined // proxy to Express
-      return '/index.html' // browser nav → let the SPA handle it
+// https://vite.dev/config/
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, repoRoot, '')
+  const apiPort = env.PORT?.trim() || '3000'
+  const proxyTarget = env.VITE_API_PROXY_TARGET?.trim() || `http://127.0.0.1:${apiPort}`
+
+  const proxy: Record<string, ProxyOptions> = {}
+  for (const prefix of API_PREFIXES) {
+    proxy[prefix] = {
+      target: proxyTarget,
+      changeOrigin: false,
+      bypass: (req: { method?: string; headers?: { accept?: string | string[] } }) => {
+        const accept = Array.isArray(req.headers?.accept)
+          ? req.headers!.accept.join(',')
+          : req.headers?.accept
+        if (isApiRequest(req.method, accept)) return undefined // proxy to Express
+        return '/index.html' // browser nav → let the SPA handle it
+      },
+      configure(proxy) {
+        proxy.on('error', (err: NodeJS.ErrnoException) => {
+          console.error(
+            `[vite] API proxy error → ${proxyTarget} (${err.code ?? err.message}). Is the Express server running?`,
+          )
+        })
+      },
+    }
+  }
+
+  return {
+    plugins: [react()],
+    build: {
+      /* three.module alone is ~700kB minified; warning is informational */
+      chunkSizeWarningLimit: 900,
+    },
+    server: {
+      port: 5173,
+      /**
+       * If 5173 is taken, Vite picks the next free port (e.g. 5174).
+       * Always use the exact `Local: http://localhost:…` URL printed in the terminal.
+       */
+      strictPort: false,
+      proxy,
     },
   }
-}
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    /* three.module alone is ~700kB minified; warning is informational */
-    chunkSizeWarningLimit: 900,
-  },
-  server: {
-    port: 5173,
-    /**
-     * If 5173 is taken, Vite picks the next free port (e.g. 5174).
-     * Always use the exact `Local: http://localhost:…` URL printed in the terminal.
-     */
-    strictPort: false,
-    proxy,
-  },
 })

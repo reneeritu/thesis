@@ -18,14 +18,14 @@ export type ReputationCategory =
   | 'consistency'
   | 'community'
 
-/** Primary colour per category — house primaries, one per arm on the 3D radar. */
+/** Primary colour per category — jewel-tone palette, one per arm on the 3D radar. */
 export const CATEGORY_COLOURS: Record<ReputationCategory, string> = {
-  craft: '#f5c518',         // yellow
-  research: '#2563eb',      // blue
-  collaboration: '#dc2626', // red
-  pedagogy: '#16a34a',      // green
-  consistency: '#9333ea',   // violet
-  community: '#0891b2',     // cyan
+  craft:         '#ffd700', // gold (cubic / diamond)
+  research:      '#4f8ef7', // sapphire blue (hexagonal / quartz)
+  collaboration: '#ff4757', // ruby red (tetragonal)
+  pedagogy:      '#2ecc71', // emerald green (triclinic)
+  consistency:   '#be5bea', // amethyst violet (orthorhombic)
+  community:     '#00d2ff', // aquamarine cyan (rhombohedral)
 }
 
 /** Short label per category. */

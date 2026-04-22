@@ -3,6 +3,28 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Etch: contour tints + glass (kept calm so the 3D radar stays the focus) */
+    --contour-warm: rgba(180, 130, 90, 0.35);
+    --contour-cool: rgba(90, 130, 180, 0.35);
+    --contour-neutral: rgba(100, 100, 110, 0.28);
+    --contour-accent: rgba(150, 110, 180, 0.32);
+    --blur-minimal: 4px;
+    --blur-light: 8px;
+    --blur-medium: 10px;
+    --blur-full: 12px;
+    --backdrop-subtle: 0.08;
+    --backdrop-light: 0.12;
+    --backdrop-medium: 0.16;
+    --heatmap-warm-base: rgba(255, 250, 240, 0.02);
+    --heatmap-cool-base: rgba(240, 250, 255, 0.02);
+    --heatmap-accent-warm: rgba(220, 140, 80, 0.04);
+    --heatmap-accent-cool: rgba(80, 140, 220, 0.04);
+    --contour-underlay: 0.05;
+    --contour-overlay: 0.1;
+    --contour-interactive: 0.14;
+  }
+
   html {
     @apply max-h-[100vh] max-w-[100vw] overflow-x-hidden;
     height: 100%;
@@ -18,9 +40,6 @@
   body {
     @apply m-0 min-h-[80vh] max-h-[100vh] min-w-[80vw] max-w-[100vw] w-full overflow-x-hidden overflow-y-auto;
     @apply bg-grey-50 text-body leading-snug text-black font-sans;
-    /* Near-white paper base + neutral grey fibres (fractal noise) + soft grid dots.
-       Texture reads as plain white paper — warmth has been pulled out of the colour
-       matrices so the fibres tint neutral rather than cream / yellow. */
     background-color: #fbfbf9;
     background-image:
       url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.22  0 0 0 0 0.22  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
@@ -31,10 +50,7 @@
     background-repeat: repeat, repeat, repeat, repeat;
   }
 
-  /* Fixed paper overlay: adds a second pass of fibres over every page so the
-     texture stays put while you scroll. Pointer-events:none keeps it inert.
-     Disabled on /welcome (html.welcome-full-page-scroll) so the hero keeps
-     its own grain untouched. */
+  /* Fixed paper overlay: second pass of grain while you scroll. */
   body::before {
     content: '';
     position: fixed;
@@ -48,6 +64,35 @@
   }
 
   html.welcome-full-page-scroll body::before {
+    display: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2147482998;
+    opacity: 0.03;
+    mix-blend-mode: multiply;
+    background-image: 
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 3px,
+        rgba(120, 120, 130, 0.12) 3px,
+        rgba(120, 120, 130, 0.12) 4px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 4px,
+        rgba(130, 110, 120, 0.08) 4px,
+        rgba(130, 110, 120, 0.08) 5px
+      );
+  }
+
+  html.welcome-full-page-scroll body::after {
     display: none;
   }
 
@@ -96,6 +141,148 @@ h3 {
   .shell-px {
     @apply px-4 sm:px-8 md:px-[60px];
   }
+
+  /* ──── Glassmorphism Utilities ──── */
+  .glassmorphic-light {
+    backdrop-filter: blur(var(--blur-light));
+    background-color: rgba(255, 255, 255, var(--backdrop-light));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .glassmorphic-light:hover {
+    backdrop-filter: blur(var(--blur-medium));
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .glassmorphic-minimal {
+    backdrop-filter: blur(var(--blur-minimal));
+    background-color: rgba(255, 255, 255, var(--backdrop-subtle));
+    border: 1px solid rgba(200, 200, 210, 0.08);
+  }
+
+  /* ──── Contour Border Utilities ──── */
+  .contour-border-warm {
+    border: 1px solid var(--contour-warm);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contour-border-cool {
+    border: 1px solid var(--contour-cool);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contour-border-neutral {
+    border: 1px solid var(--contour-neutral);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contour-border-accent {
+    border: 1px solid var(--contour-accent);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Double-line wireframe effect for buttons */
+  .contour-wireframe {
+    border: 1.5px solid var(--contour-warm);
+    box-shadow: 
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+      inset 0 0 0 3px var(--contour-warm);
+    position: relative;
+  }
+
+  .contour-wireframe:hover {
+    box-shadow: 
+      inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+      inset 0 0 0 3px var(--contour-accent);
+  }
+
+  /* ──── Heatmap Gradient Utilities ──── */
+  .heatmap-gradient-warm {
+    background: radial-gradient(
+      ellipse 120% 100% at 50% 40%,
+      var(--heatmap-warm-base) 0%,
+      var(--heatmap-accent-warm) 60%,
+      transparent 100%
+    );
+  }
+
+  .heatmap-gradient-cool {
+    background: radial-gradient(
+      ellipse 120% 100% at 50% 60%,
+      var(--heatmap-cool-base) 0%,
+      var(--heatmap-accent-cool) 60%,
+      transparent 100%
+    );
+  }
+
+  .heatmap-gradient-mixed {
+    background: 
+      radial-gradient(
+        ellipse 100% 90% at 30% 35%,
+        var(--heatmap-accent-warm) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse 110% 95% at 70% 65%,
+        var(--heatmap-accent-cool) 0%,
+        transparent 55%
+      );
+  }
+
+  /* ──── Contour Pattern Overlay ──── */
+  .contour-pattern {
+    position: relative;
+  }
+
+  .contour-pattern::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--contour-overlay);
+    background-image: 
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 2px,
+        var(--contour-neutral) 2px,
+        var(--contour-neutral) 3px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 3px,
+        var(--contour-warm) 3px,
+        var(--contour-warm) 4px
+      );
+    mix-blend-mode: overlay;
+  }
+
+  /* ──── Glow Effects ──── */
+  .glow-subtle {
+    box-shadow: 
+      0 0 12px rgba(220, 140, 80, 0.15),
+      0 0 6px rgba(80, 140, 220, 0.1);
+  }
+
+  .glow-interactive {
+    box-shadow: 
+      0 0 16px rgba(220, 140, 80, 0.2),
+      0 0 8px rgba(80, 140, 220, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  /* ──── Transition States ──── */
+  .transition-etch {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
 }
 
 /*
@@ -123,6 +310,34 @@ html.welcome-full-page-scroll body {
 html.welcome-full-page-scroll .pin-spacer {
   overflow: visible !important;
 }
+
+/* ──── SVG Contour Pattern Definitions ──── */
+svg#contourPatterns {
+  display: none;
+}
+
+/* Smooth flowing contour pattern - like radar wireframe */
+.contour-mesh-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='contourMesh' x='0' y='0' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 50 Q 25 25, 40 40 T 70 60 T 100 40' stroke='rgba(120,120,130,0.3)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M 50 10 Q 60 30, 70 25 T 100 50' stroke='rgba(140,100,120,0.25)' stroke-width='0.6' fill='none'/%3E%3Cpath d='M 20 80 Q 40 70, 60 75 T 100 80' stroke='rgba(100,120,140,0.28)' stroke-width='0.7' fill='none'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23contourMesh)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 100px 100px;
+}
+
+/* Dense crosshatch for internal card patterns */
+.contour-dense-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cdefs%3E%3Cpattern id='denseHatch' x='0' y='0' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Cline x1='0' y1='0' x2='60' y2='60' stroke='rgba(140,100,120,0.2)' stroke-width='0.5'/%3E%3Cline x1='60' y1='0' x2='0' y2='60' stroke='rgba(100,120,140,0.18)' stroke-width='0.5'/%3E%3Cline x1='0' y1='30' x2='60' y2='30' stroke='rgba(120,120,130,0.15)' stroke-width='0.4'/%3E%3Cline x1='30' y1='0' x2='30' y2='60' stroke='rgba(120,120,130,0.15)' stroke-width='0.4'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='60' height='60' fill='url(%23denseHatch)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 60px 60px;
+}
+
+/* Radial ripple pattern for button hover states */
+.contour-ripple-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cdefs%3E%3Cpattern id='ripple' x='0' y='0' width='80' height='80' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='40' cy='40' r='35' stroke='rgba(180,130,90,0.2)' stroke-width='0.6' fill='none'/%3E%3Ccircle cx='40' cy='40' r='25' stroke='rgba(90,130,180,0.18)' stroke-width='0.5' fill='none'/%3E%3Ccircle cx='40' cy='40' r='15' stroke='rgba(150,110,180,0.2)' stroke-width='0.5' fill='none'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='80' height='80' fill='url(%23ripple)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 80px 80px;
+}
+
+/* ─── "etch" disintegrates: blur + radial erode × noise mask (--hero-dispersal, --hero-etch-blur) ─── */
 
 /* ─── Welcome / hero: plum #18101F + deep teal #004d4d + magenta #b30059 — oil-slick drift ─── */
 .hero-section-oil {

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AppShell } from '../components/AppShell'
-import { CrystalRadar3D } from '../components/CrystalRadar3D'
+import { CrystalRadar3DLazy } from '../components/CrystalRadar3DLazy'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
 
@@ -122,8 +122,13 @@ export default function ProfilePage() {
                 Node
               </p>
               <p className="text-h3 font-mono">{profile.alias}</p>
-              <div className="max-w-[380px] border border-black bg-white p-3 text-black">
-                <CrystalRadar3D categories={profile.reputationCategories} className="w-full" />
+              <div className="w-full max-w-3xl space-y-1 overflow-visible">
+                <CrystalRadar3DLazy
+                  categories={profile.reputationCategories}
+                  aggregateReputationScore={profile.reputationScore}
+                  className="w-full"
+                  theme="light"
+                />
               </div>
               {profile.reputationScore != null ? (
                 <p className="text-small font-mono">

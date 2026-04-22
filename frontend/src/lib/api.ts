@@ -41,6 +41,11 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     }
 
     if (!res.ok) {
+      if (res.status === 502 || res.status === 503) {
+        throw new Error(
+          'Could not reach the API (bad gateway). On local dev, start the backend from the repo root with npm run dev (Express must match PORT in root .env; default 3000). Vite proxies /auth there.',
+        )
+      }
       const d = data as { error?: unknown; message?: unknown } | null
       const msg = (d && (d.error ?? d.message)) || text || res.statusText
       throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))

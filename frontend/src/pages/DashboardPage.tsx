@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { DefTerm } from '../components/DefTerm'
-import { CrystalRadar3D } from '../components/CrystalRadar3D'
+import { CrystalRadar3DLazy } from '../components/CrystalRadar3DLazy'
 import { useDefinitions } from '../context/DefinitionsContext'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
@@ -147,7 +147,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setDefinitionsOn(!definitionsOn)}
-            className="border border-grey-300 bg-white px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition hover:border-black hover:text-black [touch-action:manipulation]"
+            className="glassmorphic-light contour-border-neutral px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition-etch [touch-action:manipulation]"
             aria-pressed={definitionsOn}
             title="Show or hide inline definitions under form fields"
           >
@@ -156,7 +156,7 @@ export default function DashboardPage() {
         </div>
 
         {error ? (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="glassmorphic-light contour-border-accent px-3 py-2 text-small font-mono text-black" role="alert">
             {error}
           </p>
         ) : null}
@@ -166,13 +166,13 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
               <Link
                 to="/archive/new"
-                className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+                className="glassmorphic-light contour-border-warm px-3 py-1 hover:bg-yellow-400/10 transition-etch"
               >
                 <DefTerm term="archive_work">Archive work</DefTerm>
               </Link>
               <Link
                 to="/discover"
-                className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+                className="glassmorphic-light contour-border-warm px-3 py-1 hover:bg-yellow-400/10 transition-etch"
               >
                 <DefTerm term="discover">Discover</DefTerm>
               </Link>
@@ -194,16 +194,18 @@ export default function DashboardPage() {
                 Copy profile link
               </button>
             </div>
-            <div className="max-w-[380px] border border-black bg-white p-3 text-black">
-              <CrystalRadar3D
+            <div className="w-full max-w-3xl space-y-1 overflow-visible">
+              <CrystalRadar3DLazy
                 categories={me.reputationCategories}
                 recentCategories={recent?.categories}
+                aggregateReputationScore={me.reputationScore}
                 className="w-full"
                 showDefinitions={definitionsOn}
+                theme="light"
               />
               {recent ? (
                 <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-grey-400">
-                  Inner ghost crystal = last {recent.days} d · {recent.traceCount} trace{recent.traceCount === 1 ? '' : 's'}
+                  Ghost layer = last {recent.days} d · {recent.traceCount} trace{recent.traceCount === 1 ? '' : 's'}
                 </p>
               ) : null}
             </div>
@@ -218,7 +220,7 @@ export default function DashboardPage() {
                 {badges.map((b) => (
                   <span
                     key={b}
-                    className="border border-black bg-black px-2 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-yellow-400"
+                    className="glassmorphic-light contour-border-accent px-2 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-yellow-400 glow-subtle"
                   >
                     {String(b).toUpperCase()}
                   </span>
@@ -231,7 +233,7 @@ export default function DashboardPage() {
         )}
 
         {emptyChain ? (
-          <section className="border-l-4 border-yellow-400 bg-white p-5 space-y-3">
+          <section className="glassmorphic-light contour-border-accent contour-pattern p-5 space-y-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
               Your chain is empty
             </p>
@@ -241,13 +243,13 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
               <Link
                 to="/projects"
-                className="border border-black bg-yellow-400 px-4 py-1.5 text-black hover:bg-black hover:text-yellow-400 transition"
+                className="glassmorphic-light contour-wireframe px-4 py-1.5 text-black hover:text-yellow-400 transition-etch"
               >
                 Log work on a project
               </Link>
               <Link
                 to="/projects/new"
-                className="border border-black bg-white px-4 py-1.5 hover:bg-black hover:text-yellow-400 transition"
+                className="glassmorphic-light contour-border-warm px-4 py-1.5 hover:bg-yellow-400/5 transition-etch"
               >
                 + New project
               </Link>
@@ -257,7 +259,7 @@ export default function DashboardPage() {
 
         {spaces.length === 0 && me ? (
           /* ── First-time user guide ── */
-          <section className="border border-black p-5 space-y-4 bg-white">
+          <section className="glassmorphic-light contour-border-cool contour-pattern p-5 space-y-4">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
               Getting started
             </p>
@@ -274,9 +276,9 @@ export default function DashboardPage() {
                     A space is a shared context — a studio, class, or project group. You can invite co-founders and set who has veto authority.
                   </p>
                   <div className="flex gap-2 mt-2 text-small font-mono uppercase tracking-[0.18em]">
-                    <Link to="/spaces/new" className="border border-black bg-yellow-400 px-3 py-1 text-black hover:bg-black hover:text-yellow-400 transition">+ Create space</Link>
-                    <Link to="/spaces/join" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">Join with invite code</Link>
-                    <Link to="/discover" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">Browse public spaces</Link>
+                    <Link to="/spaces/new" className="glassmorphic-light contour-border-warm px-3 py-1 text-yellow-600 hover:text-yellow-700 transition-etch">+ Create space</Link>
+                    <Link to="/spaces/join" className="glassmorphic-light contour-border-cool px-3 py-1 hover:bg-white/5 transition-etch">Join with invite code</Link>
+                    <Link to="/discover" className="glassmorphic-light contour-border-cool px-3 py-1 hover:bg-white/5 transition-etch">Browse public spaces</Link>
                   </div>
                 </div>
               </li>
@@ -311,8 +313,8 @@ export default function DashboardPage() {
                 <DefTerm term="spaces_section">Spaces</DefTerm>
               </h2>
               <div className="flex gap-2 text-small font-mono uppercase tracking-[0.18em]">
-                <Link to="/spaces/new" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">+ Create</Link>
-                <Link to="/spaces/join" className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition">+ Join</Link>
+                <Link to="/spaces/new" className="glassmorphic-light contour-border-warm px-3 py-1 transition-etch">+ Create</Link>
+                <Link to="/spaces/join" className="glassmorphic-light contour-border-cool px-3 py-1 transition-etch">+ Join</Link>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -320,7 +322,7 @@ export default function DashboardPage() {
                 <Link
                   key={s.id}
                   to={`/spaces/${encodeURIComponent(s.id)}`}
-                  className="flex items-center justify-between border border-black bg-white px-3 py-2 font-mono text-small hover:bg-black hover:text-yellow-400 transition"
+                  className="glassmorphic-light contour-border-cool contour-pattern flex items-center justify-between px-3 py-2 font-mono text-small transition-etch hover:shadow-sm"
                 >
                   <span className="truncate">{s.name}</span>
                   <span className="text-[11px] uppercase tracking-[0.18em]">OPEN →</span>
@@ -338,13 +340,13 @@ export default function DashboardPage() {
             <div className="flex gap-2 text-small font-mono uppercase tracking-[0.18em]">
               <Link
                 to="/projects"
-                className="border border-black bg-white px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+                className="glassmorphic-light contour-border-cool px-3 py-1 transition-etch"
               >
                 View all
               </Link>
               <Link
                 to="/projects/new"
-                className="border border-black bg-yellow-400 px-3 py-1 text-black hover:bg-black hover:text-yellow-400 transition"
+                className="glassmorphic-light contour-wireframe px-3 py-1 text-yellow-600 transition-etch"
               >
                 + New
               </Link>
@@ -360,7 +362,7 @@ export default function DashboardPage() {
                   <Link
                     key={row.project._id}
                     to={`/projects/${encodeURIComponent(row.project._id)}`}
-                    className="flex flex-col gap-1 border border-black bg-white px-3 py-2 hover:bg-black hover:text-yellow-400 transition"
+                    className="glassmorphic-light contour-border-cool contour-pattern flex flex-col gap-1 px-3 py-2 transition-etch hover:shadow-sm"
                   >
                     <span className="font-mono text-small truncate">{row.project.title}</span>
                     <span className="text-small text-grey-400">
@@ -382,7 +384,7 @@ export default function DashboardPage() {
             {errorRows.map((r, idx) => (
               <p
                 key={`${r.spaceId || 'space'}-${idx}`}
-                className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black"
+                className="glassmorphic-light contour-border-accent px-3 py-2 text-small font-mono text-black"
               >
                 {r.spaceName}: {r.error}
               </p>

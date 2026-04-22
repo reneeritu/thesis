@@ -11,21 +11,21 @@ type Props = {
 }
 
 const navBtn =
-  'border border-black px-2 py-1 text-[10px] sm:px-2.5 sm:py-1 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]'
+  'glassmorphic-light contour-border-neutral px-2 py-1 text-[10px] sm:px-2.5 sm:py-1 hover:text-yellow-600 transition-etch [touch-action:manipulation]'
 
 const menuItem =
-  'block px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 border-b border-grey-100 last:border-b-0'
+  'block px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] hover:bg-white/10 hover:text-yellow-600 border-b border-grey-100/20 last:border-b-0'
 
 export function AppShell({ children, title }: Props) {
   const token = getToken()
 
   return (
     <div className="flex min-h-[80vh] flex-1 flex-col">
-      <header className="border-b border-grey-200 shrink-0">
+      <header className="border-b border-grey-200/30 shrink-0">
         <div className="mx-auto max-w-shell shell-px py-2 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/"
-            className="text-[11px] font-mono tracking-[0.18em] uppercase text-grey-400 hover:text-black transition"
+            className="text-[11px] font-mono tracking-[0.18em] uppercase text-grey-400 hover:text-black transition-etch"
           >
             Etch
           </Link>
@@ -39,7 +39,7 @@ export function AppShell({ children, title }: Props) {
                   >
                     Menu
                   </summary>
-                  <div className="absolute right-0 mt-1 min-w-[200px] border border-black bg-white shadow-sm z-50">
+                  <div className="absolute right-0 mt-1 min-w-[200px] glassmorphic-light contour-border-cool z-50">
                     <Link to="/dashboard" className={menuItem}>
                       Dashboard
                     </Link>
@@ -71,7 +71,7 @@ export function AppShell({ children, title }: Props) {
               <HelpButton />
               <button
                 type="button"
-                className={`${navBtn} bg-white`}
+                className={navBtn}
                 onClick={() => {
                   clearSession()
                   window.location.href = '/'
