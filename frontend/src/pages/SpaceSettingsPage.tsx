@@ -90,13 +90,13 @@ export default function SpaceSettingsPage() {
           <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">{error}</p>
         )}
         {saved && !error && (
-          <p className="border border-black bg-white px-3 py-2 text-small font-mono">Saved.</p>
+          <p className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small font-mono">Saved.</p>
         )}
 
         {space ? (
           <form onSubmit={onSubmit} className="space-y-4 text-small">
             <div>
-              <p className="font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Project access</p>
+              <p className="font-mono uppercase tracking-[0.18em] text-white mb-1">Project access</p>
               {(['open', 'invite_only', 'application'] as const).map((v) => (
                 <label key={v} className="flex items-center gap-2 font-mono">
                   <input
@@ -112,18 +112,18 @@ export default function SpaceSettingsPage() {
             </div>
 
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Veto authority (comma-separated aliases)
               </label>
               <input
                 value={vetoRaw}
                 onChange={(e) => setVetoRaw(e.target.value)}
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
               />
             </div>
 
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Voting threshold (0 – 1)
               </label>
               <input
@@ -133,7 +133,7 @@ export default function SpaceSettingsPage() {
                 max={1}
                 value={votingThreshold}
                 onChange={(e) => setVotingThreshold(Number(e.target.value))}
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
               />
             </div>
 
@@ -147,7 +147,7 @@ export default function SpaceSettingsPage() {
             </label>
 
             <div>
-              <p className="font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Privacy default</p>
+              <p className="font-mono uppercase tracking-[0.18em] text-white mb-1">Privacy default</p>
               {(['public', 'space_specific', 'private'] as const).map((v) => (
                 <label key={v} className="flex items-center gap-2 font-mono">
                   <input
@@ -163,20 +163,20 @@ export default function SpaceSettingsPage() {
             </div>
 
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Content restrictions (comma-separated)
               </label>
               <input
                 value={restrictionsRaw}
                 onChange={(e) => setRestrictionsRaw(e.target.value)}
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
               />
             </div>
 
             <Button type="submit" variant="primary" loading={saving}>Save Settings</Button>
           </form>
         ) : !error ? (
-          <p className="text-small font-mono text-grey-400">Loading…</p>
+          <p className="text-small font-mono text-white">Loading…</p>
         ) : null}
       </div>
     </AppShell>

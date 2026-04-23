@@ -128,7 +128,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative flex h-8 w-8 shrink-0 items-center justify-center border border-black bg-white hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
+        className="relative flex h-8 w-8 shrink-0 items-center justify-center border border-white/25 bg-zinc-900/55 hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation]"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         title="Notifications"
       >
@@ -146,16 +146,16 @@ export function NotificationBell() {
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex min-h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-yellow-400 px-0.5 text-[9px] font-mono font-medium leading-none text-black">
+          <span className="absolute -top-1 -right-1 flex min-h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-yellow-400 px-0.5 text-[9px] font-mono font-medium leading-none text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 max-h-[80vh] overflow-y-auto border border-black bg-white shadow-lg">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-grey-200 sticky top-0 bg-white">
-            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
+        <div className="absolute right-0 top-full z-50 mt-1 w-80 max-h-[80vh] overflow-y-auto border border-white/25 bg-zinc-900/55 shadow-lg">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/15 sticky top-0 bg-zinc-950/95">
+            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">
               Notifications
             </span>
             <div className="flex gap-2">
@@ -171,7 +171,7 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="font-mono text-[10px] text-grey-400 hover:text-black"
+                className="font-mono text-[10px] text-white hover:text-white"
               >
                 ✕
               </button>
@@ -179,7 +179,7 @@ export function NotificationBell() {
           </div>
 
           {notes.length === 0 ? (
-            <p className="px-3 py-4 text-small text-grey-400 font-mono">No notifications.</p>
+            <p className="px-3 py-4 text-small text-white font-mono">No notifications.</p>
           ) : (
             notes.map((n) => (
               <div
@@ -195,7 +195,7 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => vetoRespond(n, true, true)}
-                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
                     >
                       Join + Veto
                     </button>
@@ -211,7 +211,7 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => vetoRespond(n, false, false)}
-                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-grey-500 hover:border-black transition disabled:opacity-60"
+                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-white hover:border-black transition disabled:opacity-60"
                     >
                       Decline
                     </button>
@@ -225,7 +225,7 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => contribRespond(n, true)}
-                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
                     >
                       Accept
                     </button>
@@ -233,7 +233,7 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => contribRespond(n, false)}
-                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-grey-500 hover:border-black transition disabled:opacity-60"
+                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-white hover:border-black transition disabled:opacity-60"
                     >
                       Decline
                     </button>
@@ -247,7 +247,7 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => collabRequestRespond(n, true)}
-                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                      className="border border-black bg-black text-yellow-400 px-2 py-0.5 font-mono text-[10px] uppercase hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
                     >
                       Add
                     </button>
@@ -255,7 +255,7 @@ export function NotificationBell() {
                       type="button"
                       disabled={busy === n._id}
                       onClick={() => collabRequestRespond(n, false)}
-                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-grey-500 hover:border-black transition disabled:opacity-60"
+                      className="border border-grey-300 px-2 py-0.5 font-mono text-[10px] uppercase text-white hover:border-black transition disabled:opacity-60"
                     >
                       Decline
                     </button>
@@ -267,13 +267,13 @@ export function NotificationBell() {
                   <button
                     type="button"
                     onClick={() => openRelated(n)}
-                    className="font-mono text-[10px] underline text-grey-400 hover:text-black"
+                    className="font-mono text-[10px] underline text-white hover:text-white"
                   >
                     Open {n.relatedType}
                   </button>
                 )}
 
-                <p className="font-mono text-[9px] text-grey-400">
+                <p className="font-mono text-[9px] text-white">
                   {n.read ? 'read' : 'unread'}{n.createdAt ? ` · ${new Date(n.createdAt).toLocaleDateString()}` : ''}
                 </p>
               </div>

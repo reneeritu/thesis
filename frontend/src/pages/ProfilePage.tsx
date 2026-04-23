@@ -118,10 +118,10 @@ export default function ProfilePage() {
         <section className="space-y-3">
           {profile ? (
             <>
-              <p className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+              <p className="text-small font-mono uppercase tracking-[0.18em] text-white">
                 Node
               </p>
-              <p className="text-h3 font-mono">{profile.alias}</p>
+              <p className="text-h3 font-bricolage">{profile.alias}</p>
               <div className="w-full max-w-3xl space-y-1 overflow-visible">
                 <CrystalRadar3DLazy
                   categories={profile.reputationCategories}
@@ -135,7 +135,7 @@ export default function ProfilePage() {
                   CURRENT SCORE — <span className="font-mono">{profile.reputationScore}</span>
                 </p>
               ) : (
-                <p className="text-small text-grey-400">
+                <p className="text-small text-white">
                   Score is only visible on your own profile.
                 </p>
               )}
@@ -153,11 +153,11 @@ export default function ProfilePage() {
               ) : null}
             </>
           ) : (
-            <p className="text-small font-mono text-grey-400">Loading profile…</p>
+            <p className="text-small font-mono text-white">Loading profile…</p>
           )}
 
           <div>
-            <h2 className="mb-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
               Spaces
             </h2>
             {spaces.length ? (
@@ -169,38 +169,38 @@ export default function ProfilePage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-small text-grey-400">No spaces listed.</p>
+              <p className="text-small text-white">No spaces listed.</p>
             )}
           </div>
         </section>
 
         <section className="space-y-3">
           <div>
-            <h2 className="mb-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
               Statement / Keywords
             </h2>
-            <p className="text-body text-grey-400">
+            <p className="text-body text-white">
               {profile?.keywords?.length ? profile.keywords.join(', ') : '—'}
             </p>
           </div>
 
           <div>
-            <h2 className="mb-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
               Interests
             </h2>
             {profile?.interests?.length ? (
-              <ul className="mt-0 list-disc pl-5 text-small text-grey-800">
+              <ul className="mt-0 list-disc pl-5 text-small text-white">
                 {profile.interests.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-small text-grey-400">—</p>
+              <p className="text-small text-white">—</p>
             )}
           </div>
 
           <div>
-            <h2 className="mb-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
               Links
             </h2>
             {profile?.portfolioUrl ? (
@@ -213,64 +213,64 @@ export default function ProfilePage() {
                 Portfolio
               </a>
             ) : (
-              <p className="text-small text-grey-400">—</p>
+              <p className="text-small text-white">—</p>
             )}
           </div>
         </section>
 
         <section className="space-y-4">
           <div>
-            <h2 className="mb-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
               Profile settings
             </h2>
             <form onSubmit={onSubmit} className="space-y-3 text-small">
               {error ? (
-                <p className="border border-black bg-grey-100 px-3 py-2 font-mono text-black" role="alert">
+                <p className="border border-black bg-grey-100 px-3 py-2 font-mono text-white" role="alert">
                   {error}
                 </p>
               ) : null}
               {saved && !error ? (
-                <p className="border border-black bg-white px-3 py-2 font-mono text-black">
+                <p className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-white">
                   Saved.
                 </p>
               ) : null}
               <div>
-                <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+                <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                   Interests (comma-separated)
                 </label>
                 <input
                   name="interests"
                   value={form.interests}
                   onChange={(e) => setForm((f) => ({ ...f, interests: e.target.value }))}
-                  className="w-full border border-black bg-white px-3 py-2 text-body font-sans"
+                  className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans"
                 />
               </div>
               <div>
-                <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+                <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                   Portfolio URL
                 </label>
                 <input
                   name="portfolioUrl"
                   value={form.portfolioUrl}
                   onChange={(e) => setForm((f) => ({ ...f, portfolioUrl: e.target.value }))}
-                  className="w-full border border-black bg-white px-3 py-2 text-body font-sans"
+                  className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans"
                 />
               </div>
               <div>
-                <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+                <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                   Keywords (comma-separated)
                 </label>
                 <input
                   name="keywords"
                   value={form.keywords}
                   onChange={(e) => setForm((f) => ({ ...f, keywords: e.target.value }))}
-                  className="w-full border border-black bg-white px-3 py-2 text-body font-sans"
+                  className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans"
                 />
               </div>
               <button
                 type="submit"
                 disabled={saving}
-                className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-black hover:bg-black hover:text-yellow-400 transition disabled:opacity-70"
+                className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-70"
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>
@@ -278,7 +278,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
               Completed projects
             </h2>
             {completed.length ? (
@@ -290,7 +290,7 @@ export default function ProfilePage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-small text-grey-400">—</p>
+              <p className="text-small text-white">—</p>
             )}
           </div>
         </section>

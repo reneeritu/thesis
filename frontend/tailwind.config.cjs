@@ -25,6 +25,8 @@ module.exports = {
           'Menlo',
           'monospace',
         ],
+        /** Headings / display (loaded in `index.html`) */
+        bricolage: ['Bricolage Grotesque', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         /* Caps match the fixed scale; fluid down to readable mobile minimums */

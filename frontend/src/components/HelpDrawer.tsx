@@ -47,16 +47,16 @@ export function HelpDrawer({ open, onClose }: Props) {
     >
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="flex h-full w-full max-w-md flex-col border-l border-black bg-[#faf7ef] shadow-xl"
+        className="flex h-full w-full max-w-md flex-col border-l border-white/20 bg-[#0a0712] text-white shadow-xl"
       >
-        <header className="flex items-center justify-between border-b border-black px-4 py-3">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em]">
+        <header className="flex items-center justify-between border-b border-white/15 px-4 py-3">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white">
             30-second glossary
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="border border-black bg-white px-2 py-0.5 font-mono text-[11px] hover:bg-black hover:text-yellow-400 transition"
+            className="border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-black hover:text-yellow-400 transition"
             aria-label="Close help"
           >
             ✕
@@ -64,7 +64,7 @@ export function HelpDrawer({ open, onClose }: Props) {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
-          <p className="mb-4 font-serif text-[14px] leading-snug text-grey-700">
+          <p className="mb-4 font-serif text-[14px] leading-snug text-white">
             Everything on Etch has a fingerprint. Here's the vocabulary.
           </p>
           <dl className="space-y-3 text-[13px]">
@@ -74,14 +74,14 @@ export function HelpDrawer({ open, onClose }: Props) {
                   <dt className="font-mono text-[11px] uppercase tracking-[0.18em]">
                     {label}
                   </dt>
-                  <dd className="mt-1 text-grey-700">{GLOSSARY[term]}</dd>
+                  <dd className="mt-1 text-white">{GLOSSARY[term]}</dd>
                 </div>
               ) : null,
             )}
           </dl>
         </div>
 
-        <footer className="border-t border-black px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-grey-500">
+        <footer className="border-t border-white/15 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white">
           Turn the "Hints: on" toggle off to hide these definitions inline.
         </footer>
       </aside>
@@ -97,7 +97,7 @@ export function HelpButton({ className = '' }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`h-8 w-8 shrink-0 border border-black bg-white font-mono text-[12px] font-bold hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation] ${className}`}
+        className={`h-8 w-8 shrink-0 border border-white/25 bg-zinc-900/55 font-mono text-[12px] font-bold text-white hover:bg-black hover:text-yellow-400 transition [touch-action:manipulation] ${className}`}
         aria-label="Open quick glossary"
         title="Quick glossary"
       >

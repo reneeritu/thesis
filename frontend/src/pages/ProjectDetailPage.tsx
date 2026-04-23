@@ -245,7 +245,7 @@ export default function ProjectDetailPage() {
           ? 'bg-black text-yellow-400'
           : variant === 'danger'
             ? 'bg-grey-100 hover:bg-black hover:text-yellow-400'
-            : 'bg-white hover:bg-black hover:text-yellow-400'
+            : 'bg-zinc-800/60 hover:bg-black hover:text-yellow-400'
       }`}
     >
       {label}
@@ -256,7 +256,7 @@ export default function ProjectDetailPage() {
     <AppShell title={project?.title || 'Project'}>
       <div className="space-y-4">
         {error && (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}
           </p>
         )}
@@ -267,13 +267,13 @@ export default function ProjectDetailPage() {
               <span className="inline-block border border-black bg-black px-2 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-yellow-400">
                 {project.status}
               </span>
-              <span className="text-small text-grey-400 font-mono break-all">
+              <span className="text-small text-white font-mono break-all">
                 {project._id}
               </span>
               {nftId && (
                 <Link
                   to={`/nfts/${encodeURIComponent(nftId)}`}
-                  className="border border-black bg-yellow-400 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-black hover:bg-black hover:text-yellow-400 transition"
+                  className="border border-black bg-yellow-400 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-white hover:bg-black hover:text-yellow-400 transition"
                   title="Open the certificate minted at the end of this project"
                 >
                   Provenance certificate
@@ -284,7 +284,7 @@ export default function ProjectDetailPage() {
                   type="button"
                   onClick={() => void exportProject()}
                   disabled={exportBusy}
-                  className="border border-black bg-white px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  className="border border-white/25 bg-zinc-900/55 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                   title="Download project + its chain slice (traces, references, pivots, vetos) as JSON"
                 >
                   {exportBusy ? 'Exporting…' : 'Export JSON'}
@@ -294,8 +294,8 @@ export default function ProjectDetailPage() {
 
             {/* Non-contributor: request to collaborate */}
             {isActive && !amListed && isPublic ? (
-              <section className="border border-grey-200 bg-white p-3 space-y-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+              <section className="border border-white/20 bg-zinc-900/50 p-3 space-y-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
                   Want to collaborate?
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -303,19 +303,19 @@ export default function ProjectDetailPage() {
                     value={joinReqNote}
                     onChange={(e) => setJoinReqNote(e.target.value)}
                     placeholder="short note (optional)"
-                    className="min-w-[220px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                    className="min-w-[220px] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                   />
                   <button
                     type="button"
                     disabled={joinReqBusy}
                     onClick={() => void sendJoinRequest()}
-                    className="border border-black bg-yellow-400 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-black hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                    className="border border-black bg-yellow-400 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                   >
                     {joinReqBusy ? 'Sending…' : 'Request to collaborate'}
                   </button>
                 </div>
                 {joinReqMsg ? (
-                  <p className="font-mono text-[11px] text-grey-600">{joinReqMsg}</p>
+                  <p className="font-mono text-[11px] text-white">{joinReqMsg}</p>
                 ) : null}
               </section>
             ) : null}
@@ -331,7 +331,7 @@ export default function ProjectDetailPage() {
                     type="button"
                     disabled={respondBusy}
                     onClick={() => respondContributor(true)}
-                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-black transition disabled:opacity-60"
+                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
                   >
                     Accept
                   </button>
@@ -339,7 +339,7 @@ export default function ProjectDetailPage() {
                     type="button"
                     disabled={respondBusy}
                     onClick={() => respondContributor(false)}
-                    className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-grey-600 hover:border-black hover:text-black transition disabled:opacity-60"
+                    className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
                   >
                     Decline
                   </button>
@@ -349,7 +349,7 @@ export default function ProjectDetailPage() {
 
             {/* Contributors */}
             <section className="space-y-2">
-              <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
                 Contributors
               </h2>
               {contributors.length ? (
@@ -359,7 +359,7 @@ export default function ProjectDetailPage() {
                       <Link to={`/nodes/${encodeURIComponent(c.alias)}`} className="hover:underline">
                         {c.alias}
                       </Link>
-                      {c.role ? <span className="text-grey-400">({c.role})</span> : null}{' '}
+                      {c.role ? <span className="text-white">({c.role})</span> : null}{' '}
                       {c.isPrimary ? (
                         <span className="inline-block border border-black bg-black px-1 py-0.5 text-[10px] uppercase tracking-[0.16em] text-yellow-400">
                           Primary
@@ -367,7 +367,7 @@ export default function ProjectDetailPage() {
                       ) : null}
                       {c.accepted === null ? (
                         <span
-                          className="inline-block border border-black bg-white px-1 py-0.5 text-[10px] uppercase tracking-[0.14em]"
+                          className="inline-block border border-white/25 bg-zinc-900/55 px-1 py-0.5 text-[10px] uppercase tracking-[0.14em]"
                           title="Primary has invited this alias. Waiting on their response."
                         >
                           Invite sent
@@ -377,12 +377,12 @@ export default function ProjectDetailPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-small text-grey-400">—</p>
+                <p className="text-small text-white">—</p>
               )}
 
               {isActive && amPrimary ? (
-                <div className="border border-grey-200 bg-white p-3 space-y-2">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+                <div className="border border-white/20 bg-zinc-900/50 p-3 space-y-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
                     Invite a collaborator
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -390,31 +390,31 @@ export default function ProjectDetailPage() {
                       value={inviteAlias}
                       onChange={(e) => setInviteAlias(e.target.value)}
                       placeholder="alias"
-                      className="min-w-[160px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                      className="min-w-[160px] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                     />
                     <input
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
                       placeholder="role (optional)"
-                      className="min-w-[140px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                      className="min-w-[140px] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                     />
                     <button
                       type="button"
                       disabled={inviteBusy || !inviteAlias.trim()}
                       onClick={() => void sendInvite()}
-                      className="border border-black bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-60"
+                      className="border border-black bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-yellow-400 transition hover:bg-yellow-400 hover:text-white disabled:opacity-60"
                     >
                       {inviteBusy ? 'Sending…' : 'Send invite'}
                     </button>
                   </div>
                   {inviteMsg ? (
-                    <p className="font-mono text-[11px] text-grey-600">{inviteMsg}</p>
+                    <p className="font-mono text-[11px] text-white">{inviteMsg}</p>
                   ) : null}
-                  <p className="font-mono text-[10px] text-grey-400">
+                  <p className="font-mono text-[10px] text-white">
                     They'll get a notification to accept or decline. Share your own details with{' '}
                     <Link
                       to={`/nodes/${encodeURIComponent(meAlias)}`}
-                      className="underline hover:text-black"
+                      className="underline hover:text-white"
                     >
                       /nodes/{meAlias}
                     </Link>
@@ -469,7 +469,7 @@ export default function ProjectDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowMedia((v) => !v)}
-                className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400 hover:text-black"
+                className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white hover:text-white"
               >
                 <span>{showMedia ? '▾' : '▸'}</span>
                 Proof & Media ({mediaItems.length} file{mediaItems.length !== 1 ? 's' : ''})
@@ -478,21 +478,21 @@ export default function ProjectDetailPage() {
               {showMedia && (
                 <div className="space-y-2">
                   <div className="border border-dashed border-grey-300 bg-grey-50 px-4 py-3 space-y-1">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-grey-500">How verification works</p>
-                    <p className="text-[12px] text-grey-600">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white">How verification works</p>
+                    <p className="text-[12px] text-white">
                       Every uploaded file is hashed with SHA-256 before it's stored. The hash is recorded on the trace entry (on-chain). To verify a file hasn't been tampered with: download it, compute its SHA-256, and compare to the hash shown here — they must match exactly.
                     </p>
                   </div>
 
                   {mediaItems.length === 0 ? (
-                    <p className="text-small text-grey-400 font-mono">No proof files yet. Attach an image, video, or audio file when logging work.</p>
+                    <p className="text-small text-white font-mono">No proof files yet. Attach an image, video, or audio file when logging work.</p>
                   ) : (
                     <ul className="divide-y divide-grey-100 border border-grey-200">
                       {mediaItems.map((m) => (
                         <li key={m.mediaId} className="px-4 py-3 space-y-2">
                           <div className="space-y-0.5 min-w-0">
                             <p className="font-mono text-[12px] truncate">{m.originalName}</p>
-                            <p className="font-mono text-[10px] text-grey-400">
+                            <p className="font-mono text-[10px] text-white">
                               {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
                             </p>
                           </div>
@@ -503,11 +503,11 @@ export default function ProjectDetailPage() {
                             originalName={m.originalName}
                           />
                           <div className="space-y-0.5">
-                            <p className="font-mono text-[10px] text-grey-400">
-                              Media ID — <span className="text-black tracking-wider">{m.mediaId}</span>
+                            <p className="font-mono text-[10px] text-white">
+                              Media ID — <span className="text-white tracking-wider">{m.mediaId}</span>
                             </p>
-                            <p className="font-mono text-[10px] text-grey-400">SHA-256 fingerprint</p>
-                            <p className="font-mono text-[10px] break-all text-grey-700">{m.hash}</p>
+                            <p className="font-mono text-[10px] text-white">SHA-256 fingerprint</p>
+                            <p className="font-mono text-[10px] break-all text-white">{m.hash}</p>
                           </div>
                         </li>
                       ))}
@@ -519,7 +519,7 @@ export default function ProjectDetailPage() {
 
             {/* Timeline */}
             <section className="space-y-2">
-              <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
                 Activity Timeline
               </h2>
               <ProjectTimeline entries={timeline} projectId={id} />
@@ -535,7 +535,7 @@ export default function ProjectDetailPage() {
             </p>
           </>
         ) : !error ? (
-          <p className="text-small font-mono text-grey-400">Loading…</p>
+          <p className="text-small font-mono text-white">Loading…</p>
         ) : null}
       </div>
     </AppShell>

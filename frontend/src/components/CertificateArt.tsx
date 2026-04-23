@@ -69,11 +69,11 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
   const remaining = Math.max(0, MAX_REROLLS - rerollsUsed)
 
   return (
-    <div className="border border-black bg-white p-3 space-y-3 text-small">
-      <h3 className="font-mono text-[11px] uppercase tracking-[0.18em]">Customise</h3>
+    <div className="border border-white/25 bg-zinc-900/55 p-3 space-y-3 text-small">
+      <h3 className="font-bricolage text-[11px] uppercase tracking-[0.18em]">Customise</h3>
 
       <section className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">Motif</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Motif</p>
         <div className="flex flex-wrap gap-1">
           {motifs.map((m) => (
             <button
@@ -81,7 +81,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
               type="button"
               onClick={() => set('motif', m.id)}
               className={`border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
-                value.motif === m.id ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'
+                value.motif === m.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
               }`}
             >
               {m.label}
@@ -91,7 +91,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
       </section>
 
       <section className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">Palette</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Palette</p>
         <div className="flex flex-wrap gap-1">
           {PALETTE_LIST.map((p) => (
             <button
@@ -99,7 +99,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
               type="button"
               onClick={() => set('palette', p.id)}
               className={`flex items-center gap-1 border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
-                value.palette === p.id ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'
+                value.palette === p.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
               }`}
             >
               <span className="inline-flex">
@@ -115,7 +115,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
 
       <section className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">Line weight</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Line weight</p>
           <div className="flex flex-wrap gap-1">
             {lineWeights.map((w) => (
               <button
@@ -123,7 +123,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
                 type="button"
                 onClick={() => set('lineWeight', w.id)}
                 className={`border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
-                  value.lineWeight === w.id ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'
+                  value.lineWeight === w.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
                 }`}
               >
                 {w.label}
@@ -132,7 +132,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
           </div>
         </div>
         <div className="space-y-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">Density</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Density</p>
           <div className="flex flex-wrap gap-1">
             {densities.map((d) => (
               <button
@@ -140,7 +140,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
                 type="button"
                 onClick={() => set('density', d.id)}
                 className={`border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
-                  value.density === d.id ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'
+                  value.density === d.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
                 }`}
               >
                 {d.label}
@@ -151,7 +151,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
       </section>
 
       <section className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">Layers</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Layers</p>
         <label className="flex items-center gap-2 font-mono text-[11px]">
           <input
             type="checkbox"
@@ -179,14 +179,14 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
       </section>
 
       <section className="flex items-center justify-between border-t border-grey-200 pt-2">
-        <p className="font-mono text-[10px] text-grey-400">
+        <p className="font-mono text-[10px] text-white">
           Rerolls: {rerollsUsed} / {MAX_REROLLS}
         </p>
         <button
           type="button"
           onClick={onReroll}
           disabled={remaining === 0}
-          className="border border-black bg-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-black hover:bg-black hover:text-yellow-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          className="border border-black bg-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Reroll
         </button>

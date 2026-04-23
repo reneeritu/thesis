@@ -140,18 +140,18 @@ export default function ArchiveNewPage() {
   return (
     <AppShell title="Archive past work">
       <div className="max-w-2xl space-y-6">
-        <p className="text-body text-grey-400">
+        <p className="text-body text-white">
           Document work that predates the chain. Evidence is anchored by SHA-256 hashes on-chain; file
           uploads are stored on the server and linked in the database.
         </p>
 
         {error ? (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}
           </p>
         ) : null}
         {done ? (
-          <p className="border border-black bg-white px-3 py-2 text-small font-mono text-black">
+          <p className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small font-mono text-white">
             {done}{' '}
             <Link to="/projects" className="underline underline-offset-4">
               View projects
@@ -161,12 +161,12 @@ export default function ArchiveNewPage() {
 
         <form onSubmit={onSubmit} className="space-y-4 text-small">
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Space</label>
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Space</label>
             <select
               value={spaceId}
               onChange={(e) => setSpaceId(e.target.value)}
               required
-              className="w-full border border-black bg-white px-3 py-2 text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             >
               {spaces.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -175,7 +175,7 @@ export default function ArchiveNewPage() {
               ))}
             </select>
             {spaces.length === 0 ? (
-              <p className="mt-1 text-small text-grey-400">
+              <p className="mt-1 text-small text-white">
                 Join or create a space first.{' '}
                 <Link to="/spaces" className="underline">
                   Spaces
@@ -185,25 +185,25 @@ export default function ArchiveNewPage() {
           </div>
 
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Title</label>
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Title</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full border border-black bg-white px-3 py-2 text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
           </div>
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Medium</label>
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Medium</label>
             <input
               value={medium}
               onChange={(e) => setMedium(e.target.value)}
               required
-              className="w-full border border-black bg-white px-3 py-2 text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
           </div>
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Approx. date (text)
             </label>
             <input
@@ -211,18 +211,18 @@ export default function ArchiveNewPage() {
               onChange={(e) => setApproxDate(e.target.value)}
               required
               placeholder="March 2022"
-              className="w-full border border-black bg-white px-3 py-2 text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
           </div>
 
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Evidence type
             </label>
             <select
               value={evidenceType}
               onChange={(e) => setEvidenceType(e.target.value as EvidenceType)}
-              className="w-full border border-black bg-white px-3 py-2 text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             >
               {EVIDENCE_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -234,13 +234,13 @@ export default function ArchiveNewPage() {
 
           {evidenceType === 'other' ? (
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Other description
               </label>
               <input
                 value={otherDescription}
                 onChange={(e) => setOtherDescription(e.target.value)}
-                className="w-full border border-black bg-white px-3 py-2 text-body"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
               />
             </div>
           ) : null}
@@ -258,7 +258,7 @@ export default function ArchiveNewPage() {
 
           {source === 'file' ? (
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">File</label>
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">File</label>
               <input
                 type="file"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
@@ -267,26 +267,26 @@ export default function ArchiveNewPage() {
             </div>
           ) : (
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">URL</label>
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">URL</label>
               <input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://…"
-                className="w-full border border-black bg-white px-3 py-2 text-body"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
               />
             </div>
           )}
 
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Context (optional)
             </label>
             <textarea
               value={contextNote}
               onChange={(e) => setContextNote(e.target.value)}
               rows={3}
-              className="w-full border border-black bg-white px-3 py-2 text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
           </div>
 
@@ -312,7 +312,7 @@ export default function ArchiveNewPage() {
           <button
             type="submit"
             disabled={submitting || spaces.length === 0}
-            className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-black hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+            className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
           >
             {submitting ? 'Submitting…' : 'Archive'}
           </button>

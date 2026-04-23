@@ -40,7 +40,7 @@ function RequireAuth() {
 function RouteFallback() {
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
+      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">
         Loading…
       </p>
     </div>

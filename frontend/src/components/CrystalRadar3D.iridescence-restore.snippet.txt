@@ -1,0 +1,45 @@
+RESTORE “iridescent” radar look (preview removed these pieces)
+================================================================
+
+0) Re-add helper above heatmapAlongT if missing:
+
+function shiftHue(hex: string, degrees: number): string {
+  const c = new THREE.Color(hex)
+  const hsl = { h: 0, s: 0, l: 0 }
+  c.getHSL(hsl)
+  hsl.h = (hsl.h + degrees / 360 + 1) % 1
+  c.setHSL(hsl.h, hsl.s, hsl.l)
+  return '#' + c.getHexString()
+}
+
+1) heatmapAlongT — replace the simplified body in CrystalRadar3D.tsx with:
+
+  const a = new THREE.Color(baseHex)
+  const mid = new THREE.Color(shiftHue(baseHex, 42))
+  mid.lerp(new THREE.Color(ghost ? '#6ec8ff' : '#00c8d4'), 0.35)
+  const hot = new THREE.Color(shiftHue(baseHex, -20))
+  hot.lerp(new THREE.Color('#e8f0ff'), 0.55)
+  const t1 = Math.max(0, Math.min(1, t))
+  if (t1 < 0.5) {
+    out.copy(a).lerp(mid, t1 * 2)
+  } else {
+    out.copy(mid).lerp(hot, (t1 - 0.5) * 2)
+  }
+  if (ghost) out.multiplyScalar(0.75)
+  return out
+
+2) ContourWireMesh matG — set blending back to:
+  blending: THREE.AdditiveBlending,
+
+3) Canvas — re-add postprocessing import and JSX:
+  import { EffectComposer, Bloom } from '@react-three/postprocessing'
+  ...
+  <EffectComposer enableNormalPass={false} multisampling={2}>
+    <Bloom
+      mipmapBlur
+      luminanceThreshold={0.78}
+      luminanceSmoothing={0.14}
+      intensity={0.22}
+      levels={4}
+    />
+  </EffectComposer>

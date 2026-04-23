@@ -58,7 +58,7 @@ function FieldHint({ term }: { term: string }) {
   const { definitionsOn } = useDefinitions()
   const text = GLOSSARY[term]
   if (!definitionsOn || !text) return null
-  return <p className="mt-1 text-[11px] font-mono leading-snug text-grey-500">{text}</p>
+  return <p className="mt-1 text-[11px] font-mono leading-snug text-white">{text}</p>
 }
 
 export default function GovernancePage() {
@@ -135,20 +135,20 @@ export default function GovernancePage() {
   return (
     <AppShell title="Governance">
       <div className="space-y-6">
-        <section className="border border-black bg-white p-4 space-y-3">
-          <h2 className="text-small font-mono uppercase tracking-[0.18em]">
+        <section className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
+          <h2 className="text-small font-bricolage uppercase tracking-[0.18em]">
             Raise <DefTerm term="flag">flag</DefTerm> / <DefTerm term="dispute">dispute</DefTerm>
           </h2>
           <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 text-small">
             <div>
-              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
                 <DefTerm term="flag_category">Category</DefTerm>
               </label>
               <select
                 value={flagCategory}
                 onChange={(e) => setFlagCategory(e.target.value)}
                 title={definitionsOn ? GLOSSARY[flagCategory] : undefined}
-                className="w-full border border-black bg-white px-3 py-2 font-mono"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono"
               >
                 {Object.keys(CATEGORY_TO_TYPES).map((c) => (
                   <option key={c} value={c} title={definitionsOn ? GLOSSARY[c] : undefined}>
@@ -159,14 +159,14 @@ export default function GovernancePage() {
               <FieldHint term={flagCategory} />
             </div>
             <div>
-              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
                 <DefTerm term="flag_type">Type</DefTerm>
               </label>
               <select
                 value={flagType}
                 onChange={(e) => setFlagType(e.target.value)}
                 title={definitionsOn ? GLOSSARY[flagType] : undefined}
-                className="w-full border border-black bg-white px-3 py-2 font-mono"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono"
               >
                 {types.map((t) => (
                   <option key={t} value={t} title={definitionsOn ? GLOSSARY[t] : undefined}>
@@ -177,14 +177,14 @@ export default function GovernancePage() {
               <FieldHint term={flagType} />
             </div>
             <div>
-              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
                 <DefTerm term="target_type">Target type</DefTerm>
               </label>
               <select
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value)}
                 title={definitionsOn ? GLOSSARY[targetType] : undefined}
-                className="w-full border border-black bg-white px-3 py-2 font-mono"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono"
               >
                 {TARGET_TYPES.map((t) => (
                   <option key={t} value={t} title={definitionsOn ? GLOSSARY[t] : undefined}>
@@ -195,7 +195,7 @@ export default function GovernancePage() {
               <FieldHint term={targetType} />
             </div>
             <div>
-              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
                 <DefTerm term="target_id">Target ID</DefTerm>
               </label>
               <input
@@ -203,24 +203,24 @@ export default function GovernancePage() {
                 onChange={(e) => setTargetId(e.target.value)}
                 required
                 title={definitionsOn ? GLOSSARY.target_id : undefined}
-                className="w-full border border-black bg-white px-3 py-2 font-mono"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono"
               />
               <FieldHint term="target_id" />
             </div>
             <div>
-              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
                 <DefTerm term="space_id_optional">Space ID (optional)</DefTerm>
               </label>
               <input
                 value={spaceId}
                 onChange={(e) => setSpaceId(e.target.value)}
                 title={definitionsOn ? GLOSSARY.space_id_optional : undefined}
-                className="w-full border border-black bg-white px-3 py-2 font-mono"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono"
               />
               <FieldHint term="space_id_optional" />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+              <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
                 <DefTerm term="reason">Reason</DefTerm>
               </label>
               <textarea
@@ -229,12 +229,12 @@ export default function GovernancePage() {
                 required
                 rows={3}
                 title={definitionsOn ? GLOSSARY.reason : undefined}
-                className="w-full border border-black bg-white px-3 py-2"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2"
               />
               <FieldHint term="reason" />
             </div>
             {error ? <p className="md:col-span-2 border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p> : null}
-            {ok ? <p className="md:col-span-2 border border-black bg-white px-3 py-2 font-mono">{ok}</p> : null}
+            {ok ? <p className="md:col-span-2 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono">{ok}</p> : null}
             {lastFlag?.complexityLevel ? (() => {
               const info = COMPLEXITY_COPY[lastFlag.complexityLevel]
               const hours = lastFlag.timeLockHours ?? info?.hours
@@ -243,7 +243,7 @@ export default function GovernancePage() {
                   <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
                     This looks like {info?.label ?? `Level ${lastFlag.complexityLevel}`}
                   </p>
-                  <p className="text-[12px] text-grey-600">
+                  <p className="text-[12px] text-white">
                     {info?.blurb ?? ''}{' '}
                     {hours ? `${prettyWindow(hours)} time-lock.` : ''}
                   </p>
@@ -257,17 +257,17 @@ export default function GovernancePage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+          <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
             My open <DefTerm term="flag">flags</DefTerm>
           </h2>
           {openFlags.length === 0 ? (
-            <p className="text-small text-grey-400">None.</p>
+            <p className="text-small text-white">None.</p>
           ) : (
             <div className="space-y-2">
               {openFlags.map((f) => (
-                <div key={f._id} className="border border-black bg-white px-3 py-2 text-small">
+                <div key={f._id} className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small">
                   <p className="font-mono">{f.flagCategory} / {f.flagType} / {f.status}</p>
-                  <p className="text-grey-400 break-all">{f.targetType}: {f.targetId}</p>
+                  <p className="text-white break-all">{f.targetType}: {f.targetId}</p>
                 </div>
               ))}
             </div>
@@ -275,17 +275,17 @@ export default function GovernancePage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+          <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
             My closed <DefTerm term="flag">flags</DefTerm>
           </h2>
           {closedFlags.length === 0 ? (
-            <p className="text-small text-grey-400">None.</p>
+            <p className="text-small text-white">None.</p>
           ) : (
             <div className="space-y-2">
               {closedFlags.map((f) => (
                 <div key={f._id} className="border border-black bg-grey-100 px-3 py-2 text-small">
                   <p className="font-mono">{f.flagCategory} / {f.flagType} / {f.status}</p>
-                  <p className="text-grey-400 break-all">{f.targetType}: {f.targetId}</p>
+                  <p className="text-white break-all">{f.targetType}: {f.targetId}</p>
                 </div>
               ))}
             </div>
@@ -293,17 +293,17 @@ export default function GovernancePage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+          <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
             My <DefTerm term="mediation">mediations</DefTerm>
           </h2>
           {mediations.length === 0 ? (
-            <p className="text-small text-grey-400">None.</p>
+            <p className="text-small text-white">None.</p>
           ) : (
             <div className="space-y-2">
               {mediations.map((m) => (
-                <div key={m._id} className="border border-black bg-white px-3 py-2 text-small">
+                <div key={m._id} className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small">
                   <p className="font-mono">{m.triggerType} / {m.status}</p>
-                  <p className="text-grey-400 break-all">project: {m.projectId} · entity: {m.relatedEntityType}</p>
+                  <p className="text-white break-all">project: {m.projectId} · entity: {m.relatedEntityType}</p>
                 </div>
               ))}
             </div>

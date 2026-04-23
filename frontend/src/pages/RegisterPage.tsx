@@ -15,9 +15,9 @@ type RegisterResponse = {
 
 type Step = 1 | 2 | 3 | 4
 
-const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1'
+const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
-  'w-full border border-black bg-white px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
+  'w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 
 const MIN_TRUSTEES = 3
 const MAX_TRUSTEES = 5
@@ -30,9 +30,9 @@ function Progress({ step }: { step: Step }) {
     { n: 4, label: 'Done' },
   ] as const
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+    <div className="flex flex-wrap gap-x-4 gap-y-2 text-small font-mono uppercase tracking-[0.18em] text-white">
       {items.map(({ n, label }) => (
-        <span key={n} className={step === n ? 'text-black border-b-2 border-black pb-0.5' : ''}>
+        <span key={n} className={step === n ? 'text-white border-b-2 border-black pb-0.5' : ''}>
           {n}. {label}
         </span>
       ))}
@@ -142,13 +142,13 @@ export default function RegisterPage() {
             <form onSubmit={onStep1} className="space-y-4 max-w-md">
               {error ? (
                 <p
-                  className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black"
+                  className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white"
                   role="alert"
                 >
                   {error}
                 </p>
               ) : null}
-              <p className="text-body text-grey-400">
+              <p className="text-body text-white">
                 Your alias is permanent on the chain. No email or phone — only this name and your seed.
               </p>
               <div>
@@ -184,9 +184,9 @@ export default function RegisterPage() {
               <Button type="submit" variant="primary">
                 Create node
               </Button>
-              <p className="text-small text-grey-400">
+              <p className="text-small text-white">
                 Already have an account?{' '}
-                <Link to="/login" className="underline underline-offset-4 hover:text-black">
+                <Link to="/login" className="underline underline-offset-4 hover:text-white">
                   Login
                 </Link>
               </p>
@@ -206,9 +206,9 @@ export default function RegisterPage() {
                 {seedWords.map((w, i) => (
                   <div
                     key={i}
-                    className="border border-black bg-white px-3 py-2 font-mono text-small"
+                    className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                   >
-                    <span className="text-grey-400">{i + 1}.</span> {w}
+                    <span className="text-white">{i + 1}.</span> {w}
                   </div>
                 ))}
               </div>
@@ -233,13 +233,13 @@ export default function RegisterPage() {
           {step === 3 ? (
             <div className="space-y-4 max-w-xl">
               <div className="space-y-2">
-                <h2 className="text-h3 font-mono">Pick your trustees (optional)</h2>
-                <p className="text-body text-grey-600">
+                <h2 className="text-h3 font-bricolage">Pick your trustees (optional)</h2>
+                <p className="text-body text-white">
                   <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who
                   can help you recover this account if you lose your seed phrase. A majority of them
                   must agree before any recovery happens. Pick people who know you.
                 </p>
-                <p className="text-small text-grey-400">
+                <p className="text-small text-white">
                   You can skip this now and set it up from your settings later — but without trustees,
                   losing your seed phrase means losing the account.
                 </p>
@@ -269,7 +269,7 @@ export default function RegisterPage() {
                         <button
                           type="button"
                           onClick={() => removeTrustee(i)}
-                          className="border border-black px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-grey-100"
+                          className="border border-black px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10"
                         >
                           Remove
                         </button>
@@ -283,12 +283,12 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={addTrustee}
-                      className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-grey-100"
+                      className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10"
                     >
                       + Add another
                     </button>
                   ) : null}
-                  <p className="text-[11px] font-mono text-grey-400 self-center">
+                  <p className="text-[11px] font-mono text-white self-center">
                     {trustees.filter(Boolean).length} / {MAX_TRUSTEES} · need ≥ {MIN_TRUSTEES}
                   </p>
                 </div>
@@ -300,7 +300,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={skipTrustees}
-                    className="border border-black bg-white px-4 py-2 font-mono text-small uppercase tracking-[0.18em] hover:bg-grey-100"
+                    className="border border-white/25 bg-zinc-900/55 px-4 py-2 font-mono text-small uppercase tracking-[0.18em] hover:bg-white/10"
                   >
                     Skip and set up later
                   </button>
@@ -311,13 +311,13 @@ export default function RegisterPage() {
 
           {step === 4 ? (
             <div className="space-y-4">
-              <p className="text-h3 font-mono">Welcome to the chain</p>
+              <p className="text-h3 font-bricolage">Welcome to the chain</p>
               <p className="text-body">
                 Node <span className="font-mono">{alias}</span> is ready.
               </p>
               <a
                 href="/dashboard"
-                className="inline-block border border-black bg-yellow-400 text-black font-mono text-small uppercase tracking-[0.2em] px-6 py-2 hover:bg-black hover:text-yellow-400 transition active:scale-[0.98]"
+                className="inline-block border border-black bg-yellow-400 text-white font-mono text-small uppercase tracking-[0.2em] px-6 py-2 hover:bg-black hover:text-yellow-400 transition active:scale-[0.98]"
               >
                 Go to dashboard
               </a>

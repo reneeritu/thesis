@@ -85,6 +85,12 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       /**
+       * Listen on all interfaces (0.0.0.0) so both `http://localhost` and
+       * `http://127.0.0.1` work on Windows; default can bind IPv6-only and
+       * break bookmarked 127.0.0.1 URLs.
+       */
+      host: true,
+      /**
        * If 5173 is taken, Vite picks the next free port (e.g. 5174).
        * Always use the exact `Local: http://localhost:…` URL printed in the terminal.
        */

@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
-import { ChainNode } from '../models/Node';
+import { ChainNode, type IReputationCategories } from '../models/Node';
 import { Space } from '../models/Space';
 import { ModerationPanel } from '../models/ModerationPanel';
 import { Flag, IFlag } from '../models/Flag';
 import { addBlock } from './chain';
 import { chainDefaults } from '../config/defaults';
+import { REPUTATION_CATEGORY_KEYS } from '../utils/reputationAggregate';
 
 function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
@@ -160,10 +161,22 @@ export function classifyFlagComplexity(
 export async function applyReputationPenalty(alias: string, penalty: number): Promise<void> {
   const node = await ChainNode.findOne({ alias });
   if (!node) return;
-  node.reputationScore = Math.max(
-    chainDefaults.reputationFloor,
-    node.reputationScore - penalty,
-  );
+  const cats = (node.reputationCategories || {}) as IReputationCategories;
+  // Remove penalty from categories largest-first so the derived aggregate drops immediately.
+  let remaining = Math.max(0, penalty);
+  const entries = REPUTATION_CATEGORY_KEYS.map((k) => ({
+    k,
+    v: Math.max(0, Number(cats[k] ?? 0)),
+  })).sort((a, b) => b.v - a.v);
+
+  for (const e of entries) {
+    if (remaining <= 0) break;
+    const take = Math.min(e.v, remaining);
+    cats[e.k] = e.v - take;
+    remaining -= take;
+  }
+
+  node.reputationCategories = cats;
   await node.save();
 }
 

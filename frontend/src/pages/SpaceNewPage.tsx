@@ -118,7 +118,7 @@ export default function SpaceNewPage() {
     <AppShell title="Create Space">
       <div className="max-w-lg space-y-4">
         {bar}
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
           Step {step}/{TOTAL_STEPS} — {stepLabel}
         </p>
 
@@ -130,21 +130,21 @@ export default function SpaceNewPage() {
         {step === 1 && (
           <form onSubmit={(e) => { e.preventDefault(); next() }} className="space-y-3 text-small">
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Name *</label>
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Name *</label>
               <input
                 value={data.name}
                 onChange={(e) => setData((d) => ({ ...d, name: e.target.value }))}
                 required
-                className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
               />
             </div>
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Description</label>
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Description</label>
               <textarea
                 value={data.description}
                 onChange={(e) => setData((d) => ({ ...d, description: e.target.value }))}
                 rows={3}
-                className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
               />
             </div>
             <Button type="submit" variant="primary">Next</Button>
@@ -154,7 +154,7 @@ export default function SpaceNewPage() {
         {/* ── Step 2: Co-founders ── */}
         {step === 2 && (
           <div className="space-y-3 text-small">
-            <p className="font-mono text-[11px] text-grey-400">
+            <p className="font-mono text-[11px] text-white">
               Add other nodes as founding members. They join the space immediately. You can skip this step.
             </p>
             <div className="flex gap-2">
@@ -162,13 +162,13 @@ export default function SpaceNewPage() {
                 value={foRaw}
                 onChange={(e) => setFoRaw(e.target.value)}
                 placeholder="alias"
-                className="flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+                className="flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addFoundingMember() } }}
               />
               <select
                 value={foRole}
                 onChange={(e) => setFoRole(e.target.value as 'admin' | 'member')}
-                className="border border-black bg-white px-2 py-2 font-mono text-small"
+                className="border border-white/25 bg-zinc-900/55 px-2 py-2 font-mono text-small"
               >
                 <option value="member">Member</option>
                 <option value="admin">Admin</option>
@@ -179,8 +179,8 @@ export default function SpaceNewPage() {
               <ul className="space-y-1">
                 {foundingMembers.map((m) => (
                   <li key={m.alias} className="flex items-center justify-between border border-grey-200 px-3 py-1 font-mono text-[11px]">
-                    <span>{m.alias} <span className="text-grey-400">({m.role})</span></span>
-                    <button type="button" onClick={() => removeFoundingMember(m.alias)} className="text-grey-400 hover:text-black ml-2">✕</button>
+                    <span>{m.alias} <span className="text-white">({m.role})</span></span>
+                    <button type="button" onClick={() => removeFoundingMember(m.alias)} className="text-white hover:text-white ml-2">✕</button>
                   </li>
                 ))}
               </ul>
@@ -198,7 +198,7 @@ export default function SpaceNewPage() {
             onSubmit={(e) => { e.preventDefault(); next() }}
             className="space-y-3 text-small"
           >
-            <p className="font-mono uppercase tracking-[0.18em] text-grey-400">Who can start a project?</p>
+            <p className="font-mono uppercase tracking-[0.18em] text-white">Who can start a project?</p>
             {(['open', 'invite_only', 'application'] as const).map((v) => (
               <label key={v} className="flex items-center gap-2 font-mono">
                 <input
@@ -214,13 +214,13 @@ export default function SpaceNewPage() {
 
             {data.projectAccess === 'invite_only' && (
               <div className="border border-grey-200 p-3 space-y-3 mt-2">
-                <p className="font-mono uppercase tracking-[0.16em] text-grey-400 text-[10px]">Invite code settings</p>
+                <p className="font-mono uppercase tracking-[0.16em] text-white text-[10px]">Invite code settings</p>
                 <div>
-                  <label className="block font-mono uppercase tracking-[0.14em] text-grey-400 mb-1 text-[10px]">Code type</label>
+                  <label className="block font-mono uppercase tracking-[0.14em] text-white mb-1 text-[10px]">Code type</label>
                   <select
                     value={data.inviteMode}
                     onChange={(e) => setData((d) => ({ ...d, inviteMode: e.target.value as 'single_use' | 'multi_use' }))}
-                    className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                    className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                   >
                     <option value="single_use">Single-use (one person per code)</option>
                     <option value="multi_use">Multi-use / shareable link</option>
@@ -243,7 +243,7 @@ export default function SpaceNewPage() {
                       min={1}
                       value={data.inviteExpiryDays}
                       onChange={(e) => setData((d) => ({ ...d, inviteExpiryDays: Number(e.target.value) }))}
-                      className="mt-1 w-32 border border-black bg-white px-3 py-1 font-mono text-small"
+                      className="mt-1 w-32 border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-small"
                     />
                   )}
                 </div>
@@ -271,16 +271,16 @@ export default function SpaceNewPage() {
             className="space-y-3 text-small"
           >
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Veto authority (comma-separated aliases)
               </label>
               <input
                 value={vetoRaw}
                 onChange={(e) => setVetoRaw(e.target.value)}
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                 placeholder="e.g. pqr, xyz"
               />
-              <p className="mt-1 font-mono text-[10px] text-grey-400">
+              <p className="mt-1 font-mono text-[10px] text-white">
                 These nodes will receive an invitation. Veto role is empty until they accept.
               </p>
             </div>
@@ -298,7 +298,7 @@ export default function SpaceNewPage() {
             className="space-y-3 text-small"
           >
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Voting threshold (0 – 1)
               </label>
               <input
@@ -308,7 +308,7 @@ export default function SpaceNewPage() {
                 max={1}
                 value={data.votingThreshold}
                 onChange={(e) => setData((d) => ({ ...d, votingThreshold: Number(e.target.value) }))}
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
               />
             </div>
             <label className="flex items-center gap-2 font-mono">
@@ -339,7 +339,7 @@ export default function SpaceNewPage() {
             }}
             className="space-y-3 text-small"
           >
-            <p className="font-mono uppercase tracking-[0.18em] text-grey-400">Privacy default</p>
+            <p className="font-mono uppercase tracking-[0.18em] text-white">Privacy default</p>
             {(['public', 'space_specific', 'private'] as const).map((v) => (
               <label key={v} className="flex items-center gap-2 font-mono">
                 <input
@@ -353,13 +353,13 @@ export default function SpaceNewPage() {
               </label>
             ))}
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
                 Content restrictions (comma-separated)
               </label>
               <input
                 value={restrictionsRaw}
                 onChange={(e) => setRestrictionsRaw(e.target.value)}
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
               />
             </div>
             <div className="flex gap-2">
@@ -372,7 +372,7 @@ export default function SpaceNewPage() {
         {/* ── Step 7: Review + Create ── */}
         {step === 7 && (
           <div className="space-y-3 text-small">
-            <p className="font-mono uppercase tracking-[0.18em] text-grey-400">Review</p>
+            <p className="font-mono uppercase tracking-[0.18em] text-white">Review</p>
             <pre className="border border-black bg-grey-100 p-3 font-mono text-[11px] overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(
                 {

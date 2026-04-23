@@ -98,9 +98,9 @@ export default function ProjectsBoardPage() {
   function Column({ title, items }: { title: string; items: ProjectRow[] }) {
     return (
       <div className="space-y-2">
-        <h2 className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">{title}</h2>
+        <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">{title}</h2>
         {items.length === 0 ? (
-          <p className="text-small text-grey-400">None.</p>
+          <p className="text-small text-white">None.</p>
         ) : (
           <div className="space-y-2">
             {items.map((item) =>
@@ -108,10 +108,10 @@ export default function ProjectsBoardPage() {
                 <Link
                   key={item.project._id}
                   to={`/projects/${encodeURIComponent(item.project._id)}`}
-                  className="flex flex-col gap-1 border border-black bg-white px-3 py-2 text-small hover:bg-black hover:text-yellow-400 transition"
+                  className="flex flex-col gap-1 border border-white/25 bg-zinc-900/55 px-3 py-2 text-small hover:bg-black hover:text-yellow-400 transition"
                 >
                   <span className="font-mono truncate">{item.project.title}</span>
-                  <span className="text-grey-400">
+                  <span className="text-white">
                     {item.spaceName ? `In ${item.spaceName}` : null}
                   </span>
                   <span className="text-[11px] font-mono uppercase tracking-[0.18em]">
@@ -130,7 +130,7 @@ export default function ProjectsBoardPage() {
     <AppShell title="Projects">
       <div className="space-y-4">
         {error ? (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}
           </p>
         ) : null}
@@ -140,7 +140,7 @@ export default function ProjectsBoardPage() {
             {errorRows.map((r, idx) => (
               <p
                 key={`${r.spaceId || 'space'}-${idx}`}
-                className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black"
+                className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white"
               >
                 {r.spaceName}: {r.error}
               </p>
@@ -149,17 +149,17 @@ export default function ProjectsBoardPage() {
         ) : null}
 
         <div className="flex items-center justify-between gap-2">
-          <p className="text-small text-grey-400">Your projects across all spaces.</p>
+          <p className="text-small text-white">Your projects across all spaces.</p>
           <div className="flex items-center gap-2">
             <Link
               to="/projects/search"
-              className="border border-black bg-white px-3 py-1 font-mono text-small uppercase tracking-[0.18em] hover:bg-black hover:text-yellow-400 transition"
+              className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-small uppercase tracking-[0.18em] hover:bg-black hover:text-yellow-400 transition"
             >
               Search
             </Link>
             <Link
               to="/projects/new"
-              className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.18em] text-black hover:bg-black hover:text-yellow-400 transition"
+              className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.18em] text-white hover:bg-black hover:text-yellow-400 transition"
             >
               + New project
             </Link>

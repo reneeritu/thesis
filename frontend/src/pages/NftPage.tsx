@@ -52,7 +52,7 @@ function ArtworkDisplay({
   if (!artwork || !artwork.type || artwork.type === 'none') {
     return (
       <div className="aspect-square border border-dashed border-black bg-grey-100 flex items-center justify-center text-center p-6">
-        <p className="text-small font-mono text-grey-400 max-w-[30ch]">
+        <p className="text-small font-mono text-white max-w-[30ch]">
           No artwork yet — use the generator below to create one.
         </p>
       </div>
@@ -62,7 +62,7 @@ function ArtworkDisplay({
   if (artwork.type === 'generated' && artwork.svg) {
     return (
       <div
-        className="aspect-square overflow-hidden border border-black bg-white"
+        className="aspect-square overflow-hidden border border-white/25 bg-zinc-900/55"
         // trusted: server re-sanitises every SVG via the strict allowlist before storing
         dangerouslySetInnerHTML={{ __html: artwork.svg }}
       />
@@ -80,7 +80,7 @@ function ArtworkDisplay({
       )
     }
     return (
-      <div className="border border-black bg-white">
+      <div className="border border-white/25 bg-zinc-900/55">
         <img
           src={src}
           alt={`Artwork for certificate ${nftId}`}
@@ -141,7 +141,7 @@ export default function NftPage() {
   return (
     <AppShell title="Provenance certificate">
       <div className="space-y-6">
-        <p className="text-small text-grey-600 max-w-xl">
+        <p className="text-small text-white max-w-xl">
           A{' '}
           <DefTerm term="provenance_certificate">provenance certificate</DefTerm> is the
           art piece minted at the end of a project — it proves who made what, when, with
@@ -149,7 +149,7 @@ export default function NftPage() {
         </p>
 
         {error ? (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}{' '}
             <Link to="/login" className="underline">
               Log in
@@ -166,7 +166,7 @@ export default function NftPage() {
               <div className="space-y-2">
                 <ArtworkDisplay nftId={bundle.nft._id} artwork={bundle.nft.artwork} />
                 {bundle.nft.artwork?.updatedBy ? (
-                  <p className="font-mono text-[10px] text-grey-400 uppercase tracking-[0.12em]">
+                  <p className="font-mono text-[10px] text-white uppercase tracking-[0.12em]">
                     {bundle.nft.artwork.type} · by {bundle.nft.artwork.updatedBy}
                     {bundle.nft.artwork.updatedAt
                       ? ' · ' +
@@ -184,7 +184,7 @@ export default function NftPage() {
                   <button
                     type="button"
                     onClick={() => setEditorOpen((v) => !v)}
-                    className="border border-black bg-white px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] w-full hover:bg-black hover:text-yellow-400 transition"
+                    className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] w-full hover:bg-black hover:text-yellow-400 transition"
                   >
                     {editorOpen
                       ? 'Close editor'
@@ -194,7 +194,7 @@ export default function NftPage() {
                   </button>
                 ) : (
                   !hasArtwork && (
-                    <p className="font-mono text-[10px] text-grey-400">
+                    <p className="font-mono text-[10px] text-white">
                       {meAlias
                         ? 'Only accepted primary contributors can attach artwork.'
                         : 'Log in as a primary contributor to attach artwork.'}
@@ -205,7 +205,7 @@ export default function NftPage() {
 
               {/* Certificate metadata */}
               <div className="space-y-3">
-                <h2 className="text-h3 font-mono">
+                <h2 className="text-h3 font-bricolage">
                   {bundle.nft.title || 'Certificate'}
                 </h2>
                 {bundle.archive ? (
@@ -213,7 +213,7 @@ export default function NftPage() {
                     Archive
                   </span>
                 ) : null}
-                <div className="border border-black bg-white px-3 py-2 text-small font-mono space-y-1">
+                <div className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small font-mono space-y-1">
                   <p>Medium: {bundle.nft.medium || '—'}</p>
                   <p className="break-all">
                     Project:{' '}
@@ -225,7 +225,7 @@ export default function NftPage() {
                     </Link>
                   </p>
                   {counts.traceCount > 0 || counts.pivotCount > 0 ? (
-                    <p className="text-grey-400">
+                    <p className="text-white">
                       {counts.traceCount} trace{counts.traceCount !== 1 ? 's' : ''}
                       {counts.pivotCount > 0 ? ` · ${counts.pivotCount} pivot${counts.pivotCount !== 1 ? 's' : ''}` : ''}
                       {counts.referenceCount > 0 ? ` · ${counts.referenceCount} ref${counts.referenceCount !== 1 ? 's' : ''}` : ''}
@@ -235,8 +235,8 @@ export default function NftPage() {
 
                 {/* Contributors */}
                 {contributors.length > 0 ? (
-                  <div className="border border-black bg-white px-3 py-2 space-y-1">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+                  <div className="border border-white/25 bg-zinc-900/55 px-3 py-2 space-y-1">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
                       Contributors
                     </p>
                     <ul className="space-y-0.5">
@@ -274,7 +274,7 @@ export default function NftPage() {
             ) : null}
           </div>
         ) : !error ? (
-          <p className="text-small font-mono text-grey-400">Loading…</p>
+          <p className="text-small font-mono text-white">Loading…</p>
         ) : null}
       </div>
     </AppShell>

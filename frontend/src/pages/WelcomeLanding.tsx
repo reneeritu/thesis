@@ -77,13 +77,13 @@ export default function WelcomeLanding() {
         <header className="pointer-events-none absolute left-0 right-0 top-0 z-[220] flex justify-end gap-2 p-4 sm:p-6">
           <Link
             to="/"
-            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[#DEB96A] backdrop-blur-sm transition hover:border-[#C8963E] hover:text-[#C8963E] [touch-action:manipulation]"
+            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:border-white/50 hover:text-white [touch-action:manipulation]"
           >
             Main site
           </Link>
           <Link
             to="/login"
-            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[#DEB96A] backdrop-blur-sm transition hover:border-[#C8963E] hover:text-[#C8963E] [touch-action:manipulation]"
+            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:border-white/50 hover:text-white [touch-action:manipulation]"
           >
             Login
           </Link>
@@ -94,7 +94,7 @@ export default function WelcomeLanding() {
         {import.meta.env.DEV ? (
           <button
             type="button"
-            className="pointer-events-auto fixed bottom-4 left-4 z-[300] border border-white/30 bg-black/70 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-[#DEB96A] backdrop-blur-sm hover:border-[#C8963E] hover:text-white"
+            className="pointer-events-auto fixed bottom-4 left-4 z-[300] border border-white/30 bg-black/70 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-white backdrop-blur-sm hover:border-white/50 hover:text-white"
             onClick={() => logEtchTheatreSaveJson()}
           >
             Log Theatre save (ETCH)
@@ -103,11 +103,11 @@ export default function WelcomeLanding() {
       </div>
 
       <section
-        className="relative z-0 border-t border-[#2a1f35] bg-[#F5F0E8] text-black"
+        className="relative z-0 border-t border-[#2a1f35] bg-[#0a0712] text-white"
         aria-label="Introduction"
       >
         <div className="mx-auto max-w-shell shell-px py-20 sm:py-28">
-          <p className="font-[Cormorant_Garamond,serif] text-[clamp(1.5rem,4vw,2.25rem)] font-medium leading-snug tracking-wide text-[#3d2f28]">
+          <p className="font-[Cormorant_Garamond,serif] text-[clamp(1.5rem,4vw,2.25rem)] font-medium leading-snug tracking-wide text-white">
             Document what making actually looks like — a tactile pause between the depth of the studio and
             the clarity of the page.
           </p>
@@ -115,22 +115,22 @@ export default function WelcomeLanding() {
             <div className="flex flex-col">
               <Link
                 to="/register"
-                className="inline-flex justify-center border border-black bg-[#C8963E] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-black transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
+                className="inline-flex justify-center border border-black bg-[#C8963E] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
               >
                 Enter the chain
               </Link>
-              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#6a5448]">
+              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/85">
                 Create an account
               </span>
             </div>
             <div className="flex flex-col">
               <Link
                 to="/discover"
-                className="inline-flex justify-center border border-black bg-white px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-black transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
+                className="inline-flex justify-center border border-white/25 bg-zinc-900/55 px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:bg-black hover:text-[#C8963E] [touch-action:manipulation]"
               >
                 Discover
               </Link>
-              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#6a5448]">
+              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/85">
                 Browse public spaces
               </span>
             </div>

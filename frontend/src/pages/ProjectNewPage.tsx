@@ -93,22 +93,22 @@ export default function ProjectNewPage() {
     <AppShell title="New project">
       <form onSubmit={onSubmit} className="max-w-lg space-y-4">
         {error ? (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}
           </p>
         ) : null}
         <div>
-          <label className="block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+          <label className="block text-small font-mono uppercase tracking-[0.18em] text-white mb-1">
             Title
           </label>
           <input
             name="title"
             required
-            className="w-full border border-black bg-white px-3 py-2 text-body font-sans"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans"
           />
         </div>
         <div>
-          <label className="block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+          <label className="block text-small font-mono uppercase tracking-[0.18em] text-white mb-1">
             Space
           </label>
           <select
@@ -116,7 +116,7 @@ export default function ProjectNewPage() {
             required
             value={spaceId}
             onChange={(e) => setSpaceId(e.target.value)}
-            className="w-full border border-black bg-white px-3 py-2 text-body font-sans"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans"
           >
             {spaces.map((s) => (
               <option key={s.id} value={s.id}>
@@ -126,28 +126,28 @@ export default function ProjectNewPage() {
           </select>
         </div>
         <div>
-          <label className="block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+          <label className="block text-small font-mono uppercase tracking-[0.18em] text-white mb-1">
             Contributors (one alias per line)
           </label>
           <textarea
             name="contrib"
             rows={4}
-            className="w-full border border-black bg-white px-3 py-2 text-small font-mono"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-small font-mono"
           />
         </div>
         <div>
-          <label className="block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+          <label className="block text-small font-mono uppercase tracking-[0.18em] text-white mb-1">
             Mentor alias (optional)
           </label>
           <input
             name="mentorAlias"
-            className="w-full border border-black bg-white px-3 py-2 text-body font-sans"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans"
           />
         </div>
         <button
           type="submit"
           disabled={saving}
-          className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-black hover:bg-black hover:text-yellow-400 transition disabled:opacity-70"
+          className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-70"
         >
           {saving ? 'Creating…' : 'Create project'}
         </button>

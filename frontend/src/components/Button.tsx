@@ -4,11 +4,11 @@ type Variant = 'primary' | 'secondary' | 'danger'
 
 const variantClass: Record<Variant, string> = {
   primary:
-    'border border-black bg-yellow-400 text-black hover:bg-black hover:text-yellow-400',
+    'border border-black bg-yellow-400 text-white hover:bg-black hover:text-yellow-400',
   secondary:
-    'border border-black bg-white text-black hover:bg-black hover:text-yellow-400',
+    'border border-white/25 bg-zinc-900/55 text-white hover:bg-black hover:text-yellow-400',
   danger:
-    'border border-black bg-grey-100 text-black hover:bg-black hover:text-yellow-400',
+    'border border-red-500/50 bg-red-950/50 text-white hover:bg-black hover:text-yellow-400',
 }
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -1,6 +1,7 @@
 import type { UpdateQuery } from 'mongoose';
 import { ChainNode, IChainNode, IReputationCategories } from '../models/Node';
 import { chainDefaults } from '../config/defaults';
+import { reputationScoreFromCategories, REPUTATION_CATEGORY_KEYS } from '../utils/reputationAggregate';
 
 type ReputationCategory = keyof IReputationCategories;
 
@@ -74,12 +75,6 @@ export async function addReputationPoints(
 
   ensureReputationFields(node);
 
-  const baseScore =
-    typeof node.reputationScore === 'number' && !Number.isNaN(node.reputationScore)
-      ? node.reputationScore
-      : chainDefaults.reputationBaseScore;
-  node.reputationScore = clamp(baseScore + points);
-
   if (category) {
     const prev = node.reputationCategories[category] || 0;
     node.reputationCategories[category] = Math.min(
@@ -89,6 +84,7 @@ export async function addReputationPoints(
   }
 
   node.lastActiveAt = new Date();
+  // reputationScore is derived on save() from categories (Node.ts pre-save hook).
   await node.save();
 }
 
@@ -101,9 +97,7 @@ export async function onTraceCreated(
   activityType: string,
 ): Promise<void> {
   const category = ACTIVITY_CATEGORY_MAP[activityType];
-  const inc: Record<string, number> = {
-    reputationScore: POINTS.trace,
-  };
+  const inc: Record<string, number> = {};
   if (category) {
     inc[`reputationCategories.${category}`] = POINTS.trace;
   }
@@ -122,6 +116,14 @@ export async function onTraceCreated(
     update,
     { new: true },
   );
+
+  // findOneAndUpdate bypasses pre('save'); keep the derived aggregate in sync.
+  if (doc) {
+    const derived = reputationScoreFromCategories(doc.reputationCategories);
+    if (doc.reputationScore !== derived) {
+      await ChainNode.updateOne({ _id: doc._id }, { $set: { reputationScore: derived } });
+    }
+  }
 
   if (!doc && process.env.NODE_ENV === 'development') {
     console.warn('[reputation] onTraceCreated: no document updated', { alias });
@@ -173,9 +175,16 @@ export async function runReputationDecay(): Promise<void> {
   });
 
   for (const node of inactiveNodes) {
-    node.reputationScore = clamp(
-      node.reputationScore - chainDefaults.reputationDecayPerMonth,
-    );
+    ensureReputationFields(node);
+    // Decay is applied to categories so the derived aggregate stays consistent.
+    // Spread the decay evenly across categories (bounded by 0..cap).
+    const per = chainDefaults.reputationDecayPerMonth / REPUTATION_CATEGORY_KEYS.length;
+    for (const k of REPUTATION_CATEGORY_KEYS) {
+      const prev = Number(node.reputationCategories[k] ?? 0);
+      const next = Math.max(0, prev - per);
+      node.reputationCategories[k] = next;
+    }
+    // Derived aggregate will be recomputed on save (pre-save hook).
     await node.save();
   }
 

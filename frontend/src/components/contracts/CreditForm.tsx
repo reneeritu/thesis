@@ -111,8 +111,8 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
   }
 
   return (
-    <div className="border border-black bg-white p-4 space-y-4">
-      <h3 className="text-small font-mono uppercase tracking-[0.18em]">Credit Split / End Project</h3>
+    <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-4">
+      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Credit Split / End Project</h3>
 
       {existingNft && (
         <div className="space-y-3">
@@ -146,7 +146,7 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
       <form onSubmit={onSubmit} className="space-y-3 text-small">
         <table className="w-full text-small font-mono">
           <thead>
-            <tr className="text-left text-grey-400 uppercase tracking-[0.18em]">
+            <tr className="text-left text-white uppercase tracking-[0.18em]">
               <th className="pb-1">Alias</th>
               <th className="pb-1">Role</th>
               <th className="pb-1">Weight</th>
@@ -166,32 +166,32 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
                     placeholder="equal"
                     value={weights[c.alias] ?? ''}
                     onChange={(e) => setWeight(c.alias, e.target.value)}
-                    className="w-20 border border-black bg-white px-2 py-1 font-mono text-small"
+                    className="w-20 border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-small"
                   />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="text-[11px] text-grey-400">Leave weights blank for equal split. Weights must sum to 1.0 if specified.</p>
+        <p className="text-[11px] text-white">Leave weights blank for equal split. Weights must sum to 1.0 if specified.</p>
 
         <div>
-          <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Medium (optional)</label>
+          <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Medium (optional)</label>
           <input
             value={medium}
             onChange={(e) => setMedium(e.target.value)}
-            className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
           />
         </div>
 
         <details className="text-small">
-          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-grey-400">Off-chain contributors</summary>
+          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-white">Off-chain contributors</summary>
           <textarea
             value={offChain}
             onChange={(e) => setOffChain(e.target.value)}
             placeholder='[{"name":"x","portfolio":"","role":""}]'
             rows={3}
-            className="mt-2 w-full border border-black bg-white px-3 py-2 font-mono text-small"
+            className="mt-2 w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
           />
         </details>
 
@@ -202,7 +202,7 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
 
         {error && <p className="border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p>}
         {result ? (
-          <div className="border border-black bg-white px-3 py-2 font-mono space-y-2">
+          <div className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono space-y-2">
             <p>{result}</p>
             <Link
               to={`/governance?category=dispute&type=credit_dispute&targetType=project&targetId=${encodeURIComponent(projectId)}`}

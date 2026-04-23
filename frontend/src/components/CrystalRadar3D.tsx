@@ -13,7 +13,9 @@
  * Shards are crumpled with 3D Perlin (FBM) displacement; the visible form is
  * line-first: batched `WireframeGeometry` + helix filaments on `LineSegments2`
  * with heatmap vertex colours, wide + core additive passes, and a very faint
- * solid shell for depth and hit-testing. Bloom post-processing lifts bright
+ * solid shell for depth and hit-testing. Post-processing (bloom, light grain,
+ * subtle chroma) plus small stable line wobble read a little more hand-drawn
+ * than perfect CAD. Bloom lifts bright
  * overlaps. At low score, many chaos filaments still fill each cell. Sparse
  * connector strokes avoid a hard hub at the origin. Particles only at depth ≥2.
  *
@@ -27,10 +29,20 @@
  * mandala with clamped depth so it sits legibly inside the main sculpture.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing'
+import { BlendFunction } from 'postprocessing'
+import { PartialPixelation } from './PartialPixelation'
 import { LineMaterial, LineSegments2, LineSegmentsGeometry } from 'three-stdlib'
 import * as THREE from 'three'
 import { GLOSSARY } from '../lib/glossary'
@@ -53,6 +65,9 @@ type ReputationCategories = {
 }
 
 type CategoryKey = keyof ReputationCategories
+
+/** RGB channel split (post) — noticeable but dialed back from the heaviest pass. */
+const CRYSTAL_CHROMA_OFFSET = new THREE.Vector2(0.0015, 0.002)
 
 const KEYS: CategoryKey[] = [
   'craft',
@@ -365,7 +380,7 @@ function makeShardGeometry(
       const ny = nrm.getY(i)
       const nz = nrm.getZ(i)
       const f =
-        fbmPerlin3(x * scaleN * sx + offX, y * scaleN * sy + offY, z * scaleN * sz + offZ) * ref
+        fbmPerlin3(x * scaleN * sx + offX, y * scaleN * sy + offY, z * scaleN * sz + offZ, 2) * ref
       pos.setXYZ(i, x + nx * f, y + ny * f, z + nz * f)
     }
     pos.needsUpdate = true
@@ -391,8 +406,8 @@ type ShardSpec = {
 function buildCellSpecs(depth: number, armLen: number, seed: number, score: number): ShardSpec[] {
   const out: ShardSpec[] = []
   const detailT = scoreToDetailT(score)
-  // Dense chaos filaments at every score — keeps wiremesh lively when depth is 0.
-  const chaosN = 28 + Math.floor(detailT * 20)
+  // Chaos filaments — trimmed for performance; still lively at any score.
+  const chaosN = 14 + Math.floor(detailT * 10)
   for (let i = 0; i < chaosN; i++) {
     const t = (i + seed * 1.3) * 0.37
     const g = fbmPerlin3(t, seed * 0.2 - i, t * 0.8, 2)
@@ -475,7 +490,7 @@ function buildCellSpecs(depth: number, armLen: number, seed: number, score: numb
 
   // --- depth 3 : nebula / filigree — dense cloud of micro-shards -------
   if (depth >= 3) {
-    for (let i = 0; i < 96; i++) {
+    for (let i = 0; i < 40; i++) {
       const t = (i + seed * 2.1) * 0.137
       const g = fbmPerlin3(t * 1.1, t * 0.7 + seed, t * 1.3 - seed, 3)
       const h = fbmPerlin3(t * 0.9 + 2, t * 1.2, seed * 0.3 - i * 0.01, 3)
@@ -591,12 +606,26 @@ function ContourWireMesh({ geometry, spec, baseHex, theme, ghost, seed }: Contou
   const batched = useMemo(() => {
     const wire = new THREE.WireframeGeometry(geometry)
     const wf = wire.attributes.position.array as Float32Array
-    const helixSteps = 32 + Math.floor((spec.depth + 1) * 6 + Math.sin(seed) * 4)
+    const helixSteps = 14 + Math.floor((spec.depth + 1) * 3 + Math.sin(seed) * 2)
     const helix = helixSegmentPositions(spec.length, spec.baseW, spec.tipW, seed, helixSteps)
     const positions = mergeFloat32(wf, helix)
     wire.dispose()
 
     const nSeg = positions.length / 6
+    // Slight per-segment endpoint offsets so long edges aren’t ruler-straight (ink / pencil).
+    const jScale = (ghost ? 0.55 : 1) * (0.0042 + (spec.depth + 0.5) * 0.0007)
+    const px = spec.pos[0]
+    const py = spec.pos[1]
+    const pz = spec.pos[2]
+    for (let i = 0; i < nSeg; i++) {
+      const b = i * 6
+      for (const off of [0, 0.37] as const) {
+        const k = b + (off === 0 ? 0 : 3)
+        positions[k] += fbmPerlin3(seed + off, i * 0.19, px * 0.2 + pz * 0.15, 1) * jScale
+        positions[k + 1] += fbmPerlin3(seed + 1.4 + off, i * 0.23, py * 0.2, 1) * jScale
+        positions[k + 2] += fbmPerlin3(seed + 0.3 + off, i * 0.17, pz * 0.15 + seed * 0.02, 1) * jScale
+      }
+    }
     const colors = new Float32Array(nSeg * 6)
     const L = Math.max(0.001, spec.length)
     for (let i = 0; i < nSeg; i++) {
@@ -785,70 +814,266 @@ function CellParticles({
 // GyroscopeRings — three slowly counter-rotating wireframe circles at
 // different tilts, sitting around the whole mandala. Architectural / orrery
 // feel, not generative noise. Gives low-score nodes atmosphere for free.
+// Beams take the category colour of the nearest FractalCell (by direction in
+// world space); each ring’s opacity is lowest near the beam, strongest on
+// the opposite side of the circle.
 // ---------------------------------------------------------------------------
 
-function GyroscopeRings({ radius, colour }: { radius: number; colour: string }) {
-  const r1 = useRef<THREE.Group>(null)
-  const r2 = useRef<THREE.Group>(null)
-  const r3 = useRef<THREE.Group>(null)
+const GYRO_SWEEP_HEAD_A = 0.12
+const GYRO_SWEEP_TAIL_A = -0.48
+const GYRO_RING_SEGS = 96
+const GYRO_BEAM_PTS = 20
 
-  const circleGeom = useMemo(() => {
-    const n = 192
+const _gBeamW = new THREE.Vector3()
+const _gCellW = new THREE.Vector3()
+const _gC0 = new THREE.Color()
+const _gC1 = new THREE.Color()
+const _gBeamDim = new THREE.Color()
+const _gBeamHot = new THREE.Color()
+
+type GyroRingConfig = {
+  phase: number
+  speed: number
+  /** Euler rotation of the orrery group (r2 / r3 tilt) */
+  ringInit: [number, number, number]
+  /** Slow spin of the whole ring/tumble */
+  ringSpin: (g: THREE.Group, dt: number) => void
+  /** Max opacity (matches former line material opacity) */
+  opacityBase: number
+}
+
+function GyroscopeRing({ radius, baseColour, theme, mandalRootRef, cfg }: { radius: number; baseColour: string; theme: 'dark' | 'light'; mandalRootRef: RefObject<THREE.Group | null>; cfg: GyroRingConfig }) {
+  const { phase, speed, ringInit, ringSpin, opacityBase } = cfg
+  const ringG = useRef<THREE.Group>(null)
+  const innerG = useRef<THREE.Group>(null)
+  const baseC = useMemo(() => new THREE.Color(baseColour), [baseColour])
+
+  const { circleGeom, beamGeom, nSeg } = useMemo(() => {
+    const n = GYRO_RING_SEGS
     const pts = new Float32Array(n * 3)
+    const cols = new Float32Array(n * 3)
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2
-      pts[i * 3] = Math.cos(a) * radius
+      const w = fbmPerlin3(3.1, i * 0.14, radius * 2.2, 2) * 0.044
+      const rP = radius * (1 + fbmPerlin3(1.7, i * 0.18, radius, 2) * 0.02)
+      pts[i * 3] = Math.cos(a + w) * rP
       pts[i * 3 + 1] = 0
-      pts[i * 3 + 2] = Math.sin(a) * radius
+      pts[i * 3 + 2] = Math.sin(a + w) * rP
+      cols[i * 3] = 0.2
+      cols[i * 3 + 1] = 0.2
+      cols[i * 3 + 2] = 0.3
     }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(pts, 3))
-    return g
+    const gRing = new THREE.BufferGeometry()
+    gRing.setAttribute('position', new THREE.BufferAttribute(pts, 3))
+    gRing.setAttribute('color', new THREE.BufferAttribute(cols, 3))
+
+    const nPts = GYRO_BEAM_PTS
+    const nSeg0 = nPts - 1
+    const positions = new Float32Array(nSeg0 * 6)
+    const bcols = new Float32Array(nSeg0 * 6)
+    for (let i = 0; i < nSeg0; i++) {
+      const t0 = i / (nPts - 1)
+      const t1 = (i + 1) / (nPts - 1)
+      const w0 = fbmPerlin3(2.3, i * 0.21, 0, 2) * 0.03
+      const w1 = fbmPerlin3(2.3, (i + 0.7) * 0.21, 0.2, 2) * 0.03
+      const a0 = GYRO_SWEEP_TAIL_A + (GYRO_SWEEP_HEAD_A - GYRO_SWEEP_TAIL_A) * t0 + w0
+      const a1 = GYRO_SWEEP_TAIL_A + (GYRO_SWEEP_HEAD_A - GYRO_SWEEP_TAIL_A) * t1 + w1
+      const b = i * 6
+      const r0 = radius * (1 + fbmPerlin3(0.4, i * 0.3, 1, 2) * 0.018)
+      const r1 = radius * (1 + fbmPerlin3(0.4, (i + 1) * 0.3, 1, 2) * 0.018)
+      positions[b] = Math.cos(a0) * r0
+      positions[b + 1] = 0
+      positions[b + 2] = Math.sin(a0) * r0
+      positions[b + 3] = Math.cos(a1) * r1
+      positions[b + 4] = 0
+      positions[b + 5] = Math.sin(a1) * r1
+      bcols[b] = 0
+      bcols[b + 1] = 0
+      bcols[b + 2] = 0
+      bcols[b + 3] = 0
+      bcols[b + 4] = 0
+      bcols[b + 5] = 0
+    }
+    const gBeam = new THREE.BufferGeometry()
+    gBeam.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    gBeam.setAttribute('color', new THREE.BufferAttribute(bcols, 3))
+    return { circleGeom: gRing, beamGeom: gBeam, nSeg: nSeg0 }
   }, [radius])
 
-  useEffect(() => () => circleGeom.dispose(), [circleGeom])
+  useEffect(
+    () => () => {
+      circleGeom.dispose()
+      beamGeom.dispose()
+    },
+    [circleGeom, beamGeom],
+  )
+
+  const whiteTip = useMemo(
+    () => (theme === 'dark' ? new THREE.Color('#e8f0ff') : new THREE.Color('#ffffff')),
+    [theme],
+  )
 
   useFrame((_, dt) => {
-    if (r1.current) r1.current.rotation.y += dt * 0.05
-    if (r2.current) r2.current.rotation.z -= dt * 0.032
-    if (r3.current) r3.current.rotation.x += dt * 0.041
+    const rg = ringG.current
+    const inner = innerG.current
+    const root = mandalRootRef.current
+    if (!rg || !inner || !root) return
+
+    ringSpin(rg, dt)
+    inner.rotation.y += speed * dt
+
+    const γ = GYRO_SWEEP_HEAD_A + inner.rotation.y + phase
+    const n = GYRO_RING_SEGS
+    const kMin = opacityBase * 0.1
+    const kMax = opacityBase
+    const colAttr = circleGeom.getAttribute('color') as THREE.BufferAttribute
+    const o = colAttr.array as Float32Array
+    const posAttr = circleGeom.getAttribute('position') as THREE.BufferAttribute
+    const pa = posAttr.array as Float32Array
+    for (let i = 0; i < n; i++) {
+      const α = Math.atan2(pa[i * 3 + 2]!, pa[i * 3]!)
+      const raw = 0.5 * (1 - Math.cos(α - γ))
+      const t = THREE.MathUtils.clamp(
+        (raw - 0.05) / 0.9,
+        0,
+        1,
+      )
+      const k = kMin + (kMax - kMin) * t
+      o[i * 3] = baseC.r * k
+      o[i * 3 + 1] = baseC.g * k
+      o[i * 3 + 2] = baseC.b * k
+    }
+    colAttr.needsUpdate = true
+
+    _gBeamW.set(Math.cos(γ), 0, Math.sin(γ))
+    _gBeamW.transformDirection(rg.matrixWorld)
+    _gBeamW.normalize()
+
+    let bestKey: CategoryKey = KEYS[0]!
+    let bestDot = -Infinity
+    for (let i = 0; i < 6; i++) {
+      const d0 = CELL_DIRECTIONS[i]!
+      _gCellW.set(d0[0], d0[1], d0[2])
+      _gCellW.transformDirection(root.matrixWorld)
+      const d = _gBeamW.dot(_gCellW)
+      if (d > bestDot) {
+        bestDot = d
+        bestKey = KEYS[i]!
+      }
+    }
+    const catHex = ARM_COLOURS[bestKey]
+    _gBeamDim.set(catHex)
+    _gBeamDim.multiplyScalar(theme === 'dark' ? 0.1 : 0.14)
+    _gBeamHot.set(catHex)
+    _gBeamHot.lerp(whiteTip, 0.5)
+
+    const bAttr = beamGeom.getAttribute('color') as THREE.BufferAttribute
+    const bo = bAttr.array as Float32Array
+    const nPts = GYRO_BEAM_PTS
+    for (let i = 0; i < nSeg; i++) {
+      const t0 = i / (nPts - 1)
+      const t1 = (i + 1) / (nPts - 1)
+      const w0 = t0 ** 1.35
+      const w1 = t1 ** 1.35
+      _gC0.copy(_gBeamDim).lerp(_gBeamHot, w0)
+      _gC1.copy(_gBeamDim).lerp(_gBeamHot, w1)
+      const b = i * 6
+      bo[b] = _gC0.r
+      bo[b + 1] = _gC0.g
+      bo[b + 2] = _gC0.b
+      bo[b + 3] = _gC1.r
+      bo[b + 4] = _gC1.g
+      bo[b + 5] = _gC1.b
+    }
+    bAttr.needsUpdate = true
   })
 
   return (
+    <group ref={ringG} rotation={ringInit}>
+      <lineLoop geometry={circleGeom}>
+        <lineBasicMaterial
+          color="#ffffff"
+          transparent
+          opacity={1}
+          depthWrite={false}
+          toneMapped
+          vertexColors
+        />
+      </lineLoop>
+      <group rotation={[0, phase, 0]}>
+        <group ref={innerG}>
+          <lineSegments geometry={beamGeom}>
+            <lineBasicMaterial
+              color="#ffffff"
+              transparent
+              opacity={0.9}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+              toneMapped
+              vertexColors
+            />
+          </lineSegments>
+        </group>
+      </group>
+    </group>
+  )
+}
+
+function GyroscopeRings({
+  radius,
+  colour,
+  theme,
+  mandalRootRef,
+}: {
+  radius: number
+  colour: string
+  theme: 'dark' | 'light'
+  mandalRootRef: RefObject<THREE.Group | null>
+}) {
+  return (
     <>
-      <group ref={r1}>
-        <lineLoop geometry={circleGeom}>
-          <lineBasicMaterial
-            color={colour}
-            transparent
-            opacity={0.12}
-            depthWrite={false}
-            toneMapped
-          />
-        </lineLoop>
-      </group>
-      <group ref={r2} rotation={[Math.PI / 3, 0, 0]}>
-        <lineLoop geometry={circleGeom}>
-          <lineBasicMaterial
-            color={colour}
-            transparent
-            opacity={0.1}
-            depthWrite={false}
-            toneMapped
-          />
-        </lineLoop>
-      </group>
-      <group ref={r3} rotation={[0, 0, Math.PI / 3]}>
-        <lineLoop geometry={circleGeom}>
-          <lineBasicMaterial
-            color={colour}
-            transparent
-            opacity={0.08}
-            depthWrite={false}
-            toneMapped
-          />
-        </lineLoop>
-      </group>
+      <GyroscopeRing
+        key="g1"
+        radius={radius}
+        baseColour={colour}
+        theme={theme}
+        mandalRootRef={mandalRootRef}
+        cfg={{
+          phase: 0,
+          speed: 0.64,
+          ringInit: [0, 0, 0],
+          ringSpin: (g, t) => { g.rotation.y += t * 0.05 },
+          opacityBase: 0.34,
+        }}
+      />
+      <GyroscopeRing
+        key="g2"
+        radius={radius}
+        baseColour={colour}
+        theme={theme}
+        mandalRootRef={mandalRootRef}
+        cfg={{
+          phase: 2.15,
+          speed: 0.52,
+          ringInit: [Math.PI / 3, 0, 0],
+          ringSpin: (g, t) => { g.rotation.z -= t * 0.032 },
+          opacityBase: 0.3,
+        }}
+      />
+      <GyroscopeRing
+        key="g3"
+        radius={radius}
+        baseColour={colour}
+        theme={theme}
+        mandalRootRef={mandalRootRef}
+        cfg={{
+          phase: 4.3,
+          speed: 0.57,
+          ringInit: [0, 0, Math.PI / 3],
+          ringSpin: (g, t) => { g.rotation.x += t * 0.041 },
+          opacityBase: 0.26,
+        }}
+      />
     </>
   )
 }
@@ -1155,7 +1380,9 @@ function Mandala({
             wireframe rings at different tilts (orrery / astrolabe feel). */}
         <GyroscopeRings
           radius={1.35}
-          colour={theme === 'dark' ? '#3a3a5a' : '#222233'}
+          colour={theme === 'dark' ? '#8a8ab0' : '#7a7a9c'}
+          theme={theme}
+          mandalRootRef={rootRef}
         />
 
         {/* Ghost (90-day) mandala — smaller, translucent, depth-clamped. */}
@@ -1233,8 +1460,10 @@ export function CrystalRadar3D({
   theme = 'dark',
 }: CrystalRadarProps) {
   const viewRootRef = useRef<HTMLDivElement>(null)
-  /** Stop the R3F loop when scrolled off-screen or tab in background (saves CPU while scrolling / idle tabs). */
-  const [inView, setInView] = useState(true)
+  /** Don't even mount the Canvas until it's near the viewport — keeps initial page paint fast. */
+  const [everInView, setEverInView] = useState(false)
+  /** Stop the R3F loop when scrolled off-screen or tab in background. */
+  const [inView, setInView] = useState(false)
   const [tabVisible, setTabVisible] = useState(
     () => (typeof document !== 'undefined' ? !document.hidden : true),
   )
@@ -1250,9 +1479,10 @@ export function CrystalRadar3D({
     if (!el || typeof IntersectionObserver === 'undefined') return
     const io = new IntersectionObserver(
       ([e]) => {
+        if (e.isIntersecting) setEverInView(true)
         setInView(e.isIntersecting)
       },
-      { root: null, rootMargin: '100px 0px', threshold: 0 },
+      { root: null, rootMargin: '200px 0px', threshold: 0 },
     )
     io.observe(el)
     return () => io.disconnect()
@@ -1281,9 +1511,9 @@ export function CrystalRadar3D({
   const bgPanel =
     theme === 'dark'
       ? 'bg-[#0d0d1a] border-[#1a1a2e] text-white'
-      : 'bg-white border-black text-black'
-  const mutedText = theme === 'dark' ? 'text-[#666688]' : 'text-grey-400'
-  const subtleText = theme === 'dark' ? 'text-[#9999bb]' : 'text-grey-600'
+      : 'bg-zinc-900/75 border-white/20 text-white'
+  const mutedText = 'text-white/90'
+  const subtleText = 'text-white/95'
 
   const handleSelect = useCallback(
     (key: CategoryKey) => {
@@ -1298,17 +1528,18 @@ export function CrystalRadar3D({
       {/* Large square viewport; overflow visible on parents so layout never clips the art.
           Camera is pulled back so gyro rings + mandala stay fully in frame. */}
       <div className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] overflow-visible bg-transparent sm:max-w-[44rem]">
+        {everInView && (
         <Canvas
           className="!h-full !w-full touch-none"
           frameloop={runLoop ? 'always' : 'never'}
           style={{ display: 'block', overflow: 'visible' }}
           camera={{ position: [0, 0.88, 3.75], fov: 48 }}
-          dpr={[1, 1.5]}
+          dpr={1}
           gl={{
-            antialias: true,
+            antialias: false,
             alpha: true,
             premultipliedAlpha: true,
-            powerPreference: 'default',
+            powerPreference: 'high-performance',
             toneMapping: THREE.ACESFilmicToneMapping,
             toneMappingExposure: theme === 'dark' ? 0.45 : 0.58,
             outputColorSpace: THREE.SRGBColorSpace,
@@ -1341,16 +1572,29 @@ export function CrystalRadar3D({
             enableDamping
             dampingFactor={0.12}
           />
-          <EffectComposer enableNormalPass={false} multisampling={2}>
+          <EffectComposer enableNormalPass={false} multisampling={0}>
             <Bloom
               mipmapBlur
-              luminanceThreshold={0.78}
-              luminanceSmoothing={0.14}
-              intensity={0.22}
+              luminanceThreshold={0.88}
+              luminanceSmoothing={0.1}
+              intensity={0.075}
               levels={4}
+            />
+            <ChromaticAberration
+              blendFunction={BlendFunction.NORMAL}
+              offset={CRYSTAL_CHROMA_OFFSET}
+              radialModulation
+              modulationOffset={0.06}
+            />
+            <PartialPixelation cellCount={60} patchRadius={0.12} pixelIntensity={0.82} />
+            <Noise
+              premultiply
+              blendFunction={BlendFunction.OVERLAY}
+              opacity={0.32}
             />
           </EffectComposer>
         </Canvas>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
@@ -1368,8 +1612,8 @@ export function CrystalRadar3D({
                     ? 'border-white bg-white/10 text-white'
                     : 'border-black bg-black text-yellow-400'
                   : theme === 'dark'
-                    ? 'border-transparent text-[#666688] hover:text-white'
-                    : 'border-transparent text-grey-500 hover:text-black'
+                    ? 'border-transparent text-white/80 hover:text-white'
+                    : 'border-transparent text-white hover:text-white'
               }`}
               title={
                 showDefinitions
@@ -1390,7 +1634,7 @@ export function CrystalRadar3D({
 
       <div
         className={`mt-2 border-t pt-2 font-mono text-[10px] ${
-          theme === 'dark' ? 'border-[#1a1a2e]' : 'border-grey-200'
+          theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
         }`}
       >
         <p className={`mb-1 uppercase tracking-[0.14em] ${subtleText}`}>
@@ -1411,7 +1655,7 @@ export function CrystalRadar3D({
                   <span className={`truncate ${mutedText}`}>{LABELS[k]}</span>
                 </span>
                 <span className="shrink-0 tabular-nums text-right">
-                  <span className={theme === 'dark' ? 'text-white' : 'text-black'}>{all}</span>
+                  <span className={theme === 'dark' ? 'text-white' : 'text-white'}>{all}</span>
                   <span className="opacity-70"> / 1000</span>
                   {recent !== null ? (
                     <span className={`ml-2 ${subtleText}`}>· ~90d {recent}</span>
@@ -1425,8 +1669,8 @@ export function CrystalRadar3D({
           <>
             <p
               className={`mt-2 border-t pt-2 ${
-                theme === 'dark' ? 'border-[#1a1a2e]' : 'border-grey-200'
-              } ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+                theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
+              } ${theme === 'dark' ? 'text-white' : 'text-white'}`}
             >
               Aggregate score:{' '}
               <strong className="tabular-nums">{Math.round(aggregateReputationScore)}</strong> / 1000
@@ -1458,8 +1702,8 @@ export function CrystalRadar3D({
               onClick={() => setSelected(null)}
               className={`ml-auto border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] ${
                 theme === 'dark'
-                  ? 'border-[#333355] bg-transparent text-[#9999bb] hover:text-white'
-                  : 'border-black bg-white hover:bg-grey-100'
+                  ? 'border-[#333355] bg-transparent text-white/80 hover:text-white'
+                  : 'border-white/30 bg-zinc-900/50 text-white hover:bg-white/10'
               }`}
               aria-label="Close detail"
             >

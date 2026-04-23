@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { registerSchema, loginSchema, recoverSchema } from '../schemas/auth';
-import { ChainNode } from '../models/Node';
+import { ChainNode, type IReputationCategories } from '../models/Node';
 import { RecoveryRequest } from '../models/RecoveryRequest';
 import { Notification } from '../models/Notification';
 import { addBlock } from '../services/chain';
@@ -15,10 +15,61 @@ import {
   signToken,
 } from '../services/auth';
 import { AppError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/errors';
+import { config } from '../config';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 
 const router = Router();
+
+/**
+ * When true (development only), new registrations get high per-category reputation so
+ * the 3D mandala shows full recursion without grinding traces. Flip locally; leave false
+ * in git. Alternatively set env `DEV_MANDALA_DEMO_SCORES=true`.
+ */
+const APPLY_DEV_MANDALA_DEMO_SCORES = false;
+
+function devMandalaDemoReputation(): {
+  reputationCategories: IReputationCategories;
+  reputationScore: number;
+} {
+  // Varied per arm so you see different fractal depths side-by-side (thresholds in
+  // CrystalRadar3D: depth 3 ≥86, depth 2 ≥50, depth 1 ≥16).
+  const reputationCategories: IReputationCategories = {
+    craft: 940,
+    research: 720,
+    collaboration: 520,
+    pedagogy: 280,
+    consistency: 120,
+    community: 900,
+  };
+  const sum = Object.values(reputationCategories).reduce((a, b) => a + b, 0);
+  const reputationScore = Math.min(
+    chainDefaults.reputationCap,
+    Math.max(chainDefaults.reputationFloor, Math.round(sum / 6)),
+  );
+  return { reputationCategories, reputationScore };
+}
+
+function envDevMandalaDemoScores(): boolean {
+  const v = String(process.env.DEV_MANDALA_DEMO_SCORES ?? '').trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+}
+
+/**
+ * Demo reputation on register — never on Render (real production).
+ *
+ * - Env `DEV_MANDALA_DEMO_SCORES=true` (etc.) works even when NODE_ENV=production
+ *   locally (many people run the API that way). Put the var in the **repo root**
+ *   `.env` (same folder as `package.json`), not `frontend/.env`.
+ * - Code flag `APPLY_DEV_MANDALA_DEMO_SCORES` only runs when nodeEnv is development.
+ */
+function shouldSeedDevMandalaDemoScores(): boolean {
+  if (process.env.RENDER === 'true') return false
+
+  if (envDevMandalaDemoScores()) return true
+  if (APPLY_DEV_MANDALA_DEMO_SCORES && config.nodeEnv === 'development') return true
+  return false
+}
 
 /**
  * POST /auth/register
@@ -47,6 +98,20 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
     encryptedSeedPhrase: encryptedSeed,
     identityBlockIndex: block.index,
   });
+
+  if (shouldSeedDevMandalaDemoScores()) {
+    const demo = devMandalaDemoReputation()
+    // Atomic $set avoids Mongoose subdocument merge quirks on assign + save().
+    await ChainNode.findByIdAndUpdate(node._id, {
+      $set: {
+        reputationCategories: demo.reputationCategories,
+        reputationScore: demo.reputationScore,
+      },
+    })
+    console.log(
+      `[auth] DEV_MANDALA_DEMO_SCORES: seeded demo reputation for "${alias}" (categories + aggregate score).`,
+    )
+  }
 
   const token = signToken({
     alias: node.alias,

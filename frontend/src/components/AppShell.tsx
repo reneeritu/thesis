@@ -11,21 +11,21 @@ type Props = {
 }
 
 const navBtn =
-  'glassmorphic-light contour-border-neutral px-2 py-1 text-[10px] sm:px-2.5 sm:py-1 hover:text-yellow-600 transition-etch [touch-action:manipulation]'
+  'glassmorphic-light contour-border-neutral px-2 py-1 text-[10px] sm:px-2.5 sm:py-1 hover:text-yellow-400 transition-etch [touch-action:manipulation]'
 
 const menuItem =
-  'block px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] hover:bg-white/10 hover:text-yellow-600 border-b border-grey-100/20 last:border-b-0'
+  'block px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] hover:bg-white/10 hover:text-yellow-400 border-b border-grey-100/20 last:border-b-0'
 
 export function AppShell({ children, title }: Props) {
   const token = getToken()
 
   return (
-    <div className="flex min-h-[80vh] flex-1 flex-col">
+    <div className="flex h-screen max-h-screen min-h-0 w-full flex-1 flex-col overflow-hidden">
       <header className="border-b border-grey-200/30 shrink-0">
         <div className="mx-auto max-w-shell shell-px py-2 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/"
-            className="text-[11px] font-mono tracking-[0.18em] uppercase text-grey-400 hover:text-black transition-etch"
+            className="text-[11px] font-mono tracking-[0.18em] uppercase text-white hover:text-white transition-etch"
           >
             Etch
           </Link>
@@ -61,7 +61,7 @@ export function AppShell({ children, title }: Props) {
                     <Link to="/archive/new" className={menuItem}>
                       Archive
                     </Link>
-                    <a href="/legacy/index.html#/dashboard" className={`${menuItem} text-grey-500 hover:text-yellow-400`}>
+                    <a href="/legacy/index.html#/dashboard" className={`${menuItem} text-white hover:text-yellow-400`}>
                       Legacy
                     </a>
                   </div>
@@ -97,7 +97,7 @@ export function AppShell({ children, title }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-shell shell-px py-6 sm:py-10 w-full flex-1 min-h-0 overflow-y-auto grid-overlay grid grid-cols-12 gap-x-2 sm:gap-x-3 gap-y-6 content-start">
+      <main className="mx-auto max-w-shell shell-px py-3 sm:py-5 w-full flex-1 min-h-0 overflow-y-auto grid-overlay grid grid-cols-12 gap-x-2 sm:gap-x-3 gap-y-4 content-start">
         {title ? (
           <div className="col-span-12">
             <h1 className="text-h2">{title}</h1>

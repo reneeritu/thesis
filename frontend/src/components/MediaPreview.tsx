@@ -81,7 +81,7 @@ export function MediaPreview({ mediaId, mimeType = '', hash, originalName }: Pro
           Your browser doesn't support embedded audio.
         </audio>
       ) : (
-        <div className="border border-dashed border-grey-300 bg-grey-50 px-3 py-3 font-mono text-[11px] text-grey-500">
+        <div className="border border-dashed border-grey-300 bg-grey-50 px-3 py-3 font-mono text-[11px] text-white">
           Preview not available for this file type ({effectiveMime || 'checking…'}).
         </div>
       )}
@@ -91,7 +91,7 @@ export function MediaPreview({ mediaId, mimeType = '', hash, originalName }: Pro
           href={src}
           target="_blank"
           rel="noopener noreferrer"
-          className="border border-black bg-black px-2 py-0.5 text-yellow-400 transition hover:bg-yellow-400 hover:text-black"
+          className="border border-black bg-black px-2 py-0.5 text-yellow-400 transition hover:bg-yellow-400 hover:text-white"
           title="Open the stored file served from the database"
         >
           Open →
@@ -103,7 +103,7 @@ export function MediaPreview({ mediaId, mimeType = '', hash, originalName }: Pro
               setCopiedHash(true)
               window.setTimeout(() => setCopiedHash(false), 1200)
             })}
-            className="border border-black bg-white px-2 py-0.5 transition hover:bg-black hover:text-yellow-400"
+            className="border border-white/25 bg-zinc-900/55 px-2 py-0.5 transition hover:bg-black hover:text-yellow-400"
             title="Copy SHA-256 hash to clipboard"
           >
             {copiedHash ? 'Copied' : 'Copy hash'}
@@ -115,7 +115,7 @@ export function MediaPreview({ mediaId, mimeType = '', hash, originalName }: Pro
             setCopiedId(true)
             window.setTimeout(() => setCopiedId(false), 1200)
           })}
-          className="border border-black bg-white px-2 py-0.5 transition hover:bg-black hover:text-yellow-400"
+          className="border border-white/25 bg-zinc-900/55 px-2 py-0.5 transition hover:bg-black hover:text-yellow-400"
           title="Copy MongoDB media id"
         >
           {copiedId ? 'Copied' : 'Copy ID'}

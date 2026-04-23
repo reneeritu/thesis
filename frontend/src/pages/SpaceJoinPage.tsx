@@ -38,39 +38,39 @@ export default function SpaceJoinPage() {
     <AppShell title="Join space">
       <form onSubmit={onSubmit} className="max-w-md space-y-4">
         {error && (
-          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}
           </p>
         )}
         {success && (
-          <p className="border border-black bg-white px-3 py-2 text-small font-mono text-black">
+          <p className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small font-mono text-white">
             {success}
           </p>
         )}
         <div>
-          <label className="block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+          <label className="block text-small font-mono uppercase tracking-[0.18em] text-white mb-1">
             Space ID
           </label>
           <input
             value={spaceId}
             onChange={(e) => setSpaceId(e.target.value)}
             required
-            className="w-full border border-black bg-white px-3 py-2 text-body font-mono"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-mono"
           />
         </div>
         <div>
-          <label className="block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">
+          <label className="block text-small font-mono uppercase tracking-[0.18em] text-white mb-1">
             Invite code (if required)
           </label>
           <input
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
-            className="w-full border border-black bg-white px-3 py-2 text-body font-mono"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-mono"
           />
         </div>
         <button
           type="submit"
-          className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-black hover:bg-black hover:text-yellow-400 transition"
+          className="border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-white hover:bg-black hover:text-yellow-400 transition"
         >
           Join
         </button>

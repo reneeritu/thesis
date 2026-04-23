@@ -142,12 +142,12 @@ export default function DashboardPage() {
 
   return (
     <AppShell title="Dashboard">
-      <div className="space-y-6">
+      <div className="space-y-4 min-h-0">
         <div className="flex justify-end">
           <button
             type="button"
             onClick={() => setDefinitionsOn(!definitionsOn)}
-            className="glassmorphic-light contour-border-neutral px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition-etch [touch-action:manipulation]"
+            className="glassmorphic-light contour-border-neutral px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-white transition-etch [touch-action:manipulation]"
             aria-pressed={definitionsOn}
             title="Show or hide inline definitions under form fields"
           >
@@ -156,7 +156,7 @@ export default function DashboardPage() {
         </div>
 
         {error ? (
-          <p className="glassmorphic-light contour-border-accent px-3 py-2 text-small font-mono text-black" role="alert">
+          <p className="glassmorphic-light contour-border-accent px-3 py-2 text-small font-mono text-white" role="alert">
             {error}
           </p>
         ) : null}
@@ -177,11 +177,11 @@ export default function DashboardPage() {
                 <DefTerm term="discover">Discover</DefTerm>
               </Link>
             </div>
-            <p className="text-small font-mono uppercase tracking-[0.18em] text-grey-400">
+            <p className="text-small font-mono uppercase tracking-[0.18em] text-white">
               <DefTerm term="node_label">Node</DefTerm>
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-h3 font-mono">{me.alias}</p>
+              <p className="text-h3 font-bricolage">{me.alias}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                   void navigator.clipboard.writeText(url).catch(() => {})
                 }}
                 title="Copy a link to your public node profile"
-                className="border border-grey-300 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-grey-600 transition hover:border-black hover:text-black"
+                className="border border-white/30 bg-zinc-900/50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-white transition hover:border-white/50"
               >
                 Copy profile link
               </button>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                 theme="light"
               />
               {recent ? (
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-grey-400">
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white">
                   Ghost layer = last {recent.days} d · {recent.traceCount} trace{recent.traceCount === 1 ? '' : 's'}
                 </p>
               ) : null}
@@ -229,12 +229,12 @@ export default function DashboardPage() {
             ) : null}
           </section>
         ) : (
-          <p className="text-small font-mono text-grey-400">Loading node…</p>
+          <p className="text-small font-mono text-white">Loading node…</p>
         )}
 
         {emptyChain ? (
           <section className="glassmorphic-light contour-border-accent contour-pattern p-5 space-y-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">
               Your chain is empty
             </p>
             <p className="text-body">
@@ -243,7 +243,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
               <Link
                 to="/projects"
-                className="glassmorphic-light contour-wireframe px-4 py-1.5 text-black hover:text-yellow-400 transition-etch"
+                className="glassmorphic-light contour-wireframe px-4 py-1.5 text-white hover:text-yellow-400 transition-etch"
               >
                 Log work on a project
               </Link>
@@ -257,56 +257,7 @@ export default function DashboardPage() {
           </section>
         ) : null}
 
-        {spaces.length === 0 && me ? (
-          /* ── First-time user guide ── */
-          <section className="glassmorphic-light contour-border-cool contour-pattern p-5 space-y-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">
-              Getting started
-            </p>
-            <p className="text-body">
-              <DefTerm term="chain">The chain</DefTerm> lets you document creative work so it's permanently traceable —
-              who made what, when, with what evidence. Here's how it works in three steps:
-            </p>
-            <ol className="space-y-4">
-              <li className="flex gap-3">
-                <span className="font-mono text-[13px] font-bold shrink-0 w-5">1.</span>
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">Create or join a Space</p>
-                  <p className="text-small text-grey-600 mt-0.5">
-                    A space is a shared context — a studio, class, or project group. You can invite co-founders and set who has veto authority.
-                  </p>
-                  <div className="flex gap-2 mt-2 text-small font-mono uppercase tracking-[0.18em]">
-                    <Link to="/spaces/new" className="glassmorphic-light contour-border-warm px-3 py-1 text-yellow-600 hover:text-yellow-700 transition-etch">+ Create space</Link>
-                    <Link to="/spaces/join" className="glassmorphic-light contour-border-cool px-3 py-1 hover:bg-white/5 transition-etch">Join with invite code</Link>
-                    <Link to="/discover" className="glassmorphic-light contour-border-cool px-3 py-1 hover:bg-white/5 transition-etch">Browse public spaces</Link>
-                  </div>
-                </div>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-mono text-[13px] font-bold shrink-0 w-5">2.</span>
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">Start a Project inside a space</p>
-                  <p className="text-small text-grey-600 mt-0.5">
-                    A project tracks one body of work. Add collaborators — they'll get a notification to accept or decline.
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-mono text-[13px] font-bold shrink-0 w-5">3.</span>
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
-                    Log Work (<DefTerm term="trace">Traces</DefTerm>) with proof
-                  </p>
-                  <p className="text-small text-grey-600 mt-0.5">
-                    Each <DefTerm term="trace">trace</DefTerm> is a timestamped record of activity. Attach an image,
-                    video, or audio file as <DefTerm term="media_proof">proof</DefTerm> — its SHA-256 fingerprint is
-                    stored on the chain so anyone can verify the file hasn't changed.
-                  </p>
-                </div>
-              </li>
-            </ol>
-          </section>
-        ) : spaces.length > 0 ? (
+        {spaces.length > 0 ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-h3">
@@ -354,7 +305,7 @@ export default function DashboardPage() {
           </div>
 
           {activeRows.length === 0 ? (
-            <p className="text-small text-grey-400">No active projects.</p>
+            <p className="text-small text-white">No active projects.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {activeRows.map((row) =>
@@ -365,7 +316,7 @@ export default function DashboardPage() {
                     className="glassmorphic-light contour-border-cool contour-pattern flex flex-col gap-1 px-3 py-2 transition-etch hover:shadow-sm"
                   >
                     <span className="font-mono text-small truncate">{row.project.title}</span>
-                    <span className="text-small text-grey-400">
+                    <span className="text-small text-white">
                       {row.spaceName ? `In ${row.spaceName}` : null}
                     </span>
                     <span className="text-[11px] font-mono uppercase tracking-[0.18em]">
@@ -384,7 +335,7 @@ export default function DashboardPage() {
             {errorRows.map((r, idx) => (
               <p
                 key={`${r.spaceId || 'space'}-${idx}`}
-                className="glassmorphic-light contour-border-accent px-3 py-2 text-small font-mono text-black"
+                className="glassmorphic-light contour-border-accent px-3 py-2 text-small font-mono text-white"
               >
                 {r.spaceName}: {r.error}
               </p>

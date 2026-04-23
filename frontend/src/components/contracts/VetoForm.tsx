@@ -62,37 +62,37 @@ export function VetoForm({ projectId, traces, onDone }: Props) {
   }
 
   return (
-    <div className="border border-black bg-white p-4 space-y-3">
-      <h3 className="text-small font-mono uppercase tracking-[0.18em]">Raise Veto</h3>
+    <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
+      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Raise Veto</h3>
       <form onSubmit={onSubmit} className="space-y-3 text-small">
         <div>
-          <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Type</label>
+          <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Type</label>
           <select
             value={vetoType}
             onChange={(e) => setVetoType(e.target.value as typeof vetoType)}
-            className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
           >
             {VETO_TYPES.map((v) => (
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
-          <p className="mt-1 font-mono text-[11px] text-grey-400">{VETO_HELP[vetoType]}</p>
+          <p className="mt-1 font-mono text-[11px] text-white">{VETO_HELP[vetoType]}</p>
         </div>
 
         <div>
-          <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Reason</label>
+          <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Reason</label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required
             rows={3}
-            className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
           />
         </div>
 
         {traces.length > 0 && (
           <details className="text-small">
-            <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-grey-400">
+            <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-white">
               Target traces ({selectedTraceIds.size} selected)
             </summary>
             <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
@@ -104,7 +104,7 @@ export function VetoForm({ projectId, traces, onDone }: Props) {
                     onChange={() => toggleTrace(t._id)}
                   />
                   <span className="break-all">{t._id}</span>
-                  {t.activityType && <span className="text-grey-400">{t.activityType}</span>}
+                  {t.activityType && <span className="text-white">{t.activityType}</span>}
                 </label>
               ))}
             </div>
@@ -113,7 +113,7 @@ export function VetoForm({ projectId, traces, onDone }: Props) {
 
         {error && <p className="border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p>}
         {result ? (
-          <div className="border border-black bg-white px-3 py-2 font-mono space-y-2">
+          <div className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono space-y-2">
             <p>{result}</p>
             <Link
               to={`/governance?category=dispute&type=veto_dispute&targetType=project&targetId=${encodeURIComponent(projectId)}`}

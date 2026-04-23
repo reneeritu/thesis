@@ -34,8 +34,8 @@ const KIND_LABEL: Record<string, string> = {
 
 const KIND_COLOR: Record<string, string> = {
   trace: 'bg-black text-yellow-400',
-  reference: 'bg-grey-200 text-black',
-  pivot: 'bg-yellow-400 text-black',
+  reference: 'bg-zinc-700 text-white',
+  pivot: 'bg-yellow-400 text-white',
   veto: 'bg-red-700 text-white',
 }
 
@@ -105,12 +105,12 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
   return (
     <div className="space-y-2 border-l-4 pl-3" style={{ borderColor: activityColour }}>
       {ndaSealed ? (
-        <div className="border-l-2 border-black bg-grey-50 px-3 py-2 font-mono text-[11px] text-grey-600">
+        <div className="border-l-2 border-white/20 bg-zinc-900/40 px-3 py-2 font-mono text-[11px] text-white">
           Trace sealed under NDA — hidden from contributors who were not parties.
         </div>
       ) : null}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px] font-sans">
-        <span className="text-grey-400">Activity</span>
+        <span className="text-white">Activity</span>
         <span className="flex items-center gap-2 font-mono uppercase tracking-[0.12em]">
           <span
             aria-hidden
@@ -119,46 +119,46 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
           />
           {activityType ? activityType.replace(/_/g, ' ') : '—'}
           {activityCategory ? (
-            <span className="ml-1 border border-black px-1 py-[1px] text-[9px] tracking-[0.14em] text-grey-600">
+            <span className="ml-1 border border-black px-1 py-[1px] text-[9px] tracking-[0.14em] text-white">
               {CATEGORY_LABELS[activityCategory]}
             </span>
           ) : null}
         </span>
         {data.description ? (
           <>
-            <span className="text-grey-400">Description</span>
+            <span className="text-white">Description</span>
             <span>{String(data.description)}</span>
           </>
         ) : null}
         {data.toolSoftware ? (
           <>
-            <span className="text-grey-400">Tool / software</span>
+            <span className="text-white">Tool / software</span>
             <span>{String(data.toolSoftware)}</span>
           </>
         ) : null}
         {fmtDuration(data.duration) ? (
           <>
-            <span className="text-grey-400">Duration</span>
+            <span className="text-white">Duration</span>
             <span>{fmtDuration(data.duration)}</span>
           </>
         ) : null}
         {data.isProxy ? (
           <>
-            <span className="text-grey-400">Proxy for</span>
+            <span className="text-white">Proxy for</span>
             <span className="font-mono">{String(data.proxyForAlias || '—')}</span>
           </>
         ) : null}
         {data.mode ? (
           <>
-            <span className="text-grey-400">Log mode</span>
+            <span className="text-white">Log mode</span>
             <span className="font-mono uppercase">{String(data.mode)}</span>
           </>
         ) : null}
       </div>
 
       {hasProof ? (
-        <div className="border border-black bg-white p-3 space-y-2 mt-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-400">
+        <div className="border border-white/25 bg-zinc-900/55 p-3 space-y-2 mt-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
             ✓ Proof attached
           </p>
           {mediaId.length === 24 ? (
@@ -166,37 +166,37 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
           ) : null}
           {mediaHash ? (
             <div className="space-y-0.5">
-              <p className="font-mono text-[10px] text-grey-400 uppercase tracking-[0.12em]">
+              <p className="font-mono text-[10px] text-white uppercase tracking-[0.12em]">
                 SHA-256 fingerprint
               </p>
-              <p className="font-mono text-[10px] break-all text-grey-600">{mediaHash}</p>
-              <p className="font-mono text-[10px] text-grey-400">
+              <p className="font-mono text-[10px] break-all text-white">{mediaHash}</p>
+              <p className="font-mono text-[10px] text-white">
                 Compute the SHA-256 of the downloaded file. If it matches this string exactly, the file is unmodified.
               </p>
             </div>
           ) : null}
         </div>
       ) : (
-        <p className="font-mono text-[10px] text-grey-300 italic">No proof file attached.</p>
+        <p className="font-mono text-[10px] text-white italic">No proof file attached.</p>
       )}
 
       {/* Endorsements */}
       {traceId && (
         <div className="border border-grey-200 bg-grey-50 p-2 space-y-1">
           <div className="flex items-center flex-wrap gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-grey-400">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white">
               Endorsements
             </span>
             {endorsements.length === 0 ? (
-              <span className="font-mono text-[10px] text-grey-400">—</span>
+              <span className="font-mono text-[10px] text-white">—</span>
             ) : (
               endorsements.map((e) => (
                 <span
                   key={e._id}
                   title={`${e.endorserAlias}: ${ENDORSEMENT_LABEL[e.kind] || e.kind}`}
-                  className="inline-flex items-center gap-1 border border-black bg-white px-1.5 py-0.5 font-mono text-[10px]"
+                  className="inline-flex items-center gap-1 border border-white/25 bg-zinc-900/55 px-1.5 py-0.5 font-mono text-[10px]"
                 >
-                  <span className="uppercase tracking-[0.14em] text-grey-500">
+                  <span className="uppercase tracking-[0.14em] text-white">
                     {ENDORSEMENT_LABEL[e.kind] || e.kind}
                   </span>
                   <span>· {e.endorserAlias}</span>
@@ -210,7 +210,7 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
                 type="button"
                 disabled={busy}
                 onClick={() => void onUnendorse(myEndorsement._id)}
-                className="font-mono text-[10px] uppercase tracking-[0.14em] underline text-grey-500 hover:text-black disabled:opacity-60"
+                className="font-mono text-[10px] uppercase tracking-[0.14em] underline text-white hover:text-white disabled:opacity-60"
               >
                 Remove my endorsement
               </button>
@@ -233,7 +233,7 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
                 <button
                   type="button"
                   onClick={() => setPickingKind(false)}
-                  className="px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-grey-400 hover:text-black"
+                  className="px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:text-white"
                 >
                   cancel
                 </button>
@@ -242,7 +242,7 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
               <button
                 type="button"
                 onClick={() => setPickingKind(true)}
-                className="font-mono text-[10px] uppercase tracking-[0.14em] underline hover:text-black"
+                className="font-mono text-[10px] uppercase tracking-[0.14em] underline hover:text-white"
                 title="Vouch for this entry — e.g. 'I was there', 'I reviewed this'"
               >
                 + Endorse
@@ -256,14 +256,14 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
         <button
           type="button"
           onClick={() => setShowRaw((v) => !v)}
-          className="font-mono text-[10px] text-grey-400 underline hover:text-black"
+          className="font-mono text-[10px] text-white underline hover:text-white"
         >
           {showRaw ? 'Hide raw data' : 'Show raw chain data'}
         </button>
         {traceId ? (
           <Link
             to={flagLink('trace', traceId)}
-            className="font-mono text-[10px] uppercase tracking-[0.14em] text-red-700 underline hover:text-black"
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-white underline hover:text-white/80"
             title="Raise a flag or dispute about this entry in Governance"
           >
             Flag / dispute
@@ -271,7 +271,7 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
         ) : null}
       </div>
       {showRaw && (
-        <pre className="bg-grey-100 px-3 py-2 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap break-all">
+        <pre className="bg-zinc-900/70 px-3 py-2 text-[10px] font-mono text-white overflow-x-auto whitespace-pre-wrap break-all">
           {JSON.stringify(data, null, 2)}
         </pre>
       )}
@@ -284,22 +284,22 @@ function ReferenceCard({ data }: { data: Record<string, unknown> }) {
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
-        <span className="text-grey-400">Relationship</span>
+        <span className="text-white">Relationship</span>
         <span className="font-mono">{String(data.relationshipType || '—')}</span>
         {data.targetTitle ? (
           <>
-            <span className="text-grey-400">References</span>
+            <span className="text-white">References</span>
             <span>{String(data.targetTitle)}</span>
           </>
         ) : null}
         {data.notes ? (
           <>
-            <span className="text-grey-400">Notes</span>
+            <span className="text-white">Notes</span>
             <span>{String(data.notes)}</span>
           </>
         ) : null}
       </div>
-      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-[10px] text-grey-400 underline hover:text-black">
+      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-[10px] text-white underline hover:text-white">
         {showRaw ? 'Hide raw' : 'Show raw'}
       </button>
       {showRaw && <pre className="bg-grey-100 px-3 py-2 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>}
@@ -312,16 +312,16 @@ function PivotCard({ data }: { data: Record<string, unknown> }) {
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
-        <span className="text-grey-400">Reason</span>
+        <span className="text-white">Reason</span>
         <span>{String(data.reason || '—')}</span>
         {data.newDirection ? (
           <>
-            <span className="text-grey-400">New direction</span>
+            <span className="text-white">New direction</span>
             <span>{String(data.newDirection)}</span>
           </>
         ) : null}
       </div>
-      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-[10px] text-grey-400 underline hover:text-black">
+      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-[10px] text-white underline hover:text-white">
         {showRaw ? 'Hide raw' : 'Show raw'}
       </button>
       {showRaw && <pre className="bg-grey-100 px-3 py-2 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>}
@@ -334,16 +334,16 @@ function VetoCard({ data }: { data: Record<string, unknown> }) {
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
-        <span className="text-grey-400">Type</span>
+        <span className="text-white">Type</span>
         <span className="font-mono">{String(data.vetoType || '—')}</span>
         {data.reason ? (
           <>
-            <span className="text-grey-400">Reason</span>
+            <span className="text-white">Reason</span>
             <span>{String(data.reason)}</span>
           </>
         ) : null}
       </div>
-      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-[10px] text-grey-400 underline hover:text-black">
+      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-[10px] text-white underline hover:text-white">
         {showRaw ? 'Hide raw' : 'Show raw'}
       </button>
       {showRaw && <pre className="bg-grey-100 px-3 py-2 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>}
@@ -405,8 +405,8 @@ export function ProjectTimeline({ entries, projectId }: Props) {
   if (entries.length === 0) {
     return (
       <div className="border border-dashed border-grey-300 px-4 py-6 text-center space-y-1">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-grey-400">Nothing logged yet</p>
-        <p className="text-small text-grey-400">Use "Log Work" to record activity on this project. Each entry is permanently added to the chain.</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">Nothing logged yet</p>
+        <p className="text-small text-white">Use "Log Work" to record activity on this project. Each entry is permanently added to the chain.</p>
       </div>
     )
   }
@@ -422,21 +422,21 @@ export function ProjectTimeline({ entries, projectId }: Props) {
         return (
           <details
             key={`${item.kind}-${idx}`}
-            className="border border-grey-200 bg-white"
+            className="border border-white/20 bg-zinc-900/50"
             open={idx === 0}
           >
             <summary className="flex flex-wrap items-center gap-2 px-3 py-2 cursor-pointer select-none">
               <span className={`inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] ${KIND_COLOR[item.kind]}`}>
                 {KIND_LABEL[item.kind]}
               </span>
-              <span className="font-mono text-[11px] text-grey-600">
+              <span className="font-mono text-[11px] text-white">
                 {String(item.data.nodeAlias || '')}
               </span>
-              <span className="font-mono text-[10px] text-grey-400 ml-auto">
+              <span className="font-mono text-[10px] text-white ml-auto">
                 {fmtDate(item.timestamp)}
               </span>
               {item.kind === 'trace' && (item.data.mediaId || item.data.mediaHash) ? (
-                <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.12em] border border-black bg-yellow-400 text-black">
+                <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.12em] border border-black bg-yellow-400 text-white">
                   proof
                 </span>
               ) : null}

@@ -8,9 +8,9 @@ import { redirectToDashboard, setSession } from '../lib/session'
 
 type RecoverResponse = { token: string; alias: string }
 
-const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-grey-400 mb-1'
+const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
-  'w-full border border-black bg-white px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
+  'w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 const textareaClass = fieldInput + ' min-h-[120px] font-mono text-small'
 
 export default function RecoverPage() {
@@ -40,13 +40,13 @@ export default function RecoverPage() {
     <AppShell title="Recover">
       <div className="w-full grid grid-cols-12 gap-x-3 gap-y-6">
         <div className="col-span-12 max-w-lg space-y-4">
-          <p className="text-body text-grey-400">
+          <p className="text-body text-white">
             Reset your password using your 12-word seed phrase. This invalidates previous sessions.
           </p>
           <form onSubmit={onSubmit} className="space-y-4">
             {error ? (
               <p
-                className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-black"
+                className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white"
                 role="alert"
               >
                 {error}
@@ -88,8 +88,8 @@ export default function RecoverPage() {
               Reset password
             </Button>
           </form>
-          <p className="text-small text-grey-400">
-            <Link to="/login" className="underline underline-offset-4 hover:text-black">
+          <p className="text-small text-white">
+            <Link to="/login" className="underline underline-offset-4 hover:text-white">
               Back to login
             </Link>
           </p>

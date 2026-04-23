@@ -39,7 +39,7 @@ export default function ProjectSearchPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="title, context, creator, software/tool…"
-            className="min-w-[280px] flex-1 border border-black bg-white px-3 py-2 font-mono text-small"
+            className="min-w-[280px] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
           />
           <button type="submit" className="border border-black bg-yellow-400 px-4 py-2 font-mono text-small uppercase tracking-[0.18em] hover:bg-black hover:text-yellow-400 transition">
             Search
@@ -49,15 +49,15 @@ export default function ProjectSearchPage() {
         {rows.length > 0 ? (
           <div className="space-y-2">
             {rows.map((p) => (
-              <div key={p._id} className="border border-black bg-white px-3 py-2 text-small space-y-1">
+              <div key={p._id} className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small space-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-mono">{p.title}</p>
                   <Link to={`/projects/${encodeURIComponent(p._id)}`} className="underline underline-offset-4 font-mono text-[11px]">
                     Open
                   </Link>
                 </div>
-                <p className="text-grey-400">{p.context || 'No context.'}</p>
-                <p className="font-mono text-[11px] text-grey-400">
+                <p className="text-white">{p.context || 'No context.'}</p>
+                <p className="font-mono text-[11px] text-white">
                   {p.status} · in {p.spaceName} · creator {p.creatorAlias}{p.mentorAlias ? ` · mentor ${p.mentorAlias}` : ''}
                 </p>
                 {p.tools.length > 0 ? (

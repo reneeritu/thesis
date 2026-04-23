@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { chainDefaults } from '../config/defaults';
+import { reputationScoreFromCategories } from '../utils/reputationAggregate';
 
 export interface IReputationCategories {
   craft: number;
@@ -101,5 +102,13 @@ const chainNodeSchema = new Schema<IChainNode>(
 
 chainNodeSchema.index({ status: 1 });
 chainNodeSchema.index({ 'reputationScore': 1 });
+
+/** Headline score is always derived from the six category buckets (see reputationAggregate). */
+chainNodeSchema.pre('save', function () {
+  const cats = this.get('reputationCategories');
+  if (cats && typeof cats === 'object') {
+    this.set('reputationScore', reputationScoreFromCategories(cats as IReputationCategories));
+  }
+});
 
 export const ChainNode = mongoose.model<IChainNode>('ChainNode', chainNodeSchema);

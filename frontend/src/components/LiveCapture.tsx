@@ -251,18 +251,18 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
               setError(null)
             }}
             disabled={disabled}
-            className={`${btn} ${mode === m ? 'bg-black text-yellow-400' : 'bg-white hover:bg-black hover:text-yellow-400'}`}
+            className={`${btn} ${mode === m ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-black hover:text-yellow-400'}`}
           >
             {MODE_LABEL[m]}
           </button>
         ))}
-        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-grey-400">
+        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-white">
           Record directly
         </span>
       </div>
 
       {error ? (
-        <p className="border border-black bg-grey-100 px-2 py-1 font-mono text-[11px] text-black">{error}</p>
+        <p className="border border-black bg-grey-100 px-2 py-1 font-mono text-[11px] text-white">{error}</p>
       ) : null}
 
       {showVideoTag ? (
@@ -275,7 +275,7 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
       ) : null}
 
       {active && !preview && mode === 'photo' ? (
-        <div className="flex flex-wrap gap-3 text-[10px] font-mono uppercase tracking-[0.14em] text-grey-600">
+        <div className="flex flex-wrap gap-3 text-[10px] font-mono uppercase tracking-[0.14em] text-white">
           <label className="flex items-center gap-1 cursor-pointer">
             <input
               type="checkbox"
@@ -292,7 +292,7 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
             />
             Location
           </label>
-          {geoBusy ? <span className="text-grey-400">(getting location…)</span> : null}
+          {geoBusy ? <span className="text-white">(getting location…)</span> : null}
         </div>
       ) : null}
 
@@ -311,21 +311,21 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
               ■ Stop
             </button>
           )}
-          <button type="button" onClick={stopAll} className={`${btn} bg-white hover:bg-black hover:text-yellow-400`}>
+          <button type="button" onClick={stopAll} className={`${btn} bg-zinc-800/60 hover:bg-black hover:text-yellow-400`}>
             Cancel
           </button>
         </div>
       ) : null}
 
       {!active && !preview ? (
-        <button type="button" onClick={start} disabled={disabled} className={`${btn} bg-white hover:bg-black hover:text-yellow-400`}>
+        <button type="button" onClick={start} disabled={disabled} className={`${btn} bg-zinc-800/60 hover:bg-black hover:text-yellow-400`}>
           {mode === 'audio' ? 'Enable microphone' : 'Enable camera'}
         </button>
       ) : null}
 
       {preview ? (
         <div className="space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-grey-400">Preview</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white">Preview</p>
           {preview.mime.startsWith('image/') ? (
             <img src={preview.url} alt="capture preview" className="max-h-64 w-auto border border-grey-200" />
           ) : preview.mime.startsWith('video/') ? (
@@ -334,14 +334,14 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
             <audio src={preview.url} controls className="w-full" />
           )}
           <div className="flex gap-1">
-            <button type="button" onClick={accept} className={`${btn} bg-black text-yellow-400 hover:bg-yellow-400 hover:text-black`}>
+            <button type="button" onClick={accept} className={`${btn} bg-black text-yellow-400 hover:bg-yellow-400 hover:text-white`}>
               Use this
             </button>
-            <button type="button" onClick={discard} className={`${btn} bg-white hover:bg-black hover:text-yellow-400`}>
+            <button type="button" onClick={discard} className={`${btn} bg-zinc-800/60 hover:bg-black hover:text-yellow-400`}>
               Retake
             </button>
           </div>
-          <p className="font-mono text-[10px] text-grey-500">
+          <p className="font-mono text-[10px] text-white">
             {preview.file.name} · {(preview.file.size / 1024).toFixed(1)} KB · {preview.mime}
           </p>
         </div>

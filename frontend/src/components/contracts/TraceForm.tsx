@@ -141,9 +141,9 @@ export function TraceForm({ projectId, onDone }: Props) {
   }
 
   return (
-    <div className="border border-black bg-white p-4 space-y-3">
-      <h3 className="text-small font-mono uppercase tracking-[0.18em]">Log Work</h3>
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-grey-500">
+    <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
+      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Log Work</h3>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
         Contributors have 7 days to confirm or dispute this trace. Silence counts as confirm.
       </p>
 
@@ -154,7 +154,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             type="button"
             onClick={() => setMode(m)}
             title={definitionsOn ? GLOSSARY[`mode_${m}`] : undefined}
-            className={`px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] border border-black transition ${mode === m ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'}`}
+            className={`px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] border border-black transition ${mode === m ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'}`}
           >
             {MODE_LABELS[m]}
           </button>
@@ -163,7 +163,7 @@ export function TraceForm({ projectId, onDone }: Props) {
 
       <form onSubmit={onSubmit} className="space-y-3 text-small">
         <div>
-          <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+          <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
             <DefTerm term="activity_field">Activity</DefTerm>
           </label>
           <div className="flex items-stretch">
@@ -176,7 +176,7 @@ export function TraceForm({ projectId, onDone }: Props) {
               value={activityType}
               onChange={(e) => setActivityType(e.target.value as (typeof ACTIVITY_TYPES)[number])}
               title={definitionsOn ? GLOSSARY[activityType] : undefined}
-              className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
             >
               {ACTIVITY_TYPES.map((t) => (
                 <option key={t} value={t} title={definitionsOn ? GLOSSARY[t] : undefined}>
@@ -186,7 +186,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             </select>
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono">
-            <span className="text-grey-400 uppercase tracking-[0.12em]">Counts toward</span>
+            <span className="text-white uppercase tracking-[0.12em]">Counts toward</span>
             {activityCategory ? (
               <span
                 className="inline-flex items-center gap-1 border border-black px-1.5 py-0.5 uppercase tracking-[0.14em]"
@@ -200,39 +200,39 @@ export function TraceForm({ projectId, onDone }: Props) {
                 {CATEGORY_LABELS[activityCategory]}
               </span>
             ) : (
-              <span className="text-grey-400 uppercase tracking-[0.14em]">General reputation only</span>
+              <span className="text-white uppercase tracking-[0.14em]">General reputation only</span>
             )}
           </div>
           {definitionsOn && GLOSSARY[activityType] ? (
-            <p className="mt-1 text-[11px] font-mono leading-snug text-grey-500">{GLOSSARY[activityType]}</p>
+            <p className="mt-1 text-[11px] font-mono leading-snug text-white">{GLOSSARY[activityType]}</p>
           ) : null}
         </div>
 
         {activityType === 'other' && (
           <div>
-            <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Other description</label>
+            <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Other description</label>
             <input
               value={otherDescription}
               onChange={(e) => setOtherDescription(e.target.value)}
               required
-              className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
             />
           </div>
         )}
 
         <div>
-          <label className="block font-mono uppercase tracking-[0.18em] text-grey-400 mb-1">Description</label>
+          <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+            <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
               <DefTerm term="duration_field">Duration (min)</DefTerm>
             </label>
             <input
@@ -240,24 +240,24 @@ export function TraceForm({ projectId, onDone }: Props) {
               min={0}
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
             />
           </div>
           <div>
-            <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-grey-400">
+            <label className="mb-1 block font-mono uppercase tracking-[0.18em] text-white">
               <DefTerm term="tool_software_field">Tool / Software</DefTerm>
             </label>
             <input
               value={toolSoftware}
               onChange={(e) => setToolSoftware(e.target.value)}
-              className="w-full border border-black bg-white px-3 py-2 font-sans text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
             />
           </div>
         </div>
 
         {/* ── Proof (image / video / audio) ── */}
         <div className="border border-grey-200 p-3 space-y-2">
-          <p className="font-mono uppercase tracking-[0.18em] text-grey-400 text-[10px]">
+          <p className="font-mono uppercase tracking-[0.18em] text-white text-[10px]">
             <DefTerm term="media_proof">Attach proof</DefTerm> (image / video / audio) — optional
           </p>
           <input
@@ -279,7 +279,7 @@ export function TraceForm({ projectId, onDone }: Props) {
                     type="button"
                     onClick={() => setProofSource(s)}
                     className={`px-3 py-1 text-[10px] font-mono uppercase tracking-[0.14em] border border-black transition ${
-                      proofSource === s ? 'bg-black text-yellow-400' : 'bg-white hover:bg-grey-100'
+                      proofSource === s ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
                     }`}
                   >
                     {s === 'upload' ? 'Upload file' : 'Record live'}
@@ -292,7 +292,7 @@ export function TraceForm({ projectId, onDone }: Props) {
                   type="button"
                   disabled={uploadBusy}
                   onClick={() => fileRef.current?.click()}
-                  className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] bg-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  className="border border-white/25 bg-zinc-800/60 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                 >
                   {uploadBusy ? 'Uploading…' : 'Choose file'}
                 </button>
@@ -305,34 +305,34 @@ export function TraceForm({ projectId, onDone }: Props) {
                 />
               )}
               {uploadBusy && proofSource === 'record' ? (
-                <p className="font-mono text-[10px] text-grey-500">Uploading capture…</p>
+                <p className="font-mono text-[10px] text-white">Uploading capture…</p>
               ) : null}
             </>
           )}
           {uploadError && (
-            <p className="font-mono text-[11px] text-red-600">{uploadError}</p>
+            <p className="font-mono text-[11px] text-white">{uploadError}</p>
           )}
           {uploadedMedia && (
             <div className="space-y-1 font-mono text-[11px]">
-              <p className="text-grey-400 uppercase tracking-[0.12em]">Proof attached ✓</p>
-              <p><span className="text-grey-400">File: </span>{uploadedMedia.originalName}</p>
-              <p><span className="text-grey-400">Type: </span>{uploadedMedia.mimeType}</p>
+              <p className="text-white uppercase tracking-[0.12em]">Proof attached ✓</p>
+              <p><span className="text-white">File: </span>{uploadedMedia.originalName}</p>
+              <p><span className="text-white">Type: </span>{uploadedMedia.mimeType}</p>
               <p className="break-all">
-                <span className="text-grey-400">Media ID: </span>
+                <span className="text-white">Media ID: </span>
                 <span className="tracking-wider">{uploadedMedia.mediaId}</span>
               </p>
               <p className="break-all">
-                <span className="text-grey-400">SHA-256 hash: </span>
+                <span className="text-white">SHA-256 hash: </span>
                 <span className="text-[10px]">{uploadedMedia.hash}</span>
               </p>
-              <p className="text-grey-400 text-[10px]">
+              <p className="text-white text-[10px]">
                 Anyone can verify this file hasn't changed by computing its SHA-256 and comparing to this hash.
                 Retrieve it via: <span className="font-mono">/media/{uploadedMedia.mediaId}</span>
               </p>
               <button
                 type="button"
                 onClick={() => { setUploadedMedia(null); if (fileRef.current) fileRef.current.value = '' }}
-                className="text-grey-400 underline text-[10px] hover:text-black"
+                className="text-white underline text-[10px] hover:text-white"
               >
                 Remove
               </button>
@@ -341,7 +341,7 @@ export function TraceForm({ projectId, onDone }: Props) {
         </div>
 
         <details className="text-small">
-          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-grey-400">
+          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-white">
             <DefTerm term="proxy_log">Proxy log</DefTerm>
           </summary>
           <div className="mt-2 space-y-2 pl-2">
@@ -355,14 +355,14 @@ export function TraceForm({ projectId, onDone }: Props) {
                 onChange={(e) => setProxyForAlias(e.target.value)}
                 placeholder="target alias"
                 required
-                className="w-full border border-black bg-white px-3 py-2 font-mono text-small"
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
               />
             )}
           </div>
         </details>
 
         {error && <p className="border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p>}
-        {result && <p className="border border-black bg-white px-3 py-2 font-mono">{result}</p>}
+        {result && <p className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono">{result}</p>}
 
         <Button type="submit" variant="primary" loading={busy}>Log Work</Button>
       </form>
