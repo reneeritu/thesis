@@ -349,7 +349,7 @@ export default function ProjectDetailPage() {
 
             {/* Contributors */}
             <section className="space-y-2">
-              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
+              <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white">
                 Contributors
               </h2>
               {contributors.length ? (
@@ -424,115 +424,119 @@ export default function ProjectDetailPage() {
               ) : null}
             </section>
 
-            {/* Action bar */}
-            {isActive && (
-              <section className="flex flex-wrap gap-2">
-                {actionBtn('Log Work', 'trace')}
-                {actionBtn('Add Reference', 'reference')}
-                {actionBtn('Record Pivot', 'pivot')}
-                {actionBtn('Raise Veto', 'veto', 'danger')}
-                {actionBtn('Fork', 'fork')}
-                {actionBtn('End Project', 'credit', 'danger')}
-              </section>
-            )}
-            {!isActive && project.status === 'completed' && (
-              <section className="flex flex-wrap gap-2">
-                {actionBtn('Credit / Sign', 'credit')}
-              </section>
-            )}
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-start">
+              <div className="space-y-4">
+                {/* Action bar */}
+                {isActive && (
+                  <section className="flex flex-wrap gap-2">
+                    {actionBtn('Log Work', 'trace')}
+                    {actionBtn('Add Reference', 'reference')}
+                    {actionBtn('Record Pivot', 'pivot')}
+                    {actionBtn('Raise Veto', 'veto', 'danger')}
+                    {actionBtn('Fork', 'fork')}
+                    {actionBtn('End Project', 'credit', 'danger')}
+                  </section>
+                )}
+                {!isActive && project.status === 'completed' && (
+                  <section className="flex flex-wrap gap-2">
+                    {actionBtn('Credit / Sign', 'credit')}
+                  </section>
+                )}
 
-            {/* Active contract form */}
-            {activeForm === 'trace' && <TraceForm projectId={project._id} onDone={reload} />}
-            {activeForm === 'reference' && <ReferenceForm projectId={project._id} onDone={reload} />}
-            {activeForm === 'pivot' && <PivotForm projectId={project._id} onDone={reload} />}
-            {activeForm === 'veto' && <VetoForm projectId={project._id} traces={traces} onDone={reload} />}
-            {activeForm === 'fork' && <ForkForm projectId={project._id} onDone={reload} />}
-            {activeForm === 'credit' && (
-              <CreditForm
-                projectId={project._id}
-                contributors={contributors}
-                onDone={reload}
-                isPrimary={amPrimary}
-                genInput={{
-                  projectId: project._id,
-                  title: project.title,
-                  contributors: contributors.map((c) => ({ alias: c.alias })),
-                  traceCount: timeline.filter((e) => e.kind === 'trace').length,
-                  pivotCount: timeline.filter((e) => e.kind === 'pivot').length,
-                  referenceCount: timeline.filter((e) => e.kind === 'reference').length,
-                }}
-              />
-            )}
+                {/* Active contract form */}
+                {activeForm === 'trace' && <TraceForm projectId={project._id} onDone={reload} />}
+                {activeForm === 'reference' && <ReferenceForm projectId={project._id} onDone={reload} />}
+                {activeForm === 'pivot' && <PivotForm projectId={project._id} onDone={reload} />}
+                {activeForm === 'veto' && <VetoForm projectId={project._id} traces={traces} onDone={reload} />}
+                {activeForm === 'fork' && <ForkForm projectId={project._id} onDone={reload} />}
+                {activeForm === 'credit' && (
+                  <CreditForm
+                    projectId={project._id}
+                    contributors={contributors}
+                    onDone={reload}
+                    isPrimary={amPrimary}
+                    genInput={{
+                      projectId: project._id,
+                      title: project.title,
+                      contributors: contributors.map((c) => ({ alias: c.alias })),
+                      traceCount: timeline.filter((e) => e.kind === 'trace').length,
+                      pivotCount: timeline.filter((e) => e.kind === 'pivot').length,
+                      referenceCount: timeline.filter((e) => e.kind === 'reference').length,
+                    }}
+                  />
+                )}
 
-            {/* Media proof panel */}
-            <section className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setShowMedia((v) => !v)}
-                className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white hover:text-white"
-              >
-                <span>{showMedia ? '▾' : '▸'}</span>
-                Proof & Media ({mediaItems.length} file{mediaItems.length !== 1 ? 's' : ''})
-              </button>
+                {/* Media proof panel */}
+                <section className="space-y-2 border border-white/25 p-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowMedia((v) => !v)}
+                    className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white hover:text-white"
+                  >
+                    <span>{showMedia ? '▾' : '▸'}</span>
+                    Proof & Media ({mediaItems.length} file{mediaItems.length !== 1 ? 's' : ''})
+                  </button>
 
-              {showMedia && (
-                <div className="space-y-2">
-                  <div className="border border-dashed border-grey-300 bg-grey-50 px-4 py-3 space-y-1">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white">How verification works</p>
-                    <p className="text-[12px] text-white">
-                      Every uploaded file is hashed with SHA-256 before it's stored. The hash is recorded on the trace entry (on-chain). To verify a file hasn't been tampered with: download it, compute its SHA-256, and compare to the hash shown here — they must match exactly.
-                    </p>
-                  </div>
+                  {showMedia && (
+                    <div className="space-y-2">
+                      <div className="border border-dashed border-grey-300 bg-grey-50 px-4 py-3 space-y-1">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white">How verification works</p>
+                        <p className="text-[12px] text-white">
+                          Every uploaded file is hashed with SHA-256 before it's stored. The hash is recorded on the trace entry (on-chain). To verify a file hasn't been tampered with: download it, compute its SHA-256, and compare to the hash shown here — they must match exactly.
+                        </p>
+                      </div>
 
-                  {mediaItems.length === 0 ? (
-                    <p className="text-small text-white font-mono">No proof files yet. Attach an image, video, or audio file when logging work.</p>
-                  ) : (
-                    <ul className="divide-y divide-grey-100 border border-grey-200">
-                      {mediaItems.map((m) => (
-                        <li key={m.mediaId} className="px-4 py-3 space-y-2">
-                          <div className="space-y-0.5 min-w-0">
-                            <p className="font-mono text-[12px] truncate">{m.originalName}</p>
-                            <p className="font-mono text-[10px] text-white">
-                              {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
-                            </p>
-                          </div>
-                          <MediaPreview
-                            mediaId={m.mediaId}
-                            mimeType={m.mimeType}
-                            hash={m.hash}
-                            originalName={m.originalName}
-                          />
-                          <div className="space-y-0.5">
-                            <p className="font-mono text-[10px] text-white">
-                              Media ID — <span className="text-white tracking-wider">{m.mediaId}</span>
-                            </p>
-                            <p className="font-mono text-[10px] text-white">SHA-256 fingerprint</p>
-                            <p className="font-mono text-[10px] break-all text-white">{m.hash}</p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+                      {mediaItems.length === 0 ? (
+                        <p className="text-small text-white font-mono">No proof files yet. Attach an image, video, or audio file when logging work.</p>
+                      ) : (
+                        <ul className="divide-y divide-grey-100 border border-grey-200">
+                          {mediaItems.map((m) => (
+                            <li key={m.mediaId} className="px-4 py-3 space-y-2">
+                              <div className="space-y-0.5 min-w-0">
+                                <p className="font-mono text-[12px] truncate">{m.originalName}</p>
+                                <p className="font-mono text-[10px] text-white">
+                                  {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
+                                </p>
+                              </div>
+                              <MediaPreview
+                                mediaId={m.mediaId}
+                                mimeType={m.mimeType}
+                                hash={m.hash}
+                                originalName={m.originalName}
+                              />
+                              <div className="space-y-0.5">
+                                <p className="font-mono text-[10px] text-white">
+                                  Media ID — <span className="text-white tracking-wider">{m.mediaId}</span>
+                                </p>
+                                <p className="font-mono text-[10px] text-white">SHA-256 fingerprint</p>
+                                <p className="font-mono text-[10px] break-all text-white">{m.hash}</p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-            </section>
+                </section>
 
-            {/* Timeline */}
-            <section className="space-y-2">
-              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
-                Activity Timeline
-              </h2>
-              <ProjectTimeline entries={timeline} projectId={id} />
-            </section>
+                <p className="pt-2">
+                  <Link
+                    to={`/archive/new?space=${encodeURIComponent(project.spaceId)}`}
+                    className="font-mono text-small underline underline-offset-4"
+                  >
+                    Archive past work in this space
+                  </Link>
+                </p>
+              </div>
 
-            <p className="pt-2">
-              <Link
-                to={`/archive/new?space=${encodeURIComponent(project.spaceId)}`}
-                className="font-mono text-small underline underline-offset-4"
-              >
-                Archive past work in this space
-              </Link>
-            </p>
+              {/* Timeline */}
+              <section className="space-y-2 border border-white/25 p-3">
+                <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white">
+                  Activity Timeline
+                </h2>
+                <ProjectTimeline entries={timeline} projectId={id} />
+              </section>
+            </div>
           </>
         ) : !error ? (
           <p className="text-small font-mono text-white">Loading…</p>

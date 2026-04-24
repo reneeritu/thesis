@@ -51,7 +51,7 @@ export function ReferenceForm({ projectId, onDone }: Props) {
 
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
-      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Add Reference</h3>
+      <h3 className="text-small font-heading uppercase tracking-[0.18em]">Add Reference</h3>
       <form onSubmit={onSubmit} className="space-y-3 text-small">
         <div>
           <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Relationship</label>

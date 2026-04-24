@@ -7,7 +7,7 @@
     /* Etch: contour tints + glass (kept calm so the 3D radar stays the focus) */
     --contour-warm: rgba(180, 130, 90, 0.35);
     --contour-cool: rgba(90, 130, 180, 0.35);
-    --contour-neutral: rgba(100, 100, 110, 0.28);
+    --contour-neutral: rgba(120, 100, 160, 0.28);
     --contour-accent: rgba(150, 110, 180, 0.32);
     --blur-minimal: 4px;
     --blur-light: 8px;
@@ -26,7 +26,7 @@
   }
 
   html {
-    @apply max-h-[100vh] max-w-[100vw] overflow-x-hidden;
+    @apply max-h-[100vh] max-w-[100vw] overflow-x-visible;
     height: 100%;
     box-sizing: border-box;
   }
@@ -38,8 +38,9 @@
   }
 
   body {
-    @apply m-0 h-full min-h-0 max-h-full min-w-[80vw] max-w-[100vw] w-full overflow-x-hidden overflow-y-hidden;
-    @apply bg-grey-50 text-body leading-snug text-white font-sans;
+    @apply m-0 h-full min-h-0 max-h-full min-w-[80vw] max-w-[100vw] w-full overflow-x-visible overflow-y-hidden;
+    @apply bg-grey-50 text-body leading-snug font-sans;
+    color: rgba(235, 230, 245, 0.92);
     /* Only change from paper: desaturated blue–violet black (all other body chrome unchanged) */
     background-color: #0a0712;
     background-image:
@@ -104,7 +105,7 @@
   }
 
   #root {
-    @apply flex h-full min-h-0 min-w-[80vw] max-h-full max-w-[100vw] w-full flex-col overflow-x-hidden;
+    @apply flex h-full min-h-0 min-w-[80vw] max-h-full max-w-[100vw] w-full flex-col overflow-x-visible;
   }
 }
 
@@ -122,11 +123,12 @@ h3,
 h4,
 h5,
 h6 {
-  @apply font-bricolage text-white;
+  @apply font-heading;
+  color: inherit;
 }
 
 a {
-  @apply text-white;
+  color: inherit;
 }
 
 .grid-overlay {
@@ -154,61 +156,231 @@ a {
 
   /* ──── Glassmorphism Utilities ──── */
   .glassmorphic-light {
-    backdrop-filter: blur(var(--blur-light));
-    background-color: rgba(255, 255, 255, var(--backdrop-light));
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    box-shadow: none;
   }
 
   .glassmorphic-light:hover {
-    backdrop-filter: blur(var(--blur-medium));
-    border-color: rgba(255, 255, 255, 0.3);
+    backdrop-filter: none;
+    border-color: transparent;
   }
 
   .glassmorphic-minimal {
-    backdrop-filter: blur(var(--blur-minimal));
-    background-color: rgba(255, 255, 255, var(--backdrop-subtle));
-    border: 1px solid rgba(200, 200, 210, 0.08);
+    backdrop-filter: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+  }
+
+  /*
+   * Floating menus, popovers, drawers — subtle glass (blur + tint).
+   * Do not combine with .glassmorphic-light on the same node (it forces backdrop-filter: none).
+   */
+  .floating-glass-panel {
+    background-color: rgba(9, 7, 14, 0.72);
+    backdrop-filter: blur(14px) saturate(1.12);
+    -webkit-backdrop-filter: blur(14px) saturate(1.12);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  }
+
+  .floating-glass-scrim {
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .floating-glass-panel {
+      background-color: rgba(9, 7, 14, 0.94);
+    }
+
+    .floating-glass-scrim {
+      background-color: rgba(0, 0, 0, 0.65);
+    }
+  }
+
+  /*
+   * Floating menus / drawers: one rhythm (11px). Caps + mono for chrome; sans + sentence case for prose.
+   */
+  .etch-float-caps {
+    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-white;
+  }
+
+  .etch-float-prose {
+    @apply font-sans text-[11px] font-normal normal-case leading-relaxed tracking-normal text-white;
+  }
+
+  .etch-float-menu-item {
+    @apply block border-b border-grey-100/20 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white last:border-b-0 hover:bg-white/10 hover:text-yellow-400;
+  }
+
+  /*
+   * Print jewel cycle + 2-beat CM misregister (no blur) before each hue jump.
+   */
+  @keyframes etch-print-jewel-cycle {
+    0%,
+    15.9% {
+      color: color-mix(in srgb, var(--etch-gold) 68%, white);
+      text-shadow: none;
+    }
+    16% {
+      color: color-mix(in srgb, var(--etch-gold) 68%, white);
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    16.3% {
+      color: color-mix(in srgb, var(--etch-gold) 68%, white);
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    16.66%,
+    32.56% {
+      color: color-mix(in srgb, var(--etch-sapphire) 68%, white);
+      text-shadow: none;
+    }
+    32.66% {
+      color: color-mix(in srgb, var(--etch-sapphire) 68%, white);
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    32.96% {
+      color: color-mix(in srgb, var(--etch-sapphire) 68%, white);
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    33.33%,
+    49.23% {
+      color: color-mix(in srgb, var(--etch-ruby) 68%, white);
+      text-shadow: none;
+    }
+    49.33% {
+      color: color-mix(in srgb, var(--etch-ruby) 68%, white);
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    49.63% {
+      color: color-mix(in srgb, var(--etch-ruby) 68%, white);
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    50%,
+    65.9% {
+      color: color-mix(in srgb, var(--etch-emerald) 68%, white);
+      text-shadow: none;
+    }
+    66% {
+      color: color-mix(in srgb, var(--etch-emerald) 68%, white);
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    66.3% {
+      color: color-mix(in srgb, var(--etch-emerald) 68%, white);
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    66.66%,
+    82.56% {
+      color: color-mix(in srgb, var(--etch-amethyst) 68%, white);
+      text-shadow: none;
+    }
+    82.66% {
+      color: color-mix(in srgb, var(--etch-amethyst) 68%, white);
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    82.96% {
+      color: color-mix(in srgb, var(--etch-amethyst) 68%, white);
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    83.33%,
+    99.23% {
+      color: color-mix(in srgb, var(--etch-aqua) 68%, white);
+      text-shadow: none;
+    }
+    99.33% {
+      color: color-mix(in srgb, var(--etch-aqua) 68%, white);
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    99.63% {
+      color: color-mix(in srgb, var(--etch-aqua) 68%, white);
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    100% {
+      color: color-mix(in srgb, var(--etch-gold) 68%, white);
+      text-shadow: none;
+    }
+  }
+
+  @keyframes etch-legend-misprint {
+    0% {
+      text-shadow: -1px 0 0 rgb(0, 255, 255), 1px 0 0 rgb(255, 0, 180);
+    }
+    50% {
+      text-shadow: -2px 0 0 rgb(0, 255, 255), 2px 0 0 rgb(255, 0, 180);
+    }
+    100% {
+      text-shadow: none;
+    }
+  }
+
+  .etch-legend-misprint-once {
+    animation: etch-legend-misprint 0.07s steps(2, jump-none) 1 forwards;
+  }
+
+  .etch-jewel-shift-text {
+    @apply font-heading;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    -webkit-font-smoothing: antialiased;
+    animation: etch-print-jewel-cycle 8s linear infinite;
+  }
+
+  .etch-nav-jewel-shift {
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    -webkit-font-smoothing: antialiased;
+    animation: etch-print-jewel-cycle 8s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .etch-jewel-shift-text,
+    .etch-nav-jewel-shift {
+      animation: none;
+      color: color-mix(in srgb, var(--etch-gold) 68%, white);
+      text-shadow: none;
+    }
+
+    .etch-legend-misprint-once {
+      animation: none;
+    }
   }
 
   /* ──── Contour Border Utilities ──── */
   .contour-border-warm {
-    border: 1px solid var(--contour-warm);
+    border: 1px solid transparent;
     position: relative;
     overflow: hidden;
   }
 
   .contour-border-cool {
-    border: 1px solid var(--contour-cool);
+    border: 1px solid transparent;
     position: relative;
     overflow: hidden;
   }
 
   .contour-border-neutral {
-    border: 1px solid var(--contour-neutral);
+    border: 1px solid transparent;
     position: relative;
     overflow: hidden;
   }
 
   .contour-border-accent {
-    border: 1px solid var(--contour-accent);
+    border: 1px solid transparent;
     position: relative;
     overflow: hidden;
   }
 
   /* Double-line wireframe effect for buttons */
   .contour-wireframe {
-    border: 1.5px solid var(--contour-warm);
-    box-shadow: 
-      inset 0 0 0 1px rgba(255, 255, 255, 0.3),
-      inset 0 0 0 3px var(--contour-warm);
+    border: 1px solid transparent;
+    box-shadow: none;
     position: relative;
   }
 
   .contour-wireframe:hover {
-    box-shadow: 
-      inset 0 0 0 1px rgba(255, 255, 255, 0.4),
-      inset 0 0 0 3px var(--contour-accent);
+    box-shadow: none;
   }
 
   /* ──── Heatmap Gradient Utilities ──── */
@@ -254,7 +426,7 @@ a {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: var(--contour-overlay);
+    opacity: 0;
     background-image: 
       repeating-linear-gradient(
         45deg,
@@ -275,16 +447,11 @@ a {
 
   /* ──── Glow Effects ──── */
   .glow-subtle {
-    box-shadow: 
-      0 0 12px rgba(220, 140, 80, 0.15),
-      0 0 6px rgba(80, 140, 220, 0.1);
+    box-shadow: none;
   }
 
   .glow-interactive {
-    box-shadow: 
-      0 0 16px rgba(220, 140, 80, 0.2),
-      0 0 8px rgba(80, 140, 220, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: none;
   }
 
   /* ──── Transition States ──── */
@@ -557,7 +724,7 @@ svg#contourPatterns {
 }
 
 .hero-orbital-block h3 {
-  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
   font-size: clamp(0.7rem, 1.4vw, 0.82rem);
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -567,7 +734,7 @@ svg#contourPatterns {
 }
 
 .hero-orbital-block .hero-orbital-sub {
-  font-family: 'Cormorant Garamond', 'Cormorant_Garamond', Georgia, serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
   font-size: clamp(1.05rem, 2.2vw, 1.28rem);
   font-weight: 500;
   font-style: italic;
@@ -577,7 +744,7 @@ svg#contourPatterns {
 }
 
 .hero-orbital-block .hero-orbital-body {
-  font-family: 'Cormorant Garamond', 'Cormorant_Garamond', Georgia, serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
   font-size: clamp(0.82rem, 1.65vw, 0.98rem);
   font-weight: 400;
   line-height: 1.58;
@@ -722,7 +889,7 @@ svg#contourPatterns {
   padding: 0.55rem 1.35rem;
   background: #0a0a0a;
   color: #fdfcf5;
-  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
   font-size: clamp(0.62rem, 1.15vw, 0.74rem);
   font-weight: 700;
   letter-spacing: 0.24em;
@@ -740,7 +907,7 @@ svg#contourPatterns {
 .hero-orbit-focus-ui__body {
   margin: 0.7rem 0 0;
   padding: 0 0.5rem;
-  font-family: 'Cormorant Garamond', 'Cormorant_Garamond', Georgia, serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
   font-size: clamp(0.88rem, 1.7vw, 1.05rem);
   font-weight: 400;
   font-style: italic;

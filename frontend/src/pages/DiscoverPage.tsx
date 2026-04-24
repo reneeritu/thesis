@@ -19,6 +19,10 @@ type DiscoverProject = {
   title: string
   status: string
   spaceId: string
+  /** Space title when returned by discover/projects */
+  spaceName?: string
+  /** True when visibility is space_only (member-visible; show seal in UI) */
+  spaceScoped?: boolean
   creatorAlias: string
   visibility: string
   isContributor: boolean
@@ -139,18 +143,18 @@ export default function DiscoverPage() {
 
   return (
     <AppShell title="Discover">
-      <div className="space-y-4">
+      <div className="max-w-4xl space-y-4">
         {current.error && (
           <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">{current.error}</p>
         )}
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="sticky top-0 z-10 flex flex-wrap gap-2 border border-white/20 bg-zinc-950/90 p-2 backdrop-blur-sm">
           {tabBtn('spaces', `Spaces (${spaces.total || spaces.items.length})`)}
           {tabBtn('projects', `Projects (${projects.total || projects.items.length})`)}
           {tabBtn('nodes', `Nodes (${nodes.total || nodes.items.length})`)}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="sticky top-12 z-10 flex items-center gap-2 border border-white/20 bg-zinc-950/90 p-2 backdrop-blur-sm">
           <input
             type="search"
             value={query}
@@ -233,18 +237,30 @@ export default function DiscoverPage() {
         {tab === 'projects' && (
           <div className="space-y-2">
             {!current.loading && projects.items.length === 0 ? (
-              <p className="text-small text-white">No public projects match.</p>
+              <p className="text-small text-white">No projects match.</p>
             ) : (
               <ul className="divide-y divide-grey-100 border border-grey-200">
                 {projects.items.map((p) => (
                   <li key={p._id} className="px-4 py-3 flex items-start justify-between gap-2">
-                    <div>
-                      <Link
-                        to={`/projects/${encodeURIComponent(p._id)}`}
-                        className="font-mono text-[12px] uppercase tracking-[0.16em] hover:underline"
-                      >
-                        {p.title}
-                      </Link>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          to={`/projects/${encodeURIComponent(p._id)}`}
+                          className="font-mono text-[12px] uppercase tracking-[0.16em] hover:underline"
+                        >
+                          {p.title}
+                        </Link>
+                        {(p.spaceScoped ?? p.visibility === 'space_only') ? (
+                          <Link
+                            to={`/spaces/${encodeURIComponent(p.spaceId)}`}
+                            className="inline-flex items-center gap-1 rounded border border-cyan/50 bg-cyan/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-cyan shrink-0"
+                            title="Space-only: visible to members of this space"
+                          >
+                            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-cyan" />
+                            {p.spaceName ? p.spaceName : 'Space'}
+                          </Link>
+                        ) : null}
+                      </div>
                       <p className="font-mono text-[10px] text-white mt-0.5">
                         by {p.creatorAlias}
                         {p.isContributor ? ' · contributor' : ''}
@@ -252,7 +268,7 @@ export default function DiscoverPage() {
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className="font-mono text-[10px] border border-grey-200 px-1 py-0.5 uppercase">{p.status}</span>
-                      <span className="font-mono text-[10px] text-white">{p.visibility}</span>
+                      <span className="font-mono text-[10px] text-white">{p.visibility.replace(/_/g, ' ')}</span>
                     </div>
                   </li>
                 ))}
@@ -283,7 +299,8 @@ export default function DiscoverPage() {
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="font-mono text-[10px] text-white">
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] text-white">
+                        <span aria-hidden className="inline-block h-2 w-2 rounded-full border border-white/40" />
                         rep {n.reputationScore}
                       </span>
                       {n.badges.length > 0 && (

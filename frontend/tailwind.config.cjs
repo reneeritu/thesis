@@ -1,4 +1,14 @@
 /** @type {import('tailwindcss').Config} */
+
+const helveticaStack = [
+  'Helvetica Neue',
+  'Helvetica',
+  'Arial',
+  'system-ui',
+  '-apple-system',
+  'sans-serif',
+];
+
 module.exports = {
   content: ['./index.html', './src/**/*.{ts,tsx,js,jsx}'],
   theme: {
@@ -6,6 +16,10 @@ module.exports = {
       colors: {
         black: '#0a0a0a',
         white: '#ffffff',
+        cyan: '#4AEAFF',
+        red: '#FF5F4A',
+        green: '#91FF62',
+        purple: '#D062FF',
         grey: {
           50: '#fafafa',
           100: '#f4f4f4',
@@ -13,11 +27,14 @@ module.exports = {
           400: '#9e9e9e',
         },
         yellow: {
-          400: '#ffd94a',
+          400: '#fff34a',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        /** Headings — same stack as sans (system Helvetica, no webfont). */
+        heading: helveticaStack,
+        /** Primary UI + body (pair with `font-mono` for technical chrome). */
+        sans: helveticaStack,
         mono: [
           'JetBrains Mono',
           'ui-monospace',
@@ -25,8 +42,6 @@ module.exports = {
           'Menlo',
           'monospace',
         ],
-        /** Headings / display (loaded in `index.html`) */
-        bricolage: ['Bricolage Grotesque', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         /* Caps match the fixed scale; fluid down to readable mobile minimums */

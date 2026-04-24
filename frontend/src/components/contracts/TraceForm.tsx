@@ -142,7 +142,7 @@ export function TraceForm({ projectId, onDone }: Props) {
 
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
-      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Log Work</h3>
+      <h3 className="text-small font-heading uppercase tracking-[0.18em]">Log Work</h3>
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
         Contributors have 7 days to confirm or dispute this trace. Silence counts as confirm.
       </p>

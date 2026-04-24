@@ -145,294 +145,298 @@ export default function SpaceDetailPage() {
         )}
 
         {space ? (
-          <>
-            {/* ── Info ── */}
-            <section className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-block border border-black px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
-                    isDormant ? 'bg-grey-100 text-white' : 'bg-black text-yellow-400'
-                  }`}
-                  title={
-                    isDormant
-                      ? 'No recent activity. Invites remain active but no new contracts are expected.'
-                      : 'Active — new contracts and invites are open.'
-                  }
-                >
-                  {isDormant ? 'Dormant' : 'Active'}
-                </span>
-                <p className="font-mono text-[10px] text-white">
-                  ID: <span className="break-all">{space._id}</span>
-                </p>
-              </div>
-              {space.description && <p className="text-body text-white">{space.description}</p>}
-              <p className="font-mono text-[11px] text-white">
-                Created by <strong>{space.creatorAlias}</strong> · {space.members.length} members
-                {space.settings?.vetoAuthority?.length
-                  ? ` · Veto: ${space.settings.vetoAuthority.join(', ')}`
-                  : ''}
-              </p>
-              {(space.pendingVeto?.length ?? 0) > 0 ? (
-                <div className="border border-grey-200 bg-grey-50 px-3 py-2 space-y-1">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
-                    Pending veto invites
+          <div className="grid gap-8 xl:grid-cols-12">
+            <div className="space-y-6 xl:col-span-5">
+              {/* ── Info ── */}
+              <section className="space-y-2 border border-white/20 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-block border border-black px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
+                      isDormant ? 'bg-grey-100 text-white' : 'bg-black text-yellow-400'
+                    }`}
+                    title={
+                      isDormant
+                        ? 'No recent activity. Invites remain active but no new contracts are expected.'
+                        : 'Active — new contracts and invites are open.'
+                    }
+                  >
+                    {isDormant ? 'Dormant' : 'Active'}
+                  </span>
+                  <p className="font-mono text-[10px] text-white">
+                    ID: <span className="break-all">{space._id}</span>
                   </p>
-                  <ul className="flex flex-wrap gap-1">
-                    {space.pendingVeto!.map((p) => (
-                      <li key={p.alias}>
-                        <span className="inline-flex items-center gap-1 border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-[11px]">
-                          <span className="text-white text-[9px] uppercase tracking-[0.14em]">Veto invite</span>
-                          <span>{p.alias}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              ) : null}
-            </section>
-
-            {/* ── Veto invitation for current user ── */}
-            {hasPendingVeto && (
-              <section className="border border-black p-4 space-y-3 bg-yellow-50">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
-                  You have been invited to join this space as veto authority
+                {space.description && <p className="text-body text-white">{space.description}</p>}
+                <p className="font-mono text-[11px] text-white">
+                  Created by <strong>{space.creatorAlias}</strong> · {space.members.length} members
+                  {space.settings?.vetoAuthority?.length
+                    ? ` · Veto: ${space.settings.vetoAuthority.join(', ')}`
+                    : ''}
                 </p>
-                <p className="text-small text-white">Choose how to respond:</p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => respondVeto(true, true)}
-                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
-                  >
-                    Join + Accept Veto
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => respondVeto(true, false)}
-                    className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
-                  >
-                    Join Only (no veto)
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => respondVeto(false, false)}
-                    className="border border-white/20 bg-zinc-900/50 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10 transition disabled:opacity-60 text-white"
-                  >
-                    Decline
-                  </button>
-                </div>
+                {(space.pendingVeto?.length ?? 0) > 0 ? (
+                  <div className="border border-grey-200 bg-grey-50 px-3 py-2 space-y-1">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+                      Pending veto invites
+                    </p>
+                    <ul className="flex flex-wrap gap-1">
+                      {space.pendingVeto!.map((p) => (
+                        <li key={p.alias}>
+                          <span className="inline-flex items-center gap-1 border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-[11px]">
+                            <span className="text-white text-[9px] uppercase tracking-[0.14em]">Veto invite</span>
+                            <span>{p.alias}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </section>
-            )}
 
-            {/* ── Actions ── */}
-            <section className="flex flex-wrap gap-2 text-small font-mono uppercase tracking-[0.18em]">
-              <Link
-                to={`/projects/new?space=${encodeURIComponent(space._id)}`}
-                className="border border-black bg-yellow-400 px-3 py-1 text-white hover:bg-black hover:text-yellow-400 transition"
-              >
-                New project
-              </Link>
-              {isAdmin && (
-                <Link
-                  to={`/spaces/${encodeURIComponent(space._id)}/settings`}
-                  className="border border-white/25 bg-zinc-900/55 px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
-                >
-                  Settings
-                </Link>
-              )}
-              {isMember && space.creatorAlias !== meAlias && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={leaveSpace}
-                  className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
-                >
-                  Leave space
-                </button>
-              )}
-            </section>
-
-            {/* ── Members list ── */}
-            <section className="space-y-2">
-              <h2 className="text-h3 font-bricolage uppercase tracking-[0.18em]">Members ({space.members.length})</h2>
-              <ul className="divide-y divide-grey-100 border border-grey-200">
-                {space.members.map((alias) => (
-                  <li key={alias} className="flex items-center justify-between px-3 py-2 font-mono text-[11px]">
-                    <Link to={`/nodes/${encodeURIComponent(alias)}`} className="hover:underline">
-                      {alias}
-                    </Link>
-                    <span className="text-white">
-                      {space.admins.includes(alias) ? 'admin' : 'member'}
-                      {space.settings?.vetoAuthority?.includes(alias) ? ' · veto' : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            {/* ── Invite codes (admin only) ── */}
-            {isAdmin && (
-              <section className="space-y-3">
-                <h2 className="text-h3 font-bricolage uppercase tracking-[0.18em]">Invite Codes</h2>
-
-                <div className="border border-grey-200 p-3 space-y-2">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white">Generate new code</p>
-                  <div className="flex flex-wrap gap-2 items-end">
-                    <div>
-                      <label className="block font-mono text-[10px] text-white mb-0.5">Type</label>
-                      <select
-                        value={genMode}
-                        onChange={(e) => setGenMode(e.target.value as 'single_use' | 'multi_use')}
-                        className="border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-[11px]"
-                      >
-                        <option value="single_use">Single-use</option>
-                        <option value="multi_use">Multi-use / shareable</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-1 font-mono text-[10px] text-white mb-0.5">
-                        <input
-                          type="checkbox"
-                          checked={genExpiry !== null}
-                          onChange={(e) => setGenExpiry(e.target.checked ? 15 : null)}
-                        />
-                        Expires in (days)
-                      </label>
-                      {genExpiry !== null && (
-                        <input
-                          type="number"
-                          min={1}
-                          value={genExpiry}
-                          onChange={(e) => setGenExpiry(Number(e.target.value))}
-                          className="w-20 border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-[11px]"
-                        />
-                      )}
-                    </div>
+              {/* ── Veto invitation for current user ── */}
+              {hasPendingVeto && (
+                <section className="border border-black p-4 space-y-3 bg-yellow-50">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
+                    You have been invited to join this space as veto authority
+                  </p>
+                  <p className="text-small text-white">Choose how to respond:</p>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => generateInvite({ mode: genMode, expiryDays: genExpiry })}
+                      onClick={() => respondVeto(true, true)}
+                      className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
+                    >
+                      Join + Accept Veto
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => respondVeto(true, false)}
                       className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                     >
-                      Generate
+                      Join Only (no veto)
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => respondVeto(false, false)}
+                      className="border border-white/20 bg-zinc-900/50 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10 transition disabled:opacity-60 text-white"
+                    >
+                      Decline
                     </button>
                   </div>
+                </section>
+              )}
 
-                  {genResult && (
-                    <div className="mt-2 border border-black bg-grey-50 p-3 space-y-2">
-                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white">New invite code</p>
-                      <div className="flex items-center gap-2">
-                        <code className="font-mono text-[13px] tracking-widest break-all">{genResult.inviteCode}</code>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(genResult.inviteCode, 'code')}
-                          className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition"
-                        >
-                          {copied === 'code' ? 'Copied!' : 'Copy code'}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] text-white break-all">{inviteJoinUrl(genResult.inviteCode)}</span>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(inviteJoinUrl(genResult.inviteCode), 'url')}
-                          className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
-                        >
-                          {copied === 'url' ? 'Copied!' : 'Copy link'}
-                        </button>
-                      </div>
-                      {genResult.expiresAt && (
-                        <p className="font-mono text-[10px] text-white">
-                          Expires: {new Date(genResult.expiresAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Existing codes */}
-                {(space.inviteCodes?.length ?? 0) > 0 && (
-                  <ul className="divide-y divide-grey-100 border border-grey-200">
-                    {space.inviteCodes!.map((ic, i) => {
-                      const isSingle = ic.mode !== 'multi_use'
-                      const expired = ic.expiresAt ? new Date(ic.expiresAt).getTime() < Date.now() : false
-                      const consumed = isSingle && (ic.used || (ic.usedCount ?? 0) >= 1)
-                      return (
-                        <li key={i} className="px-3 py-2 font-mono text-[11px] space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span
-                              className={`inline-block px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] border border-black ${
-                                isSingle
-                                  ? 'bg-black text-yellow-400'
-                                  : 'bg-zinc-800/80 text-white'
-                              }`}
-                              title={
-                                isSingle
-                                  ? 'Single-use: one person can join with this code.'
-                                  : 'Multi-use: everyone with the link can join until it expires.'
-                              }
-                            >
-                              {isSingle ? 'Single-use' : 'Multi-use'}
-                            </span>
-                            {consumed ? (
-                              <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white">
-                                Used
-                              </span>
-                            ) : null}
-                            {expired ? (
-                              <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white">
-                                Expired
-                              </span>
-                            ) : null}
-                            <code className="tracking-widest break-all flex-1 min-w-0">{ic.code}</code>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(ic.code, 'ic-' + i)}
-                              className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
-                            >
-                              {copied === 'ic-' + i ? 'Copied!' : 'Copy'}
-                            </button>
-                          </div>
-                          <p className="text-white">
-                            used {ic.usedCount ?? (ic.used ? 1 : 0)}×
-                            {ic.expiresAt ? ` · expires ${new Date(ic.expiresAt).toLocaleDateString()}` : ' · no expiry'}
-                          </p>
-                        </li>
-                      )
-                    })}
-                  </ul>
+              {/* ── Actions ── */}
+              <section className="flex flex-wrap gap-2 border border-white/20 p-3 text-small font-mono uppercase tracking-[0.18em]">
+                <Link
+                  to={`/projects/new?space=${encodeURIComponent(space._id)}`}
+                  className="border border-black bg-yellow-400 px-3 py-1 text-white hover:bg-black hover:text-yellow-400 transition"
+                >
+                  New project
+                </Link>
+                {isAdmin && (
+                  <Link
+                    to={`/spaces/${encodeURIComponent(space._id)}/settings`}
+                    className="border border-white/25 bg-zinc-900/55 px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+                  >
+                    Settings
+                  </Link>
+                )}
+                {isMember && space.creatorAlias !== meAlias && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={leaveSpace}
+                    className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
+                  >
+                    Leave space
+                  </button>
                 )}
               </section>
-            )}
 
-            {/* ── Projects ── */}
-            <section className="space-y-3">
-              <h2 className="text-h3 font-bricolage uppercase tracking-[0.18em]">Projects</h2>
-              {projects.length === 0 ? (
-                <p className="text-small text-white">No projects yet.</p>
-              ) : (
-                <ul className="divide-y divide-grey-100 border border-grey-200">
-                  {projects.map((p) => (
-                    <li key={p._id} className="flex items-center justify-between px-3 py-2 text-small font-mono">
-                      <span>{p.title}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-[10px] uppercase">{p.status}</span>
-                        <Link
-                          to={`/projects/${encodeURIComponent(p._id)}`}
-                          className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition"
+              {/* ── Invite codes (admin only) ── */}
+              {isAdmin && (
+                <section className="space-y-3 border border-white/20 p-3">
+                  <h2 className="text-h3 font-heading uppercase tracking-[0.18em]">Invite Codes</h2>
+
+                  <div className="border border-grey-200 p-3 space-y-2">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white">Generate new code</p>
+                    <div className="flex flex-wrap gap-2 items-end">
+                      <div>
+                        <label className="block font-mono text-[10px] text-white mb-0.5">Type</label>
+                        <select
+                          value={genMode}
+                          onChange={(e) => setGenMode(e.target.value as 'single_use' | 'multi_use')}
+                          className="border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-[11px]"
                         >
-                          Open
-                        </Link>
+                          <option value="single_use">Single-use</option>
+                          <option value="multi_use">Multi-use / shareable</option>
+                        </select>
                       </div>
+                      <div>
+                        <label className="flex items-center gap-1 font-mono text-[10px] text-white mb-0.5">
+                          <input
+                            type="checkbox"
+                            checked={genExpiry !== null}
+                            onChange={(e) => setGenExpiry(e.target.checked ? 15 : null)}
+                          />
+                          Expires in (days)
+                        </label>
+                        {genExpiry !== null && (
+                          <input
+                            type="number"
+                            min={1}
+                            value={genExpiry}
+                            onChange={(e) => setGenExpiry(Number(e.target.value))}
+                            className="w-20 border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-[11px]"
+                          />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => generateInvite({ mode: genMode, expiryDays: genExpiry })}
+                        className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                      >
+                        Generate
+                      </button>
+                    </div>
+
+                    {genResult && (
+                      <div className="mt-2 border border-black bg-grey-50 p-3 space-y-2">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white">New invite code</p>
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono text-[13px] tracking-widest break-all">{genResult.inviteCode}</code>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(genResult.inviteCode, 'code')}
+                            className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition"
+                          >
+                            {copied === 'code' ? 'Copied!' : 'Copy code'}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] text-white break-all">{inviteJoinUrl(genResult.inviteCode)}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(inviteJoinUrl(genResult.inviteCode), 'url')}
+                            className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                          >
+                            {copied === 'url' ? 'Copied!' : 'Copy link'}
+                          </button>
+                        </div>
+                        {genResult.expiresAt && (
+                          <p className="font-mono text-[10px] text-white">
+                            Expires: {new Date(genResult.expiresAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Existing codes */}
+                  {(space.inviteCodes?.length ?? 0) > 0 && (
+                    <ul className="divide-y divide-grey-100 border border-grey-200">
+                      {space.inviteCodes!.map((ic, i) => {
+                        const isSingle = ic.mode !== 'multi_use'
+                        const expired = ic.expiresAt ? new Date(ic.expiresAt).getTime() < Date.now() : false
+                        const consumed = isSingle && (ic.used || (ic.usedCount ?? 0) >= 1)
+                        return (
+                          <li key={i} className="px-3 py-2 font-mono text-[11px] space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`inline-block px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] border border-black ${
+                                  isSingle
+                                    ? 'bg-black text-yellow-400'
+                                    : 'bg-zinc-800/80 text-white'
+                                }`}
+                                title={
+                                  isSingle
+                                    ? 'Single-use: one person can join with this code.'
+                                    : 'Multi-use: everyone with the link can join until it expires.'
+                                }
+                              >
+                                {isSingle ? 'Single-use' : 'Multi-use'}
+                              </span>
+                              {consumed ? (
+                                <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white">
+                                  Used
+                                </span>
+                              ) : null}
+                              {expired ? (
+                                <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white">
+                                  Expired
+                                </span>
+                              ) : null}
+                              <code className="tracking-widest break-all flex-1 min-w-0">{ic.code}</code>
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(ic.code, 'ic-' + i)}
+                                className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                              >
+                                {copied === 'ic-' + i ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
+                            <p className="text-white">
+                              used {ic.usedCount ?? (ic.used ? 1 : 0)}×
+                              {ic.expiresAt ? ` · expires ${new Date(ic.expiresAt).toLocaleDateString()}` : ' · no expiry'}
+                            </p>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </section>
+              )}
+            </div>
+
+            <div className="space-y-6 xl:col-span-7">
+              {/* ── Members list ── */}
+              <section className="space-y-2">
+                <h2 className="text-h3 font-heading uppercase tracking-[0.18em]">Members ({space.members.length})</h2>
+                <ul className="divide-y divide-grey-100 border border-grey-200">
+                  {space.members.map((alias) => (
+                    <li key={alias} className="flex items-center justify-between px-3 py-2 font-mono text-[11px]">
+                      <Link to={`/nodes/${encodeURIComponent(alias)}`} className="hover:underline">
+                        {alias}
+                      </Link>
+                      <span className="text-white">
+                        {space.admins.includes(alias) ? 'admin' : 'member'}
+                        {space.settings?.vetoAuthority?.includes(alias) ? ' · veto' : ''}
+                      </span>
                     </li>
                   ))}
                 </ul>
-              )}
-            </section>
-          </>
+              </section>
+
+              {/* ── Projects ── */}
+              <section className="space-y-3">
+                <h2 className="text-h3 font-heading uppercase tracking-[0.18em]">Projects</h2>
+                {projects.length === 0 ? (
+                  <p className="text-small text-white">No projects yet.</p>
+                ) : (
+                  <ul className="divide-y divide-grey-100 border border-grey-200">
+                    {projects.map((p) => (
+                      <li key={p._id} className="flex items-center justify-between px-3 py-2 text-small font-mono">
+                        <span>{p.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-[10px] uppercase">{p.status}</span>
+                          <Link
+                            to={`/projects/${encodeURIComponent(p._id)}`}
+                            className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition"
+                          >
+                            Open
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+          </div>
         ) : (
           !error && <p className="text-small font-mono text-white">Loading…</p>
         )}

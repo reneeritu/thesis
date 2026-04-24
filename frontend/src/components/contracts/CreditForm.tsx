@@ -112,7 +112,7 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
 
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-4">
-      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Credit Split / End Project</h3>
+      <h3 className="text-small font-heading uppercase tracking-[0.18em]">Credit Split / End Project</h3>
 
       {existingNft && (
         <div className="space-y-3">

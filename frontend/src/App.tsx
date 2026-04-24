@@ -1,16 +1,21 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
-import Landing from './pages/Landing'
+import LandingLayout from './pages/LandingLayout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RecoverPage from './pages/RecoverPage'
 import { getToken } from './lib/session'
+import { LayoutDebugRoot } from './lib/layoutDebug'
 import { DefinitionsProvider } from './context/DefinitionsContext'
+import { ThemeProvider } from './context/ThemeContext'
+import './styles/theme-modes.css'
+import { AppAtmosphere } from './components/AppAtmosphere'
+import { initFontInspect } from './lib/fontInspect'
 
 // Everything below ships as its own JS chunk and is only downloaded when the
 // user navigates to that route. WelcomeLanding in particular carries Theatre +
 // R3F + Three (~1 MB gzipped) — splitting it out keeps the initial shell tiny.
-const WelcomeLanding = lazy(() => import('./pages/WelcomeLanding'))
+const WelcomeLanding = lazy(() => import('./pages/WelcomeLandingLayout'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const SpacesPage = lazy(() => import('./pages/SpacesPage'))
@@ -48,37 +53,47 @@ function RouteFallback() {
 }
 
 export default function App() {
+  useEffect(() => {
+    initFontInspect()
+  }, [])
+
   return (
-    <DefinitionsProvider>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/welcome" element={<WelcomeLanding />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/recover" element={<RecoverPage />} />
-          <Route path="/nodes/:alias" element={<PublicNodePage />} />
-          <Route element={<RequireAuth />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/me" element={<ProfilePage />} />
-            <Route path="/spaces" element={<SpacesPage />} />
-            <Route path="/spaces/search" element={<SpaceSearchPage />} />
-            <Route path="/spaces/new" element={<SpaceNewPage />} />
-            <Route path="/spaces/join" element={<SpaceJoinPage />} />
-            <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
-            <Route path="/spaces/:id" element={<SpaceDetailPage />} />
-            <Route path="/projects" element={<ProjectsBoardPage />} />
-            <Route path="/projects/search" element={<ProjectSearchPage />} />
-            <Route path="/projects/new" element={<ProjectNewPage />} />
-            <Route path="/projects/:id" element={<ProjectDetailPage />} />
-            <Route path="/archive/new" element={<ArchiveNewPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/governance" element={<GovernancePage />} />
-            <Route path="/nfts/:id" element={<NftPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </DefinitionsProvider>
+    <ThemeProvider>
+      <DefinitionsProvider>
+        <AppAtmosphere />
+        <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
+          <LayoutDebugRoot />
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+            <Route path="/" element={<LandingLayout />} />
+            <Route path="/welcome" element={<WelcomeLanding />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/recover" element={<RecoverPage />} />
+            <Route path="/nodes/:alias" element={<PublicNodePage />} />
+            <Route element={<RequireAuth />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/me" element={<ProfilePage />} />
+              <Route path="/spaces" element={<SpacesPage />} />
+              <Route path="/spaces/search" element={<SpaceSearchPage />} />
+              <Route path="/spaces/new" element={<SpaceNewPage />} />
+              <Route path="/spaces/join" element={<SpaceJoinPage />} />
+              <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
+              <Route path="/spaces/:id" element={<SpaceDetailPage />} />
+              <Route path="/projects" element={<ProjectsBoardPage />} />
+              <Route path="/projects/search" element={<ProjectSearchPage />} />
+              <Route path="/projects/new" element={<ProjectNewPage />} />
+              <Route path="/projects/:id" element={<ProjectDetailPage />} />
+              <Route path="/archive/new" element={<ArchiveNewPage />} />
+              <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/governance" element={<GovernancePage />} />
+              <Route path="/nfts/:id" element={<NftPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </div>
+      </DefinitionsProvider>
+    </ThemeProvider>
   )
 }

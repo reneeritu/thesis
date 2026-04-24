@@ -1,0 +1,36 @@
+.etch-font-inspect-toast {
+  position: fixed;
+  z-index: 2147483647;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 10px 12px;
+  font-family: ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  background: rgba(12, 12, 14, 0.94);
+  color: rgba(245, 240, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  word-break: break-word;
+}
+
+.etch-font-inspect-toast__title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  color: rgba(186, 230, 253, 0.95);
+}
+
+.etch-font-inspect-toast__row {
+  margin-top: 4px;
+}
+
+.etch-font-inspect-toast__k {
+  display: inline-block;
+  min-width: 3.2rem;
+  margin-right: 6px;
+  color: rgba(255, 255, 255, 0.45);
+}

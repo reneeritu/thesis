@@ -44,8 +44,8 @@ export default function SpacesPage() {
           </p>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-small text-white">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border border-white/20 bg-zinc-950/20 p-3">
+          <p className="min-w-0 text-small text-white">
             Spaces you’re a member of.
           </p>
           <div className="flex gap-2 text-small font-mono uppercase tracking-[0.18em]">

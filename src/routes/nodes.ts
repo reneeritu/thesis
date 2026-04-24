@@ -104,6 +104,7 @@ router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
   }));
 
   res.json({
+    _id: String(node._id),
     alias: node.alias,
     interests: node.interests,
     portfolioUrl: node.portfolioUrl,

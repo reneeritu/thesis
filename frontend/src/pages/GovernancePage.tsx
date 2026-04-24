@@ -135,8 +135,8 @@ export default function GovernancePage() {
   return (
     <AppShell title="Governance">
       <div className="space-y-6">
-        <section className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
-          <h2 className="text-small font-bricolage uppercase tracking-[0.18em]">
+        <section className="max-w-4xl border border-white/25 bg-zinc-900/55 p-4 space-y-3">
+          <h2 className="text-small font-heading uppercase tracking-[0.18em]">
             Raise <DefTerm term="flag">flag</DefTerm> / <DefTerm term="dispute">dispute</DefTerm>
           </h2>
           <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 text-small">
@@ -257,7 +257,7 @@ export default function GovernancePage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white">
             My open <DefTerm term="flag">flags</DefTerm>
           </h2>
           {openFlags.length === 0 ? (
@@ -265,7 +265,7 @@ export default function GovernancePage() {
           ) : (
             <div className="space-y-2">
               {openFlags.map((f) => (
-                <div key={f._id} className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small">
+                <div key={f._id} className="border border-white/25 bg-zinc-900/55 p-3 text-small">
                   <p className="font-mono">{f.flagCategory} / {f.flagType} / {f.status}</p>
                   <p className="text-white break-all">{f.targetType}: {f.targetId}</p>
                 </div>
@@ -275,7 +275,7 @@ export default function GovernancePage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white">
             My closed <DefTerm term="flag">flags</DefTerm>
           </h2>
           {closedFlags.length === 0 ? (
@@ -283,7 +283,7 @@ export default function GovernancePage() {
           ) : (
             <div className="space-y-2">
               {closedFlags.map((f) => (
-                <div key={f._id} className="border border-black bg-grey-100 px-3 py-2 text-small">
+                <div key={f._id} className="border border-white/25 bg-zinc-900/55 p-3 text-small">
                   <p className="font-mono">{f.flagCategory} / {f.flagType} / {f.status}</p>
                   <p className="text-white break-all">{f.targetType}: {f.targetId}</p>
                 </div>
@@ -293,7 +293,7 @@ export default function GovernancePage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white">
             My <DefTerm term="mediation">mediations</DefTerm>
           </h2>
           {mediations.length === 0 ? (
@@ -301,7 +301,7 @@ export default function GovernancePage() {
           ) : (
             <div className="space-y-2">
               {mediations.map((m) => (
-                <div key={m._id} className="border border-white/25 bg-zinc-900/55 px-3 py-2 text-small">
+                <div key={m._id} className="border border-white/25 bg-zinc-900/55 p-3 text-small">
                   <p className="font-mono">{m.triggerType} / {m.status}</p>
                   <p className="text-white break-all">project: {m.projectId} · entity: {m.relatedEntityType}</p>
                 </div>

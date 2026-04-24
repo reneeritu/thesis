@@ -1,6 +1,7 @@
 /**
  * GET /discover/spaces   — public feed of all active spaces
- * GET /discover/projects — public feed of fully_public + process_visible projects
+ * GET /discover/projects — fully_public + process_visible, plus space_only projects
+ *   in spaces the authenticated node belongs to (space-scoped rows include spaceName)
  * GET /discover/nodes    — public feed of active nodes (alias + keywords + interests)
  *
  * All three support `?q=<search>&limit=<N>&offset=<M>` and return the same
@@ -10,6 +11,7 @@
  * [1, MAX_LIMIT] with a sensible default so a newly seeded DB can't flood
  * the client with hundreds of rows.
  */
+import mongoose from 'mongoose';
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { Space } from '../models/Space';
@@ -79,9 +81,33 @@ router.get('/projects', requireAuth, async (req: AuthRequest, res: Response) => 
   const alias = req.node!.alias;
   const { q, limit, offset } = parsePaging(req);
 
+  const me = await ChainNode.findOne({ alias }).select('spaces').lean();
+  const fromNode = (me?.spaces ?? []) as mongoose.Types.ObjectId[];
+  /** Membership on Space is canonical; ChainNode.spaces can lag after joins. */
+  const fromMembership = (await Space.distinct('_id', {
+    members: alias,
+    status: 'active',
+  })) as mongoose.Types.ObjectId[];
+
+  const seen = new Set<string>();
+  const memberSpaceIds: mongoose.Types.ObjectId[] = [];
+  for (const id of [...fromNode, ...fromMembership]) {
+    const k = String(id);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    memberSpaceIds.push(id);
+  }
+
+  const visibilityOr: Record<string, unknown>[] = [
+    { visibility: { $in: ['fully_public', 'process_visible'] } },
+  ];
+  if (memberSpaceIds.length > 0) {
+    visibilityOr.push({ visibility: 'space_only', spaceId: { $in: memberSpaceIds } });
+  }
+
   const filter: Record<string, unknown> = {
-    visibility: { $in: ['fully_public', 'process_visible'] },
     status: { $nin: ['archived'] },
+    $or: visibilityOr,
   };
   if (q) {
     filter.title = new RegExp(escRe(q), 'i');
@@ -95,19 +121,33 @@ router.get('/projects', requireAuth, async (req: AuthRequest, res: Response) => 
     .limit(limit)
     .lean();
 
+  const spaceIdStrs = [...new Set(docs.map((p) => String(p.spaceId)))];
+  const spaceDocs = await Space.find({
+    _id: { $in: spaceIdStrs.map((id) => new mongoose.Types.ObjectId(id)) },
+  })
+    .select('name')
+    .lean();
+  const spaceNameById = new Map(spaceDocs.map((s) => [String(s._id), s.name]));
+
   res.json({
-    items: docs.map((p) => ({
-      _id: String(p._id),
-      title: p.title,
-      status: p.status,
-      spaceId: String(p.spaceId),
-      creatorAlias: p.creatorAlias,
-      visibility: p.visibility,
-      isContributor: Array.isArray(p.contributors)
-        ? p.contributors.some((c: { alias: string }) => c.alias === alias)
-        : false,
-      createdAt: p.createdAt,
-    })),
+    items: docs.map((p) => {
+      const sid = String(p.spaceId);
+      const spaceScoped = p.visibility === 'space_only';
+      return {
+        _id: String(p._id),
+        title: p.title,
+        status: p.status,
+        spaceId: sid,
+        spaceName: spaceNameById.get(sid) ?? '',
+        spaceScoped,
+        creatorAlias: p.creatorAlias,
+        visibility: p.visibility,
+        isContributor: Array.isArray(p.contributors)
+          ? p.contributors.some((c: { alias: string }) => c.alias === alias)
+          : false,
+        createdAt: p.createdAt,
+      };
+    }),
     total,
     limit,
     offset,

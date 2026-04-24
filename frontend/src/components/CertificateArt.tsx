@@ -70,7 +70,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
 
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-3 space-y-3 text-small">
-      <h3 className="font-bricolage text-[11px] uppercase tracking-[0.18em]">Customise</h3>
+      <h3 className="font-heading text-[11px] uppercase tracking-[0.18em]">Customise</h3>
 
       <section className="space-y-1">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Motif</p>

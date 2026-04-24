@@ -2,13 +2,12 @@ import type { ButtonHTMLAttributes } from 'react'
 
 type Variant = 'primary' | 'secondary' | 'danger'
 
+/* Fully transparent chrome; danger keeps readable text tint only. */
 const variantClass: Record<Variant, string> = {
-  primary:
-    'border border-black bg-yellow-400 text-white hover:bg-black hover:text-yellow-400',
-  secondary:
-    'border border-white/25 bg-zinc-900/55 text-white hover:bg-black hover:text-yellow-400',
+  primary: 'border border-transparent bg-transparent text-current hover:opacity-90',
+  secondary: 'border border-transparent bg-transparent text-current hover:opacity-90',
   danger:
-    'border border-red-500/50 bg-red-950/50 text-white hover:bg-black hover:text-yellow-400',
+    'border border-transparent bg-transparent text-[color:var(--etch-danger-text)] hover:opacity-90',
 }
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

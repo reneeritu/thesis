@@ -114,6 +114,8 @@ export default function SpaceNewPage() {
     'Review',
   ][step - 1]
 
+  const stepBodyClass = step === 7 ? '' : 'min-h-[40vh]'
+
   return (
     <AppShell title="Create Space">
       <div className="max-w-lg space-y-4">
@@ -128,7 +130,7 @@ export default function SpaceNewPage() {
 
         {/* ── Step 1: Name + Description ── */}
         {step === 1 && (
-          <form onSubmit={(e) => { e.preventDefault(); next() }} className="space-y-3 text-small">
+          <form onSubmit={(e) => { e.preventDefault(); next() }} className={`space-y-3 text-small ${stepBodyClass}`}>
             <div>
               <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Name *</label>
               <input
@@ -153,7 +155,7 @@ export default function SpaceNewPage() {
 
         {/* ── Step 2: Co-founders ── */}
         {step === 2 && (
-          <div className="space-y-3 text-small">
+          <div className={`space-y-3 text-small ${stepBodyClass}`}>
             <p className="font-mono text-[11px] text-white">
               Add other nodes as founding members. They join the space immediately. You can skip this step.
             </p>
@@ -196,7 +198,7 @@ export default function SpaceNewPage() {
         {step === 3 && (
           <form
             onSubmit={(e) => { e.preventDefault(); next() }}
-            className="space-y-3 text-small"
+            className={`space-y-3 text-small ${stepBodyClass}`}
           >
             <p className="font-mono uppercase tracking-[0.18em] text-white">Who can start a project?</p>
             {(['open', 'invite_only', 'application'] as const).map((v) => (
@@ -268,7 +270,7 @@ export default function SpaceNewPage() {
               }))
               next()
             }}
-            className="space-y-3 text-small"
+            className={`space-y-3 text-small ${stepBodyClass}`}
           >
             <div>
               <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
@@ -295,7 +297,7 @@ export default function SpaceNewPage() {
         {step === 5 && (
           <form
             onSubmit={(e) => { e.preventDefault(); next() }}
-            className="space-y-3 text-small"
+            className={`space-y-3 text-small ${stepBodyClass}`}
           >
             <div>
               <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
@@ -337,7 +339,7 @@ export default function SpaceNewPage() {
               }))
               next()
             }}
-            className="space-y-3 text-small"
+            className={`space-y-3 text-small ${stepBodyClass}`}
           >
             <p className="font-mono uppercase tracking-[0.18em] text-white">Privacy default</p>
             {(['public', 'space_specific', 'private'] as const).map((v) => (

@@ -1,6 +1,8 @@
 ## Aura2 Frontend Migration Roadmap
 
-Monochrome React/Tailwind shell at `/` is now the primary entrypoint, with the legacy hash-router UI still available under `/legacy`. This roadmap tracks the migration of app surfaces from the legacy UI (`public/js/site.js` + `#/…` routes) onto the new React shell without changing backend contracts.
+React/Tailwind shell at `/` is now the primary entrypoint, with the legacy hash-router UI still available under `/legacy`. This roadmap tracks the migration of app surfaces from the legacy UI (`public/js/site.js` + `#/…` routes) onto the new React shell without changing backend contracts.
+
+> **Palette note (April 2026):** the original spec called this a *monochrome* shell (black/grey/white + yellow accent). That constraint has since been lifted — the full Tailwind palette is available per component/page, and global defaults (`body`, `h1..h6`, `a`, `Button`) no longer force a specific text color. The shell chrome (grid, spacing rhythm, typography scale) is unchanged.
 
 ---
 
@@ -8,7 +10,7 @@ Monochrome React/Tailwind shell at `/` is now the primary entrypoint, with the l
 
 **Status**: Done / evolving
 
-- **Shell**: Monochrome grid, max content width `max-w-shell` (see Tailwind config), 12‑column grid, horizontal padding via `shell-px`, 8px spacing rhythm.
+- **Shell**: Max content width `max-w-shell` (see Tailwind config), 12‑column grid, horizontal padding via `shell-px`, 8px spacing rhythm. (Historically "monochrome" — now color-agnostic, see note above.)
 - **Typography**: Fixed scale (H1 64px, H2 40px, H3 24px, body 16px, small 14px) implemented with fluid `clamp(...)` down to mobile minima, capped at design sizes.
 - **Color + texture**: Black/white/greys/yellow, dotted/noise background.
 - **Routing**:
@@ -189,4 +191,15 @@ This is the largest surface and may be split further if needed.
 **Exit criteria** (met for primary navigation)
 
 - React is the default UI; legacy is reachable on purpose, not required for core flows.
+
+---
+
+## Later — Combined dashboard + profile (tabbed)
+
+**Status**: Planned (not started)
+
+- Merge **Overview** (current `/dashboard`: reputation, crystal radar, chain, quick links) and **Edit profile** (current `/me`: form + metadata) into **one route** with tabs, e.g. `/me` or `/dashboard`.
+- Tab **Overview** ≈ today’s dashboard content; tab **Profile** ≈ today’s profile form.
+- Support deep links, e.g. `?tab=profile` or `/me/profile`, and update **AppShell** nav so “Dashboard” / “Profile” point into the same page.
+- **Dedupe** the crystal / reputation header so it isn’t mounted twice; keep a single source of truth for node data.
 

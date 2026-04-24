@@ -1,0 +1,209 @@
+/*
+ * Light theme — `html[data-theme="light"]` only. Default (no attribute) = existing dark UI.
+ * Broad utility overrides keep Tailwind classnames unchanged across pages.
+ */
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-theme='light'] body {
+  color: rgba(24, 18, 38, 0.92);
+  background-color: #f0ecf8;
+  background-image: linear-gradient(168deg, #faf8ff 0%, #f2eef9 42%, #e9e4f2 100%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+html[data-theme='light'] body::before {
+  opacity: 0.1;
+  mix-blend-mode: multiply;
+}
+
+html[data-theme='light'] body::after {
+  opacity: 0.025;
+}
+
+html[data-theme='light'] header {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme='light'] .grid-overlay {
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+}
+
+/* Floating chrome */
+html[data-theme='light'] .floating-glass-panel {
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.1);
+}
+
+html[data-theme='light'] .floating-glass-scrim {
+  background-color: rgba(24, 18, 38, 0.22);
+}
+
+html[data-theme='light'] .etch-float-caps {
+  color: rgb(24 24 27);
+}
+
+html[data-theme='light'] .etch-float-prose {
+  color: rgb(39 39 42);
+}
+
+html[data-theme='light'] .etch-float-menu-item {
+  color: rgb(24 24 27);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Atmosphere — wash toward paper-violet */
+html[data-theme='light'] .app-atmosphere__base {
+  background-color: #f3f0fa;
+  background-image: linear-gradient(165deg, #faf8ff 0%, #f0ecf9 40%, #e6e0f4 100%);
+}
+
+html[data-theme='light'] .app-atmosphere__benday-layer {
+  opacity: 0.38;
+  mix-blend-mode: multiply;
+}
+
+html[data-theme='light'] .app-atmosphere__screen-layer {
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+}
+
+html[data-theme='light'] .app-atmosphere__screen-slip {
+  opacity: 0.22;
+}
+
+/* Common Tailwind ink on light shell */
+html[data-theme='light'] .text-white {
+  color: rgb(24 24 27) !important;
+}
+
+html[data-theme='light'] .text-white\/95 {
+  color: rgb(24 24 27 / 0.95) !important;
+}
+html[data-theme='light'] .text-white\/90 {
+  color: rgb(24 24 27 / 0.9) !important;
+}
+html[data-theme='light'] .text-white\/85 {
+  color: rgb(24 24 27 / 0.85) !important;
+}
+html[data-theme='light'] .text-white\/80 {
+  color: rgb(24 24 27 / 0.8) !important;
+}
+html[data-theme='light'] .text-white\/70 {
+  color: rgb(24 24 27 / 0.7) !important;
+}
+html[data-theme='light'] .text-white\/65 {
+  color: rgb(24 24 27 / 0.65) !important;
+}
+html[data-theme='light'] .text-white\/60 {
+  color: rgb(24 24 27 / 0.6) !important;
+}
+html[data-theme='light'] .text-white\/55 {
+  color: rgb(24 24 27 / 0.55) !important;
+}
+html[data-theme='light'] .text-white\/50 {
+  color: rgb(24 24 27 / 0.5) !important;
+}
+html[data-theme='light'] .text-white\/45 {
+  color: rgb(24 24 27 / 0.45) !important;
+}
+html[data-theme='light'] .text-white\/40 {
+  color: rgb(24 24 27 / 0.4) !important;
+}
+html[data-theme='light'] .text-white\/35 {
+  color: rgb(24 24 27 / 0.35) !important;
+}
+html[data-theme='light'] .text-white\/25 {
+  color: rgb(24 24 27 / 0.25) !important;
+}
+html[data-theme='light'] .text-white\/20 {
+  color: rgb(24 24 27 / 0.2) !important;
+}
+
+/* Panels that read as dark glass in default theme */
+html[data-theme='light'] .bg-zinc-900\/55 {
+  background-color: rgba(255, 255, 255, 0.78) !important;
+}
+
+html[data-theme='light'] .bg-zinc-950\/20 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+html[data-theme='light'] .bg-zinc-950\/35 {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+}
+
+html[data-theme='light'] .bg-zinc-950\/90 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+html[data-theme='light'] .bg-zinc-800\/60 {
+  background-color: rgba(244, 244, 246, 0.95) !important;
+}
+
+html[data-theme='light'] .bg-zinc-800\/80 {
+  background-color: rgba(228, 228, 231, 0.95) !important;
+}
+
+html[data-theme='light'] .bg-zinc-700\/35 {
+  background-color: rgba(244, 244, 246, 0.85) !important;
+}
+
+/* Hairline borders on light */
+html[data-theme='light'] .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html[data-theme='light'] .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html[data-theme='light'] .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+html[data-theme='light'] .border-white\/25 {
+  border-color: rgba(0, 0, 0, 0.14) !important;
+}
+html[data-theme='light'] .border-white\/30 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+
+html[data-theme='light'] .divide-grey-100 {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme='light'] .border-grey-200 {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme='light'] .border-grey-300 {
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+html[data-theme='light'] .border-grey-400 {
+  border-color: rgba(0, 0, 0, 0.22);
+}
+
+html[data-theme='light'] .border-grey-200\/30 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme='light'] .border-black {
+  border-color: #0a0a0a;
+}
+
+/* Light tints for alert / emphasis panels */
+html[data-theme='light'] .bg-grey-50 {
+  background-color: #f4f4f6;
+}
+
+html[data-theme='light'] .bg-grey-100 {
+  background-color: #ececf0;
+}
+
+html[data-theme='light'] .bg-yellow-50 {
+  background-color: #fffbeb;
+}

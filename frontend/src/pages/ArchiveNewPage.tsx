@@ -159,8 +159,10 @@ export default function ArchiveNewPage() {
           </p>
         ) : null}
 
-        <form onSubmit={onSubmit} className="space-y-4 text-small">
-          <div>
+        <form onSubmit={onSubmit} className="space-y-5 text-small">
+          <fieldset className="space-y-4 border border-white/20 bg-zinc-950/20 p-4">
+            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Work</legend>
+            <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Space</label>
             <select
               value={spaceId}
@@ -182,9 +184,9 @@ export default function ArchiveNewPage() {
                 </Link>
               </p>
             ) : null}
-          </div>
+            </div>
 
-          <div>
+            <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Title</label>
             <input
               value={title}
@@ -192,8 +194,8 @@ export default function ArchiveNewPage() {
               required
               className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
-          </div>
-          <div>
+            </div>
+            <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Medium</label>
             <input
               value={medium}
@@ -201,8 +203,8 @@ export default function ArchiveNewPage() {
               required
               className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
-          </div>
-          <div>
+            </div>
+            <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Approx. date (text)
             </label>
@@ -213,9 +215,12 @@ export default function ArchiveNewPage() {
               placeholder="March 2022"
               className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
-          </div>
+            </div>
+          </fieldset>
 
-          <div>
+          <fieldset className="space-y-4 border border-white/20 bg-zinc-950/20 p-4">
+            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Evidence</legend>
+            <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Evidence type
             </label>
@@ -230,55 +235,58 @@ export default function ArchiveNewPage() {
                 </option>
               ))}
             </select>
-          </div>
+            </div>
 
-          {evidenceType === 'other' ? (
-            <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
-                Other description
+            {evidenceType === 'other' ? (
+              <div>
+                <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
+                  Other description
+                </label>
+                <input
+                  value={otherDescription}
+                  onChange={(e) => setOtherDescription(e.target.value)}
+                  className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex gap-4 font-mono text-small">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input type="radio" checked={source === 'file'} onChange={() => setSource('file')} />
+                File (photo / video / audio)
               </label>
-              <input
-                value={otherDescription}
-                onChange={(e) => setOtherDescription(e.target.value)}
-                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
-              />
+              <label className="flex cursor-pointer items-center gap-2">
+                <input type="radio" checked={source === 'url'} onChange={() => setSource('url')} />
+                URL (hash of URL string)
+              </label>
             </div>
-          ) : null}
 
-          <div className="flex gap-4 font-mono text-small">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" checked={source === 'file'} onChange={() => setSource('file')} />
-              File (photo / video / audio)
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" checked={source === 'url'} onChange={() => setSource('url')} />
-              URL (hash of URL string)
-            </label>
-          </div>
+            {source === 'file' ? (
+              <div>
+                <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">File</label>
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-body"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">URL</label>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://…"
+                  className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
+                />
+              </div>
+            )}
+          </fieldset>
 
-          {source === 'file' ? (
+          <fieldset className="space-y-4 border border-white/20 bg-zinc-950/20 p-4">
+            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Declarations</legend>
             <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">File</label>
-              <input
-                type="file"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="w-full text-body"
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">URL</label>
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://…"
-                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
-              />
-            </div>
-          )}
-
-          <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Context (optional)
             </label>
@@ -288,26 +296,27 @@ export default function ArchiveNewPage() {
               rows={3}
               className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body"
             />
-          </div>
+            </div>
 
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={originalWork}
-              onChange={(e) => setOriginalWork(e.target.checked)}
-              required
-            />
-            <span>I declare this is my original work.</span>
-          </label>
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={reconstruction}
-              onChange={(e) => setReconstruction(e.target.checked)}
-              required
-            />
-            <span>I acknowledge this is a self-reported reconstruction.</span>
-          </label>
+            <label className="flex cursor-pointer items-start gap-2">
+              <input
+                type="checkbox"
+                checked={originalWork}
+                onChange={(e) => setOriginalWork(e.target.checked)}
+                required
+              />
+              <span>I declare this is my original work.</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2">
+              <input
+                type="checkbox"
+                checked={reconstruction}
+                onChange={(e) => setReconstruction(e.target.checked)}
+                required
+              />
+              <span>I acknowledge this is a self-reported reconstruction.</span>
+            </label>
+          </fieldset>
 
           <button
             type="submit"

@@ -11,6 +11,8 @@
   --white: #ffffff;
   --grey-light: #f4f4f4;
   --grey-mid: #aaaaaa;
+  /** Muted copy that was grey — use brand cyan for text only */
+  --text-cyan-muted: #4aeaff;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-jakarta: "Plus Jakarta Sans", var(--font-sans);
   --font-mono: "Courier New", Courier, monospace;
@@ -149,7 +151,7 @@ textarea,
   display: inline-block;
   font-size: 24px;
   line-height: 1;
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   animation: blink 1.2s infinite;
 }
 .loading-strip .dot:nth-child(2) {
@@ -173,7 +175,7 @@ textarea,
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
 }
 
 /* ---------- Grid ---------- */
@@ -197,7 +199,7 @@ textarea,
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   text-align: right;
@@ -220,7 +222,7 @@ textarea,
   grid-column: 11 / span 2;
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   text-align: right;
 }
 
@@ -293,7 +295,7 @@ textarea,
 .topbar__crumb {
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -414,7 +416,7 @@ textarea,
 
 .notif-meta {
   font-size: 10px;
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   margin-top: 4px;
 }
 
@@ -460,7 +462,7 @@ textarea,
 }
 
 .topbar__sep {
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
 }
 
 /* ---------- Window panel ---------- */
@@ -617,7 +619,7 @@ textarea,
 .btn[disabled],
 .btn--disabled {
   background: var(--grey-light);
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   border: none;
   cursor: not-allowed;
 }
@@ -1465,7 +1467,7 @@ table.data-table {
 
 /* ---------- Misc ---------- */
 .text-muted {
-  color: var(--grey-mid);
+  color: var(--text-cyan-muted);
   font-size: 11px;
   font-family: var(--font-mono);
 }

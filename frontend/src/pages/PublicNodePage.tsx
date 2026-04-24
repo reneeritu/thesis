@@ -80,7 +80,7 @@ export default function PublicNodePage() {
 
         {node ? (
           <div className="space-y-4">
-            <p className="text-h3 font-bricolage">{node.alias}</p>
+            <p className="text-h3 font-heading text-white">{node.alias}</p>
             {node.reputationScore != null && authed ? (
               <p className="text-small font-mono text-white">
                 Score — not shown publicly; open your own profile for details.
@@ -101,13 +101,13 @@ export default function PublicNodePage() {
               </div>
             ) : null}
             <div>
-              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white mb-1">
+              <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white mb-1">
                 Keywords
               </h2>
               <p className="text-body">{node.keywords?.length ? node.keywords.join(', ') : '—'}</p>
             </div>
             <div>
-              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white mb-1">
+              <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white mb-1">
                 Interests
               </h2>
               {node.interests?.length ? (
@@ -133,7 +133,7 @@ export default function PublicNodePage() {
               </p>
             ) : null}
             <div>
-              <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white mb-1">
+              <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white mb-1">
                 Projects
               </h2>
               {projects.length === 0 ? (

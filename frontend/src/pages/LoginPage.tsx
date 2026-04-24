@@ -36,8 +36,8 @@ export default function LoginPage() {
 
   return (
     <AppShell title="Login">
-      <div className="w-full grid grid-cols-12 gap-x-3 gap-y-6">
-        <div className="col-span-12 md:col-span-5 space-y-4">
+      <div className="grid w-full grid-cols-12 gap-x-3 gap-y-6 md:items-start">
+        <div className="col-span-12 space-y-4 border border-white/20 bg-zinc-950/20 p-3 md:col-span-5">
           <p className="text-body text-white">New here?</p>
           <Link
             to="/register"
@@ -52,7 +52,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="col-span-12 md:col-span-7">
+        <div className="col-span-12 md:col-span-7 md:pl-4">
           <form onSubmit={onSubmit} className="w-full max-w-md space-y-4">
             {error ? (
               <p

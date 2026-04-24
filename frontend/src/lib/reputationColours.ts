@@ -65,7 +65,7 @@ export function categoryForActivity(
   return ACTIVITY_TO_CATEGORY[activityType] ?? null
 }
 
-/** Looks up the hex colour for an activity type, or a neutral grey if unmapped. */
+/** Looks up the hex colour for an activity type, or a neutral default if unmapped. */
 export function colourForActivity(
   activityType: string | null | undefined,
   fallback = '#737373',

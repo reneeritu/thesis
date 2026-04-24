@@ -161,7 +161,7 @@ export default function NftPage() {
         {bundle ? (
           <div className="space-y-6">
             {/* ── Main layout: artwork + meta ── */}
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
+            <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)]">
               {/* Artwork */}
               <div className="space-y-2">
                 <ArtworkDisplay nftId={bundle.nft._id} artwork={bundle.nft.artwork} />
@@ -205,7 +205,7 @@ export default function NftPage() {
 
               {/* Certificate metadata */}
               <div className="space-y-3">
-                <h2 className="text-h3 font-bricolage">
+                <h2 className="text-h3 font-heading">
                   {bundle.nft.title || 'Certificate'}
                 </h2>
                 {bundle.archive ? (

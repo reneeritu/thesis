@@ -1,0 +1,19 @@
+/*
+ * Keep html/body from flashing white; AppAtmosphere draws the real scene.
+ * Body pseudo-elements stay off so we don't double-stack grain with the component.
+ */
+html,
+body {
+  background-color: #03050c !important;
+  background-image: none !important;
+}
+
+#root {
+  background: transparent !important;
+}
+
+body::before,
+body::after {
+  display: none !important;
+  content: none !important;
+}

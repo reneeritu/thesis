@@ -91,7 +91,10 @@ export default function ProjectNewPage() {
 
   return (
     <AppShell title="New project">
-      <form onSubmit={onSubmit} className="max-w-lg space-y-4">
+      <form onSubmit={onSubmit} className="max-w-lg space-y-5">
+        <p className="text-body text-white/90">
+          Start a new project in one of your spaces, then log traces to build the project record over time.
+        </p>
         {error ? (
           <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white" role="alert">
             {error}

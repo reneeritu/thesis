@@ -1,0 +1,382 @@
+/*
+ * Cosmic-jewel design tokens — match crystal radar (reputationColours) + atmosphere tints.
+ * Consumed by utilities, Button variants, and index.css contour tokens.
+ */
+:root {
+  /* Base */
+  --etch-void: #020308;
+  --etch-plum: #18101f;
+
+  /* Jewels (sync with frontend/src/lib/reputationColours.ts CATEGORY_COLOURS) */
+  --etch-gold: #ffd700;
+  --etch-sapphire: #4f8ef7;
+  --etch-ruby: #ff4757;
+  --etch-emerald: #2ecc71;
+  --etch-amethyst: #be5bea;
+  --etch-aqua: #00d2ff;
+
+  /* Structural tints (contour / linework) */
+  --etch-warm: rgba(180, 130, 90, 1);
+  --etch-cool: rgba(90, 130, 180, 1);
+  --etch-accent: rgba(150, 110, 180, 1);
+
+  /* Glass surface */
+  --etch-glass-bg: rgba(255, 255, 255, 0.05);
+  --etch-glass-ring: rgba(255, 255, 255, 0.12);
+
+  /* Danger button (derived from --etch-ruby) */
+  --etch-danger-border: color-mix(in srgb, var(--etch-ruby) 50%, transparent);
+  --etch-danger-bg: color-mix(in srgb, var(--etch-ruby) 10%, transparent);
+  --etch-danger-bg-hover: color-mix(in srgb, var(--etch-ruby) 20%, transparent);
+  --etch-danger-text: color-mix(in srgb, var(--etch-ruby) 85%, white);
+}
+
+/*
+ * Optional motion vars reserved for future parallax; halftone layers stay fixed in UV space.
+ */
+.app-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  isolation: isolate;
+  --atmosphere-dtx: 0;
+  --atmosphere-dty: 0;
+  --atmosphere-dots-scale: 1;
+}
+
+/* Darker base so the crystal reads brighter; colour washes are dialed back */
+.app-atmosphere__base {
+  position: absolute;
+  inset: 0;
+  background-color: #020308;
+  background-image:
+    radial-gradient(ellipse 55% 48% at 18% 44%, rgba(40, 130, 155, 0.12) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 45% at 8% 88%, rgba(35, 100, 120, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 44% at 72% 58%, rgba(38, 20, 44, 0.32) 0%, transparent 58%),
+    radial-gradient(ellipse 42% 38% at 48% 22%, rgba(28, 14, 36, 0.26) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 40% at 92% 78%, rgba(32, 16, 40, 0.22) 0%, transparent 54%),
+    radial-gradient(ellipse 78% 52% at 88% 34%, rgba(55, 40, 95, 0.14) 0%, transparent 56%),
+    radial-gradient(ellipse 58% 38% at 52% 94%, rgba(40, 80, 75, 0.07) 0%, transparent 52%),
+    linear-gradient(165deg, #050a12 0%, #03060c 38%, #010205 100%);
+
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, normal, normal, normal, normal, normal, normal, normal;
+}
+
+/*
+ * Ben-Day: coarse fixed radial grid (repeating-radial, screen-aligned).
+ * Screen halftone: finer dots at classic print angles — stationary, multiply.
+ */
+.app-atmosphere__benday {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-atmosphere__benday-layer {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  opacity: 0.72;
+  background-repeat: repeat;
+  background-size: 7px 7px;
+}
+
+/* Coarse Ben-Day — repeating radial dot per cell */
+.app-atmosphere__benday-layer--c {
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(0, 210, 255, 0.55) 0,
+    rgba(0, 210, 255, 0.55) 1.15px,
+    transparent 1.15px,
+    transparent 7px
+  );
+  background-position: 0 0;
+}
+
+.app-atmosphere__benday-layer--m {
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 40, 160, 0.5) 0,
+    rgba(255, 40, 160, 0.5) 1.15px,
+    transparent 1.15px,
+    transparent 7px
+  );
+  background-position: 1px 0;
+}
+
+.app-atmosphere__benday-layer--y {
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 215, 60, 0.45) 0,
+    rgba(255, 215, 60, 0.45) 1.15px,
+    transparent 1.15px,
+    transparent 7px
+  );
+  background-position: 0 1px;
+}
+
+/* Finer AM screen halftone — rotated plates, 1px misregister in layer coords */
+.app-atmosphere__screenhalftone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.app-atmosphere__screen-layer {
+  position: absolute;
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 140%;
+  mix-blend-mode: multiply;
+  opacity: 0.4;
+  background-repeat: repeat;
+  background-size: 4px 4px;
+}
+
+.app-atmosphere__screen-layer--c {
+  transform: rotate(15deg);
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(120, 235, 255, 0.42) 0,
+    rgba(120, 235, 255, 0.42) 0.7px,
+    transparent 0.7px,
+    transparent 4px
+  );
+  background-position: 0 0;
+}
+
+.app-atmosphere__screen-layer--m {
+  transform: rotate(75deg);
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 100, 190, 0.38) 0,
+    rgba(255, 100, 190, 0.38) 0.7px,
+    transparent 0.7px,
+    transparent 4px
+  );
+  background-position: 1px 0;
+}
+
+.app-atmosphere__screen-layer--y {
+  transform: rotate(33deg);
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 228, 120, 0.34) 0,
+    rgba(255, 228, 120, 0.34) 0.7px,
+    transparent 0.7px,
+    transparent 4px
+  );
+  background-position: 0 1px;
+}
+
+/* Band-limited second pass: extra plate slip reads as intermittent misregister */
+.app-atmosphere__screen-slip {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+  mask-image: repeating-linear-gradient(
+    102deg,
+    transparent 0 56px,
+    black 56px 112px
+  );
+  mask-size: 100% 100%;
+}
+
+.app-atmosphere__screen-slip .app-atmosphere__screen-layer {
+  opacity: 1;
+  transform: translate(2.5px, -1.5px);
+}
+
+.app-atmosphere__screen-slip .app-atmosphere__screen-layer--c {
+  transform: rotate(15deg) translate(1px, 2px);
+}
+
+.app-atmosphere__screen-slip .app-atmosphere__screen-layer--m {
+  transform: rotate(75deg) translate(-2px, 1px);
+}
+
+.app-atmosphere__screen-slip .app-atmosphere__screen-layer--y {
+  transform: rotate(33deg) translate(1.5px, -2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-atmosphere {
+    --atmosphere-dtx: 0;
+    --atmosphere-dty: 0;
+    --atmosphere-dots-scale: 1;
+  }
+
+  .app-atmosphere__benday-layer {
+    opacity: 0.5;
+  }
+
+  .app-atmosphere__screen-layer {
+    opacity: 0.28;
+  }
+
+  .app-atmosphere__screen-slip {
+    opacity: 0.28;
+  }
+}
+
+/*
+ * Dashboard 3-col row: ambient wash spans the full grid. The crystal column alone
+ * uses .crystal-radar-stage — its ::after was centered on a narrow cell, so teal
+ * (left-biased stops) read strongly behind the legend while the right rail stayed flat.
+ */
+/* Sits above .app-atmosphere (z-0), below crystal + rails (grid cells z-1). */
+.dashboard-crystal-row {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  overflow: visible;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  /* Match Tailwind `gap-x-1` / `gap-y-2` (theme spacing 1=8px, 2=16px). */
+  column-gap: 8px;
+  row-gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  /* Middle row grows so the 3D stage can use remaining height on narrow viewports. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'legend'
+    'crystal'
+    'rail';
+}
+
+@media (min-width: 1024px) {
+  .dashboard-crystal-row {
+    grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) minmax(0, 7.5rem);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'legend crystal rail';
+    /* Match `lg:gap-x-2` + `gap-y-2` */
+    column-gap: 16px;
+  }
+}
+
+.dashboard-crystal-row__legend {
+  grid-area: legend;
+  align-self: center;
+}
+
+.dashboard-crystal-row__crystal {
+  grid-area: crystal;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dashboard-crystal-row__rail {
+  grid-area: rail;
+  align-self: center;
+}
+
+.dashboard-crystal-row::before {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  filter: blur(14px);
+  background:
+    radial-gradient(ellipse 42% 72% at 14% 46%, rgba(25, 55, 62, 0.14) 0%, transparent 58%),
+    radial-gradient(ellipse 40% 70% at 86% 50%, rgba(45, 28, 52, 0.12) 0%, transparent 56%),
+    radial-gradient(ellipse 52% 48% at 50% 58%, rgba(28, 38, 48, 0.08) 0%, transparent 62%);
+}
+
+.dashboard-crystal-row > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-crystal-row::before {
+    filter: blur(10px);
+  }
+}
+
+/*
+ * Crystal well: darker core so the gem reads brighter; keep soft blur, tame rim.
+ */
+.crystal-radar-stage {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  overflow: visible;
+}
+
+/* vw-based width: % was relative to the narrow center column and cropped blooms. */
+.crystal-radar-stage::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: min(124vw, 140rem);
+  max-width: none;
+  aspect-ratio: 1;
+  pointer-events: none;
+  border-radius: 0;
+  background: radial-gradient(
+    ellipse 72% 70% at 50% 50%,
+    rgba(0, 1, 4, 0.88) 0%,
+    rgba(2, 3, 8, 0.5) 38%,
+    rgba(4, 5, 10, 0.2) 55%,
+    transparent 78%
+  );
+  filter: blur(18px);
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.crystal-radar-stage::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: min(118vw, 130rem);
+  max-width: none;
+  aspect-ratio: 1;
+  pointer-events: none;
+  border-radius: 0;
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+  filter: blur(12px);
+  transform: translate(-50%, -50%) scale(1.08);
+  background:
+    radial-gradient(ellipse 52% 48% at 38% 48%, rgba(30, 72, 78, 0.22) 0%, transparent 58%),
+    radial-gradient(ellipse 52% 48% at 62% 52%, rgba(52, 32, 58, 0.2) 0%, transparent 58%),
+    radial-gradient(ellipse 38% 34% at 50% 20%, rgba(28, 40, 52, 0.1) 0%, transparent 55%);
+}
+
+.crystal-radar-stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crystal-radar-stage::before,
+  .crystal-radar-stage::after {
+    filter: blur(12px);
+  }
+}

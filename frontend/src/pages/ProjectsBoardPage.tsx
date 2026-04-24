@@ -98,11 +98,11 @@ export default function ProjectsBoardPage() {
   function Column({ title, items }: { title: string; items: ProjectRow[] }) {
     return (
       <div className="space-y-2">
-        <h2 className="text-small font-bricolage uppercase tracking-[0.18em] text-white">{title}</h2>
+        <h2 className="text-small font-heading uppercase tracking-[0.18em] text-white">{title}</h2>
         {items.length === 0 ? (
-          <p className="text-small text-white">None.</p>
+          <p className="min-h-[8rem] border border-dashed border-white/20 px-3 py-3 text-small text-white">None.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="min-h-[8rem] space-y-2">
             {items.map((item) =>
               item.project ? (
                 <Link
@@ -148,7 +148,7 @@ export default function ProjectsBoardPage() {
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 border border-white/20 bg-zinc-950/20 p-3">
           <p className="text-small text-white">Your projects across all spaces.</p>
           <div className="flex items-center gap-2">
             <Link

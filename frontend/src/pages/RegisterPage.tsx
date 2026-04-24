@@ -30,9 +30,9 @@ function Progress({ step }: { step: Step }) {
     { n: 4, label: 'Done' },
   ] as const
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 text-small font-mono uppercase tracking-[0.18em] text-white">
+    <div className="grid w-full grid-cols-2 gap-x-3 gap-y-2 border-b border-white/10 pb-3 text-small font-mono uppercase tracking-[0.18em] text-white sm:grid-cols-4">
       {items.map(({ n, label }) => (
-        <span key={n} className={step === n ? 'text-white border-b-2 border-black pb-0.5' : ''}>
+        <span key={n} className={step === n ? 'text-white border-b-2 border-black pb-0.5' : 'text-white/65'}>
           {n}. {label}
         </span>
       ))}
@@ -134,8 +134,8 @@ export default function RegisterPage() {
 
   return (
     <AppShell title="Register">
-      <div className="w-full grid grid-cols-12 gap-x-3 gap-y-6">
-        <div className="col-span-12 space-y-6">
+      <div className="grid w-full grid-cols-12 gap-x-3 gap-y-6">
+        <div className="col-span-12 w-full max-w-2xl space-y-6">
           <Progress step={step} />
 
           {step === 1 ? (
@@ -194,7 +194,7 @@ export default function RegisterPage() {
           ) : null}
 
           {step === 2 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 border-t border-white/10 pt-6">
               <div
                 className="border-l-4 border-yellow-400 bg-grey-100 px-4 py-3 text-body font-mono"
                 role="status"
@@ -231,9 +231,9 @@ export default function RegisterPage() {
           ) : null}
 
           {step === 3 ? (
-            <div className="space-y-4 max-w-xl">
+            <div className="max-w-xl space-y-4 border-t border-white/10 pt-6">
               <div className="space-y-2">
-                <h2 className="text-h3 font-bricolage">Pick your trustees (optional)</h2>
+                <h2 className="text-h3 font-heading">Pick your trustees (optional)</h2>
                 <p className="text-body text-white">
                   <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who
                   can help you recover this account if you lose your seed phrase. A majority of them
@@ -310,8 +310,8 @@ export default function RegisterPage() {
           ) : null}
 
           {step === 4 ? (
-            <div className="space-y-4">
-              <p className="text-h3 font-bricolage">Welcome to the chain</p>
+            <div className="space-y-4 border-t border-white/10 pt-6">
+              <p className="text-h3 font-heading">Welcome to the chain</p>
               <p className="text-body">
                 Node <span className="font-mono">{alias}</span> is ready.
               </p>

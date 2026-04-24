@@ -32,7 +32,7 @@ export function PivotForm({ projectId, onDone }: Props) {
 
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
-      <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">Record Pivot</h3>
+      <h3 className="text-small font-heading uppercase tracking-[0.18em]">Record Pivot</h3>
       <p className="text-small text-white">A pivot records a change in direction. It does not stop the project.</p>
       <form onSubmit={onSubmit} className="space-y-3 text-small">
         <div>

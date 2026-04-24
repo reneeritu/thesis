@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AppShell } from '../components/AppShell'
 import { CrystalRadar3DLazy } from '../components/CrystalRadar3DLazy'
+import { RadarModeDecoyStrip } from '../components/RadarModeDecoyStrip'
+import { useTheme } from '../context/ThemeContext'
 import { api } from '../lib/api'
 import { getAlias } from '../lib/session'
 
@@ -41,6 +43,7 @@ type ProfileForm = {
 }
 
 export default function ProfilePage() {
+  const { theme } = useTheme()
   const [profile, setProfile] = useState<NodeProfile | null>(null)
   const [form, setForm] = useState<ProfileForm>({
     interests: '',
@@ -114,20 +117,21 @@ export default function ProfilePage() {
 
   return (
     <AppShell title="Profile">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <section className="space-y-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1fr)]">
+        <section className="space-y-4">
           {profile ? (
             <>
               <p className="text-small font-mono uppercase tracking-[0.18em] text-white">
                 Node
               </p>
-              <p className="text-h3 font-bricolage">{profile.alias}</p>
+              <p className="text-h3 font-heading text-white">{profile.alias}</p>
+              <RadarModeDecoyStrip className="w-fit" />
               <div className="w-full max-w-3xl space-y-1 overflow-visible">
                 <CrystalRadar3DLazy
                   categories={profile.reputationCategories}
                   aggregateReputationScore={profile.reputationScore}
                   className="w-full"
-                  theme="light"
+                  theme={theme}
                 />
               </div>
               {profile.reputationScore != null ? (
@@ -156,8 +160,8 @@ export default function ProfilePage() {
             <p className="text-small font-mono text-white">Loading profile…</p>
           )}
 
-          <div>
-            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <div className="border-t border-white/10 pt-4">
+            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               Spaces
             </h2>
             {spaces.length ? (
@@ -174,9 +178,9 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="space-y-3">
-          <div>
-            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
+        <section className="space-y-4">
+          <div className="border border-white/20 bg-zinc-950/20 p-3">
+            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               Statement / Keywords
             </h2>
             <p className="text-body text-white">
@@ -184,8 +188,8 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          <div>
-            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <div className="border border-white/20 bg-zinc-950/20 p-3">
+            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               Interests
             </h2>
             {profile?.interests?.length ? (
@@ -199,8 +203,8 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div>
-            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <div className="border border-white/20 bg-zinc-950/20 p-3">
+            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               Links
             </h2>
             {profile?.portfolioUrl ? (
@@ -218,9 +222,9 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div>
-            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
+        <section className="space-y-4 md:col-span-2 lg:col-span-1">
+          <div className="border border-white/20 bg-zinc-950/20 p-3">
+            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               Profile settings
             </h2>
             <form onSubmit={onSubmit} className="space-y-3 text-small">
@@ -277,8 +281,8 @@ export default function ProfilePage() {
             </form>
           </div>
 
-          <div>
-            <h2 className="mb-2 text-small font-bricolage uppercase tracking-[0.18em] text-white">
+          <div className="border border-white/20 bg-zinc-950/20 p-3">
+            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               Completed projects
             </h2>
             {completed.length ? (

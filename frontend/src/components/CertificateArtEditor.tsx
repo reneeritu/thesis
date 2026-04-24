@@ -113,7 +113,7 @@ export function CertificateArtEditor({ nftId, input, onSaved }: Props) {
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-4">
       <div className="space-y-1">
-        <h3 className="text-small font-bricolage uppercase tracking-[0.18em]">
+        <h3 className="text-small font-heading uppercase tracking-[0.18em]">
           Certificate artwork
         </h3>
         <p className="text-[11px] text-white">
