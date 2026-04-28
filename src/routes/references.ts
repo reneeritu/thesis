@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import { createReferenceSchema } from '../schemas/reference';
 import { Reference } from '../models/Reference';
@@ -7,6 +8,7 @@ import { Project } from '../models/Project';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -71,8 +73,9 @@ router.post(
  */
 router.get(
   '/project/:projectId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
     const refs = await Reference.find({ projectId: req.params.projectId }).sort({
       createdAt: 1,
     });

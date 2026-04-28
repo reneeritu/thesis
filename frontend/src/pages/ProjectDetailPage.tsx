@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
-import { getAlias } from '../lib/session'
+import { getAlias, getToken } from '../lib/session'
 import { AppShell } from '../components/AppShell'
 import { MediaPreview } from '../components/MediaPreview'
 import { ProjectTimeline, type TimelineEntry } from '../components/contracts/ProjectTimeline'
@@ -52,6 +52,7 @@ type ActiveForm = 'trace' | 'reference' | 'pivot' | 'veto' | 'fork' | 'credit' |
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const meAlias = getAlias()
+  const isLoggedIn = Boolean(getToken())
   const [project, setProject] = useState<Project | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [traces, setTraces] = useState<TraceRow[]>([])
@@ -141,6 +142,10 @@ export default function ProjectDetailPage() {
   const amPrimary = Boolean(myContrib?.isPrimary && myContrib?.accepted)
   const amListed = Boolean(myContrib)
   const isPublic = project ? ['process_visible', 'fully_public'].includes((project as unknown as { visibility?: string }).visibility || '') : false
+
+  /** Logged-in contributor who has accepted (or no pending invite card). */
+  const canActOnProject =
+    isLoggedIn && amListed && !myPendingInvite
 
   const [joinReqNote, setJoinReqNote] = useState('')
   const [joinReqBusy, setJoinReqBusy] = useState(false)
@@ -240,7 +245,7 @@ export default function ProjectDetailPage() {
     <button
       type="button"
       onClick={() => toggle(form)}
-      className={`px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] border border-black transition ${
+      className={`px-3 py-1 text-small font-mono uppercase tracking-[0.16em] border border-black transition ${
         activeForm === form
           ? 'bg-black text-yellow-400'
           : variant === 'danger'
@@ -264,7 +269,7 @@ export default function ProjectDetailPage() {
         {project ? (
           <>
             <section className="flex flex-wrap items-center gap-3">
-              <span className="inline-block border border-black bg-black px-2 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-yellow-400">
+              <span className="inline-block border border-black bg-black px-2 py-1 text-small font-mono uppercase tracking-[0.16em] text-yellow-400">
                 {project.status}
               </span>
               <span className="text-small text-white font-mono break-all">
@@ -273,18 +278,18 @@ export default function ProjectDetailPage() {
               {nftId && (
                 <Link
                   to={`/nfts/${encodeURIComponent(nftId)}`}
-                  className="border border-black bg-yellow-400 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-white hover:bg-black hover:text-yellow-400 transition"
+                  className="border border-black bg-yellow-400 px-3 py-1 text-small font-mono uppercase tracking-[0.16em] text-white hover:bg-black hover:text-yellow-400 transition"
                   title="Open the certificate minted at the end of this project"
                 >
                   Provenance certificate
                 </Link>
               )}
-              {amListed ? (
+              {amListed && isLoggedIn ? (
                 <button
                   type="button"
                   onClick={() => void exportProject()}
                   disabled={exportBusy}
-                  className="border border-white/25 bg-zinc-900/55 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  className="border border-white/25 bg-zinc-900/55 px-3 py-1 text-small font-mono uppercase tracking-[0.16em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                   title="Download project + its chain slice (traces, references, pivots, vetos) as JSON"
                 >
                   {exportBusy ? 'Exporting…' : 'Export JSON'}
@@ -295,35 +300,46 @@ export default function ProjectDetailPage() {
             {/* Non-contributor: request to collaborate */}
             {isActive && !amListed && isPublic ? (
               <section className="border border-white/20 bg-zinc-900/50 p-3 space-y-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+                <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
                   Want to collaborate?
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    value={joinReqNote}
-                    onChange={(e) => setJoinReqNote(e.target.value)}
-                    placeholder="short note (optional)"
-                    className="min-w-[220px] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
-                  />
-                  <button
-                    type="button"
-                    disabled={joinReqBusy}
-                    onClick={() => void sendJoinRequest()}
-                    className="border border-black bg-yellow-400 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
-                  >
-                    {joinReqBusy ? 'Sending…' : 'Request to collaborate'}
-                  </button>
-                </div>
-                {joinReqMsg ? (
-                  <p className="font-mono text-[11px] text-white">{joinReqMsg}</p>
-                ) : null}
+                {!isLoggedIn ? (
+                  <p className="text-small text-white font-mono">
+                    <Link to="/login" className="underline underline-offset-4 text-yellow-400">
+                      Log in
+                    </Link>{' '}
+                    to send a collaboration request.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        value={joinReqNote}
+                        onChange={(e) => setJoinReqNote(e.target.value)}
+                        placeholder="short note (optional)"
+                        className="min-w-[220px] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
+                      />
+                      <button
+                        type="button"
+                        disabled={joinReqBusy}
+                        onClick={() => void sendJoinRequest()}
+                        className="border border-black bg-yellow-400 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                      >
+                        {joinReqBusy ? 'Sending…' : 'Request to collaborate'}
+                      </button>
+                    </div>
+                    {joinReqMsg ? (
+                      <p className="font-mono text-small text-white">{joinReqMsg}</p>
+                    ) : null}
+                  </>
+                )}
               </section>
             ) : null}
 
             {/* Pending contributor invitation for current user */}
             {myPendingInvite && (
               <section className="border border-black p-4 space-y-3 bg-yellow-50">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
+                <p className="font-mono text-small uppercase tracking-[0.18em]">
                   You have been invited as a contributor to this project
                 </p>
                 <div className="flex gap-2">
@@ -331,7 +347,7 @@ export default function ProjectDetailPage() {
                     type="button"
                     disabled={respondBusy}
                     onClick={() => respondContributor(true)}
-                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
+                    className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
                   >
                     Accept
                   </button>
@@ -339,7 +355,7 @@ export default function ProjectDetailPage() {
                     type="button"
                     disabled={respondBusy}
                     onClick={() => respondContributor(false)}
-                    className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
+                    className="border border-grey-400 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
                   >
                     Decline
                   </button>
@@ -361,13 +377,13 @@ export default function ProjectDetailPage() {
                       </Link>
                       {c.role ? <span className="text-white">({c.role})</span> : null}{' '}
                       {c.isPrimary ? (
-                        <span className="inline-block border border-black bg-black px-1 py-0.5 text-[10px] uppercase tracking-[0.16em] text-yellow-400">
+                        <span className="inline-block border border-black bg-black px-1 py-0.5 text-small uppercase tracking-[0.16em] text-yellow-400">
                           Primary
                         </span>
                       ) : null}
                       {c.accepted === null ? (
                         <span
-                          className="inline-block border border-white/25 bg-zinc-900/55 px-1 py-0.5 text-[10px] uppercase tracking-[0.14em]"
+                          className="inline-block border border-white/25 bg-zinc-900/55 px-1 py-0.5 text-small uppercase tracking-[0.14em]"
                           title="Primary has invited this alias. Waiting on their response."
                         >
                           Invite sent
@@ -380,9 +396,9 @@ export default function ProjectDetailPage() {
                 <p className="text-small text-white">—</p>
               )}
 
-              {isActive && amPrimary ? (
+              {isActive && isLoggedIn && amPrimary ? (
                 <div className="border border-white/20 bg-zinc-900/50 p-3 space-y-2">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+                  <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
                     Invite a collaborator
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -402,15 +418,15 @@ export default function ProjectDetailPage() {
                       type="button"
                       disabled={inviteBusy || !inviteAlias.trim()}
                       onClick={() => void sendInvite()}
-                      className="border border-black bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-yellow-400 transition hover:bg-yellow-400 hover:text-white disabled:opacity-60"
+                      className="border border-black bg-black px-3 py-2 font-mono text-small uppercase tracking-[0.14em] text-yellow-400 transition hover:bg-yellow-400 hover:text-white disabled:opacity-60"
                     >
                       {inviteBusy ? 'Sending…' : 'Send invite'}
                     </button>
                   </div>
                   {inviteMsg ? (
-                    <p className="font-mono text-[11px] text-white">{inviteMsg}</p>
+                    <p className="font-mono text-small text-white">{inviteMsg}</p>
                   ) : null}
-                  <p className="font-mono text-[10px] text-white">
+                  <p className="font-mono text-small text-white">
                     They'll get a notification to accept or decline. Share your own details with{' '}
                     <Link
                       to={`/nodes/${encodeURIComponent(meAlias)}`}
@@ -427,7 +443,7 @@ export default function ProjectDetailPage() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] lg:items-start">
               <div className="space-y-4">
                 {/* Action bar */}
-                {isActive && (
+                {isActive && canActOnProject && (
                   <section className="flex flex-wrap gap-2">
                     {actionBtn('Log Work', 'trace')}
                     {actionBtn('Add Reference', 'reference')}
@@ -437,7 +453,7 @@ export default function ProjectDetailPage() {
                     {actionBtn('End Project', 'credit', 'danger')}
                   </section>
                 )}
-                {!isActive && project.status === 'completed' && (
+                {!isActive && project.status === 'completed' && canActOnProject && (
                   <section className="flex flex-wrap gap-2">
                     {actionBtn('Credit / Sign', 'credit')}
                   </section>
@@ -471,7 +487,7 @@ export default function ProjectDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowMedia((v) => !v)}
-                    className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white hover:text-white"
+                    className="flex items-center gap-2 font-mono text-small uppercase tracking-[0.18em] text-white hover:text-white"
                   >
                     <span>{showMedia ? '▾' : '▸'}</span>
                     Proof & Media ({mediaItems.length} file{mediaItems.length !== 1 ? 's' : ''})
@@ -480,8 +496,8 @@ export default function ProjectDetailPage() {
                   {showMedia && (
                     <div className="space-y-2">
                       <div className="border border-dashed border-grey-300 bg-grey-50 px-4 py-3 space-y-1">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white">How verification works</p>
-                        <p className="text-[12px] text-white">
+                        <p className="font-mono text-small uppercase tracking-[0.16em] text-white">How verification works</p>
+                        <p className="text-small text-white">
                           Every uploaded file is hashed with SHA-256 before it's stored. The hash is recorded on the trace entry (on-chain). To verify a file hasn't been tampered with: download it, compute its SHA-256, and compare to the hash shown here — they must match exactly.
                         </p>
                       </div>
@@ -493,8 +509,8 @@ export default function ProjectDetailPage() {
                           {mediaItems.map((m) => (
                             <li key={m.mediaId} className="px-4 py-3 space-y-2">
                               <div className="space-y-0.5 min-w-0">
-                                <p className="font-mono text-[12px] truncate">{m.originalName}</p>
-                                <p className="font-mono text-[10px] text-white">
+                                <p className="font-mono text-small truncate">{m.originalName}</p>
+                                <p className="font-mono text-small text-white">
                                   {m.mimeType} · {(m.size / 1024).toFixed(1)} KB · uploaded by {m.uploaderAlias}
                                 </p>
                               </div>
@@ -505,11 +521,11 @@ export default function ProjectDetailPage() {
                                 originalName={m.originalName}
                               />
                               <div className="space-y-0.5">
-                                <p className="font-mono text-[10px] text-white">
+                                <p className="font-mono text-small text-white">
                                   Media ID — <span className="text-white tracking-wider">{m.mediaId}</span>
                                 </p>
-                                <p className="font-mono text-[10px] text-white">SHA-256 fingerprint</p>
-                                <p className="font-mono text-[10px] break-all text-white">{m.hash}</p>
+                                <p className="font-mono text-small text-white">SHA-256 fingerprint</p>
+                                <p className="font-mono text-small break-all text-white">{m.hash}</p>
                               </div>
                             </li>
                           ))}
@@ -520,12 +536,21 @@ export default function ProjectDetailPage() {
                 </section>
 
                 <p className="pt-2">
-                  <Link
-                    to={`/archive/new?space=${encodeURIComponent(project.spaceId)}`}
-                    className="font-mono text-small underline underline-offset-4"
-                  >
-                    Archive past work in this space
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link
+                      to={`/archive/new?space=${encodeURIComponent(project.spaceId)}`}
+                      className="font-mono text-small underline underline-offset-4"
+                    >
+                      Archive past work in this space
+                    </Link>
+                  ) : (
+                    <span className="font-mono text-small text-white">
+                      <Link to="/login" className="underline underline-offset-4 text-yellow-400">
+                        Log in
+                      </Link>{' '}
+                      to archive past work in this space.
+                    </span>
+                  )}
                 </p>
               </div>
 

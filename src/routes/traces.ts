@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import { createTraceSchema, confirmProxySchema } from '../schemas/trace';
 import { Trace } from '../models/Trace';
 import { Project } from '../models/Project';
+import { Space } from '../models/Space';
 import { ChainNode } from '../models/Node';
 import { Media } from '../models/Media';
 import { addBlock } from '../services/chain';
@@ -12,6 +14,7 @@ import { onTraceCreated } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -22,7 +25,11 @@ function redactTraceForCaller(
   const out = trace?.toObject ? trace.toObject() : { ...trace };
 
   const isOwner = out.nodeAlias === callerAlias;
-  const shouldRedact = !isOwner && (out.scopeLimited || out.contentFlagged);
+  const ndaLocked =
+    !isOwner &&
+    (out.ndaSealed === true || String(out.ndaSealed) === 'true');
+  const shouldRedact =
+    !isOwner && (out.scopeLimited || out.contentFlagged || ndaLocked);
 
   if (shouldRedact) {
     // Redact content-bearing fields only; keep timestamps/hash/proof fields intact.
@@ -66,6 +73,20 @@ router.post(
     const isContributor = project.contributors.some((c) => c.alias === alias);
     if (!isContributor) {
       throw new ForbiddenError('You are not a contributor on this project');
+    }
+
+    const warnings: string[] = [];
+    const space = await Space.findById(project.spaceId);
+    const minReq = space?.settings?.minDocRequirements;
+    if (
+      Array.isArray(minReq) &&
+      minReq.length > 0 &&
+      !minReq.includes(activityType)
+    ) {
+      if (space?.settings?.enforceStrictMinDoc === true) {
+        throw new AppError(`This space requires one of: ${minReq.join(', ')}`);
+      }
+      warnings.push('activityType not in space minDocRequirements');
     }
 
     const isProxy = mode === 'proxy';
@@ -142,7 +163,11 @@ router.post(
       isProxy && proxyForAlias ? proxyForAlias : alias;
     await onTraceCreated(reputationAlias, activityType);
 
-    res.status(201).json(trace);
+    const payload =
+      warnings.length > 0
+        ? { ...trace.toObject(), warnings }
+        : trace;
+    res.status(201).json(payload);
   },
 );
 
@@ -152,23 +177,19 @@ router.post(
  */
 router.get(
   '/project/:projectId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
+
+    const callerAlias = req.node?.alias ?? '';
+
     const traces = await Trace.find({ projectId: req.params.projectId }).sort({
       timestamp: 1,
     });
 
-    const callerAlias = req.node!.alias;
-
-    // NDA seal: if any NDA-sealed trace is not owned by the caller, block the whole listing.
-    const hasSealedNotOwned = traces.some(
-      (t) => t.ndaSealed && t.nodeAlias !== callerAlias,
+    const redacted = traces.map((t) =>
+      redactTraceForCaller(t, callerAlias),
     );
-    if (hasSealedNotOwned) {
-      throw new ForbiddenError('NDA sealed traces are not accessible to you');
-    }
-
-    const redacted = traces.map((t) => redactTraceForCaller(t, callerAlias));
     res.json(redacted);
   },
 );

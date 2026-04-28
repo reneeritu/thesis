@@ -47,7 +47,7 @@ export default function LandingLayout() {
                 aria-hidden
                 className="h-full w-full bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.16)_0%,rgba(250,204,21,0.08)_18%,transparent_19%),radial-gradient(circle_at_center,rgba(59,130,246,0.12)_0%,rgba(59,130,246,0.06)_30%,transparent_31%),radial-gradient(circle_at_center,rgba(236,72,153,0.1)_0%,rgba(236,72,153,0.05)_42%,transparent_43%)]"
               />
-              <p className="absolute bottom-2 left-2 font-mono text-[9px] uppercase tracking-[0.2em] text-white/50">
+              <p className="absolute bottom-2 left-2 font-mono text-small uppercase tracking-[0.2em] text-white/50">
                 Wireframe / preview
               </p>
             </div>

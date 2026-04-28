@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import { createVetoSchema, signVetoSchema } from '../schemas/veto';
 import { Veto } from '../models/Veto';
@@ -10,6 +11,7 @@ import { addBlock } from '../services/chain';
 import { sha256 } from '../utils/hash';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -183,8 +185,9 @@ router.post(
  */
 router.get(
   '/project/:projectId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
     const vetos = await Veto.find({ projectId: req.params.projectId }).sort({
       createdAt: -1,
     });

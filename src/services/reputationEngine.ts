@@ -109,6 +109,8 @@ export async function onTraceCreated(
 
   if (activityType === 'skillwork' || activityType === 'fabrication') {
     update.$addToSet = { badges: 'craft_affirmative' };
+  } else if (activityType === 'pedagogy') {
+    update.$addToSet = { badges: 'pedagogy_affirmative' };
   }
 
   const doc = await ChainNode.findOneAndUpdate(

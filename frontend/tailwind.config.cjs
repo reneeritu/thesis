@@ -44,6 +44,8 @@ module.exports = {
         ],
       },
       fontSize: {
+        /** Minimum UI size: 14px (replaces Tailwind default xs 12px). */
+        xs: ['14px', { lineHeight: '1.4' }],
         /* Caps match the fixed scale; fluid down to readable mobile minimums */
         h1: [
           'clamp(2rem, 9vw, 4rem)',

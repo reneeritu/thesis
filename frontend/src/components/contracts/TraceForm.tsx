@@ -143,7 +143,7 @@ export function TraceForm({ projectId, onDone }: Props) {
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-3">
       <h3 className="text-small font-heading uppercase tracking-[0.18em]">Log Work</h3>
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+      <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
         Contributors have 7 days to confirm or dispute this trace. Silence counts as confirm.
       </p>
 
@@ -154,7 +154,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             type="button"
             onClick={() => setMode(m)}
             title={definitionsOn ? GLOSSARY[`mode_${m}`] : undefined}
-            className={`px-3 py-1 text-[11px] font-mono uppercase tracking-[0.16em] border border-black transition ${mode === m ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'}`}
+            className={`px-3 py-1 text-small font-mono uppercase tracking-[0.16em] border border-black transition ${mode === m ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'}`}
           >
             {MODE_LABELS[m]}
           </button>
@@ -185,7 +185,7 @@ export function TraceForm({ projectId, onDone }: Props) {
               ))}
             </select>
           </div>
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono">
+          <div className="mt-1 flex items-center gap-1.5 text-small font-mono">
             <span className="text-white uppercase tracking-[0.12em]">Counts toward</span>
             {activityCategory ? (
               <span
@@ -204,7 +204,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             )}
           </div>
           {definitionsOn && GLOSSARY[activityType] ? (
-            <p className="mt-1 text-[11px] font-mono leading-snug text-white">{GLOSSARY[activityType]}</p>
+            <p className="mt-1 text-small font-mono leading-snug text-white">{GLOSSARY[activityType]}</p>
           ) : null}
         </div>
 
@@ -257,7 +257,7 @@ export function TraceForm({ projectId, onDone }: Props) {
 
         {/* ── Proof (image / video / audio) ── */}
         <div className="border border-grey-200 p-3 space-y-2">
-          <p className="font-mono uppercase tracking-[0.18em] text-white text-[10px]">
+          <p className="font-mono uppercase tracking-[0.18em] text-white text-small">
             <DefTerm term="media_proof">Attach proof</DefTerm> (image / video / audio) — optional
           </p>
           <input
@@ -278,7 +278,7 @@ export function TraceForm({ projectId, onDone }: Props) {
                     key={s}
                     type="button"
                     onClick={() => setProofSource(s)}
-                    className={`px-3 py-1 text-[10px] font-mono uppercase tracking-[0.14em] border border-black transition ${
+                    className={`px-3 py-1 text-small font-mono uppercase tracking-[0.14em] border border-black transition ${
                       proofSource === s ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
                     }`}
                   >
@@ -292,7 +292,7 @@ export function TraceForm({ projectId, onDone }: Props) {
                   type="button"
                   disabled={uploadBusy}
                   onClick={() => fileRef.current?.click()}
-                  className="border border-white/25 bg-zinc-800/60 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                  className="border border-white/25 bg-zinc-800/60 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                 >
                   {uploadBusy ? 'Uploading…' : 'Choose file'}
                 </button>
@@ -305,15 +305,15 @@ export function TraceForm({ projectId, onDone }: Props) {
                 />
               )}
               {uploadBusy && proofSource === 'record' ? (
-                <p className="font-mono text-[10px] text-white">Uploading capture…</p>
+                <p className="font-mono text-small text-white">Uploading capture…</p>
               ) : null}
             </>
           )}
           {uploadError && (
-            <p className="font-mono text-[11px] text-white">{uploadError}</p>
+            <p className="font-mono text-small text-white">{uploadError}</p>
           )}
           {uploadedMedia && (
-            <div className="space-y-1 font-mono text-[11px]">
+            <div className="space-y-1 font-mono text-small">
               <p className="text-white uppercase tracking-[0.12em]">Proof attached ✓</p>
               <p><span className="text-white">File: </span>{uploadedMedia.originalName}</p>
               <p><span className="text-white">Type: </span>{uploadedMedia.mimeType}</p>
@@ -323,16 +323,16 @@ export function TraceForm({ projectId, onDone }: Props) {
               </p>
               <p className="break-all">
                 <span className="text-white">SHA-256 hash: </span>
-                <span className="text-[10px]">{uploadedMedia.hash}</span>
+                <span className="text-small">{uploadedMedia.hash}</span>
               </p>
-              <p className="text-white text-[10px]">
+              <p className="text-white text-small">
                 Anyone can verify this file hasn't changed by computing its SHA-256 and comparing to this hash.
                 Retrieve it via: <span className="font-mono">/media/{uploadedMedia.mediaId}</span>
               </p>
               <button
                 type="button"
                 onClick={() => { setUploadedMedia(null); if (fileRef.current) fileRef.current.value = '' }}
-                className="text-white underline text-[10px] hover:text-white"
+                className="text-white underline text-small hover:text-white"
               >
                 Remove
               </button>

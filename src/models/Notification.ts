@@ -19,6 +19,12 @@ export const NOTIFICATION_TYPES = [
   'veto_invite_response',
   /** Sent to project creator when invited contributor responds. */
   'contributor_invite_response',
+  /** Direct message: connection request waiting for recipient. */
+  'dm_request',
+  /** Recipient accepted or declined the connection request. */
+  'dm_request_response',
+  /** New DM after connection accepted (may be collapsed in-app). */
+  'dm_message',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

@@ -201,18 +201,18 @@ a {
   }
 
   /*
-   * Floating menus / drawers: one rhythm (11px). Caps + mono for chrome; sans + sentence case for prose.
+   * Floating menus / drawers: minimum 14px rhythm. Caps + mono for chrome; sans + sentence case for prose.
    */
   .etch-float-caps {
-    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-white;
+    @apply font-mono text-small uppercase tracking-[0.14em] text-white;
   }
 
   .etch-float-prose {
-    @apply font-sans text-[11px] font-normal normal-case leading-relaxed tracking-normal text-white;
+    @apply font-sans text-small font-normal normal-case leading-relaxed tracking-normal text-white;
   }
 
   .etch-float-menu-item {
-    @apply block border-b border-grey-100/20 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white last:border-b-0 hover:bg-white/10 hover:text-yellow-400;
+    @apply block border-b border-grey-100/20 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] text-white last:border-b-0 hover:bg-white/10 hover:text-yellow-400;
   }
 
   /*

@@ -138,7 +138,7 @@ export function LayoutDebugClickChips({ layoutOn, detailOn }: Props) {
             top: c.top,
             zIndex: 2147483646,
             padding: '2px 6px',
-            fontSize: 11,
+            fontSize: 14,
             lineHeight: 1.25,
             fontFamily: 'ui-monospace, "JetBrains Mono", monospace',
             borderRadius: 2,

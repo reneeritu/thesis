@@ -161,7 +161,7 @@ export default function ArchiveNewPage() {
 
         <form onSubmit={onSubmit} className="space-y-5 text-small">
           <fieldset className="space-y-4 border border-white/20 bg-zinc-950/20 p-4">
-            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Work</legend>
+            <legend className="px-1 font-mono text-small uppercase tracking-[0.2em] text-white/70">Work</legend>
             <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Space</label>
             <select
@@ -219,7 +219,7 @@ export default function ArchiveNewPage() {
           </fieldset>
 
           <fieldset className="space-y-4 border border-white/20 bg-zinc-950/20 p-4">
-            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Evidence</legend>
+            <legend className="px-1 font-mono text-small uppercase tracking-[0.2em] text-white/70">Evidence</legend>
             <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Evidence type
@@ -285,7 +285,7 @@ export default function ArchiveNewPage() {
           </fieldset>
 
           <fieldset className="space-y-4 border border-white/20 bg-zinc-950/20 p-4">
-            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Declarations</legend>
+            <legend className="px-1 font-mono text-small uppercase tracking-[0.2em] text-white/70">Declarations</legend>
             <div>
             <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">
               Context (optional)

@@ -120,7 +120,7 @@ export default function SpaceNewPage() {
     <AppShell title="Create Space">
       <div className="max-w-lg space-y-4">
         {bar}
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+        <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
           Step {step}/{TOTAL_STEPS} — {stepLabel}
         </p>
 
@@ -156,7 +156,7 @@ export default function SpaceNewPage() {
         {/* ── Step 2: Co-founders ── */}
         {step === 2 && (
           <div className={`space-y-3 text-small ${stepBodyClass}`}>
-            <p className="font-mono text-[11px] text-white">
+            <p className="font-mono text-small text-white">
               Add other nodes as founding members. They join the space immediately. You can skip this step.
             </p>
             <div className="flex gap-2">
@@ -180,7 +180,7 @@ export default function SpaceNewPage() {
             {foundingMembers.length > 0 && (
               <ul className="space-y-1">
                 {foundingMembers.map((m) => (
-                  <li key={m.alias} className="flex items-center justify-between border border-grey-200 px-3 py-1 font-mono text-[11px]">
+                  <li key={m.alias} className="flex items-center justify-between border border-grey-200 px-3 py-1 font-mono text-small">
                     <span>{m.alias} <span className="text-white">({m.role})</span></span>
                     <button type="button" onClick={() => removeFoundingMember(m.alias)} className="text-white hover:text-white ml-2">✕</button>
                   </li>
@@ -216,9 +216,9 @@ export default function SpaceNewPage() {
 
             {data.projectAccess === 'invite_only' && (
               <div className="border border-grey-200 p-3 space-y-3 mt-2">
-                <p className="font-mono uppercase tracking-[0.16em] text-white text-[10px]">Invite code settings</p>
+                <p className="font-mono uppercase tracking-[0.16em] text-white text-small">Invite code settings</p>
                 <div>
-                  <label className="block font-mono uppercase tracking-[0.14em] text-white mb-1 text-[10px]">Code type</label>
+                  <label className="block font-mono uppercase tracking-[0.14em] text-white mb-1 text-small">Code type</label>
                   <select
                     value={data.inviteMode}
                     onChange={(e) => setData((d) => ({ ...d, inviteMode: e.target.value as 'single_use' | 'multi_use' }))}
@@ -229,7 +229,7 @@ export default function SpaceNewPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="flex items-center gap-2 font-mono text-[11px]">
+                  <label className="flex items-center gap-2 font-mono text-small">
                     <input
                       type="checkbox"
                       checked={data.inviteExpiryDays !== null}
@@ -282,7 +282,7 @@ export default function SpaceNewPage() {
                 className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
                 placeholder="e.g. pqr, xyz"
               />
-              <p className="mt-1 font-mono text-[10px] text-white">
+              <p className="mt-1 font-mono text-small text-white">
                 These nodes will receive an invitation. Veto role is empty until they accept.
               </p>
             </div>
@@ -375,7 +375,7 @@ export default function SpaceNewPage() {
         {step === 7 && (
           <div className="space-y-3 text-small">
             <p className="font-mono uppercase tracking-[0.18em] text-white">Review</p>
-            <pre className="border border-black bg-grey-100 p-3 font-mono text-[11px] overflow-x-auto whitespace-pre-wrap break-all">
+            <pre className="border border-black bg-grey-100 p-3 font-mono text-small overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(
                 {
                   name: data.name,

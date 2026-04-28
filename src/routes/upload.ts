@@ -15,6 +15,7 @@ import { sanitiseSvg, MAX_SVG_BYTES } from '../services/svgSanitise';
 import { config } from '../config';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 const ARTWORK_IMAGE_MIME = new Set([
   'image/png',
@@ -170,14 +171,17 @@ router.post(
  */
 router.get(
   '/media/project/:projectId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
-    const project = await Project.findById(req.params.projectId);
-    if (!project) throw new NotFoundError('Project');
+    const project = await assertProjectReadableForOptionalViewer(req.params.projectId, req);
 
-    const alias = req.node!.alias;
-    const isContributor = project.contributors.some((c) => c.alias === alias);
-    if (!isContributor) throw new ForbiddenError('You are not a contributor on this project');
+    const alias = req.node?.alias;
+    const isContributor = alias
+      ? project.contributors.some((c) => c.alias === alias && c.accepted !== false)
+      : false;
+    if (!isContributor) {
+      return res.json([]);
+    }
 
     const mediaList = await Media.find({ projectId: req.params.projectId, status: { $ne: 'removed' } })
       .select('_id filename originalName mimeType size hash uploaderAlias createdAt status')

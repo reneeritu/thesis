@@ -70,17 +70,17 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
 
   return (
     <div className="border border-white/25 bg-zinc-900/55 p-3 space-y-3 text-small">
-      <h3 className="font-heading text-[11px] uppercase tracking-[0.18em]">Customise</h3>
+      <h3 className="font-heading text-small uppercase tracking-[0.18em]">Customise</h3>
 
       <section className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Motif</p>
+        <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Motif</p>
         <div className="flex flex-wrap gap-1">
           {motifs.map((m) => (
             <button
               key={m.id}
               type="button"
               onClick={() => set('motif', m.id)}
-              className={`border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+              className={`border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] transition ${
                 value.motif === m.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
               }`}
             >
@@ -91,14 +91,14 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
       </section>
 
       <section className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Palette</p>
+        <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Palette</p>
         <div className="flex flex-wrap gap-1">
           {PALETTE_LIST.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => set('palette', p.id)}
-              className={`flex items-center gap-1 border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+              className={`flex items-center gap-1 border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] transition ${
                 value.palette === p.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
               }`}
             >
@@ -115,14 +115,14 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
 
       <section className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Line weight</p>
+          <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Line weight</p>
           <div className="flex flex-wrap gap-1">
             {lineWeights.map((w) => (
               <button
                 key={w.id}
                 type="button"
                 onClick={() => set('lineWeight', w.id)}
-                className={`border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+                className={`border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] transition ${
                   value.lineWeight === w.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
                 }`}
               >
@@ -132,14 +132,14 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
           </div>
         </div>
         <div className="space-y-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Density</p>
+          <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Density</p>
           <div className="flex flex-wrap gap-1">
             {densities.map((d) => (
               <button
                 key={d.id}
                 type="button"
                 onClick={() => set('density', d.id)}
-                className={`border border-black px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+                className={`border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] transition ${
                   value.density === d.id ? 'bg-black text-yellow-400' : 'bg-zinc-800/60 hover:bg-white/10'
                 }`}
               >
@@ -151,8 +151,8 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
       </section>
 
       <section className="space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Layers</p>
-        <label className="flex items-center gap-2 font-mono text-[11px]">
+        <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Layers</p>
+        <label className="flex items-center gap-2 font-mono text-small">
           <input
             type="checkbox"
             checked={value.layers.titleGlyphs}
@@ -160,7 +160,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
           />
           Title glyphs
         </label>
-        <label className="flex items-center gap-2 font-mono text-[11px]">
+        <label className="flex items-center gap-2 font-mono text-small">
           <input
             type="checkbox"
             checked={value.layers.contributorTicks}
@@ -168,7 +168,7 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
           />
           Contributor marks
         </label>
-        <label className="flex items-center gap-2 font-mono text-[11px]">
+        <label className="flex items-center gap-2 font-mono text-small">
           <input
             type="checkbox"
             checked={value.layers.provenanceBand}
@@ -179,14 +179,14 @@ export function CertificateCustomiser({ value, onChange, rerollsUsed, onReroll }
       </section>
 
       <section className="flex items-center justify-between border-t border-grey-200 pt-2">
-        <p className="font-mono text-[10px] text-white">
+        <p className="font-mono text-small text-white">
           Rerolls: {rerollsUsed} / {MAX_REROLLS}
         </p>
         <button
           type="button"
           onClick={onReroll}
           disabled={remaining === 0}
-          className="border border-black bg-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] text-white hover:bg-black hover:text-yellow-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Reroll
         </button>

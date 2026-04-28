@@ -82,7 +82,7 @@ export default function SpacesPage() {
                   className="flex items-center gap-2 border border-white/25 bg-zinc-900/55 px-3 py-2 text-small font-mono"
                 >
                   <span
-                    className={`inline-block border border-black px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                    className={`inline-block border border-black px-1.5 py-0.5 text-small uppercase tracking-[0.16em] ${
                       dormant ? 'bg-grey-100 text-white' : 'bg-black text-yellow-400'
                     }`}
                     title={dormant ? 'No recent activity' : 'Active'}

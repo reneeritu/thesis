@@ -24,6 +24,16 @@ export const createSpaceSchema = z.object({
       customContractsAllowed: z.boolean().optional(),
       contentRestrictions: z.array(z.string()).optional(),
       minDocRequirements: z.array(z.string()).optional(),
+      customContracts: z
+        .array(
+          z.object({
+            title: z.string().min(1).max(120),
+            body: z.string().min(1).max(4000),
+            authorAlias: z.string().min(1),
+          }),
+        )
+        .optional(),
+      enforceStrictMinDoc: z.boolean().optional(),
       /** Invite code mode for invite_only spaces. */
       inviteMode: z.enum(['single_use', 'multi_use']).optional(),
       /** null = no expiry */
@@ -32,8 +42,22 @@ export const createSpaceSchema = z.object({
     .optional(),
 });
 
+export const createSpaceWithParentSchema = createSpaceSchema.extend({
+  parentSpaceId: z.string().optional(), // 24-char hex; validation done in route
+});
+
+export const customContractSchema = z.object({
+  title: z.string().min(1).max(120),
+  body: z.string().min(1).max(4000),
+});
+
+export const respondApplicationSchema = z.object({
+  decision: z.enum(['approve', 'reject']),
+});
+
 export const joinSpaceSchema = z.object({
   inviteCode: z.string().optional(),
+  message: z.string().max(4000).optional(),
 });
 
 export const updateSpaceSettingsSchema = z.object({
@@ -44,6 +68,16 @@ export const updateSpaceSettingsSchema = z.object({
   customContractsAllowed: z.boolean().optional(),
   contentRestrictions: z.array(z.string()).optional(),
   minDocRequirements: z.array(z.string()).optional(),
+  customContracts: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(120),
+        body: z.string().min(1).max(4000),
+        authorAlias: z.string().min(1),
+      }),
+    )
+    .optional(),
+  enforceStrictMinDoc: z.boolean().optional(),
   inviteMode: z.enum(['single_use', 'multi_use']).optional(),
   inviteExpiryDays: z.number().min(1).nullable().optional(),
 });

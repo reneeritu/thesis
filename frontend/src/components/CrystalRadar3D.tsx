@@ -2573,7 +2573,10 @@ export function CrystalRadar3D({
     <div ref={viewRootRef} className={`relative overflow-visible ${className}`}>
       {/* Large square viewport; overflow visible on parents so layout never clips the art.
           Camera is pulled back so gyro rings + mandala stay fully in frame. */}
-      <div className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] overflow-visible bg-transparent sm:max-w-[44rem]">
+      <div
+        className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] overflow-visible bg-transparent sm:max-w-[44rem]"
+        data-target-cursor-exclude=""
+      >
         {everInView && (
         <Canvas
           className="!h-full !w-full touch-none"
@@ -2646,7 +2649,8 @@ export function CrystalRadar3D({
               key={k}
               type="button"
               onClick={() => handleSelect(k)}
-              className={`flex items-center gap-1 border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] transition ${
+              data-cursor-target="legend"
+              className={`cursor-target flex items-center gap-1 border px-1.5 py-0.5 font-mono text-small uppercase tracking-[0.16em] transition ${
                 isSel
                   ? theme === 'dark'
                     ? 'border-white bg-white/10 text-white'
@@ -2673,7 +2677,7 @@ export function CrystalRadar3D({
       </div>
 
       <div
-        className={`mt-2 border-t pt-2 font-mono text-[10px] ${
+        className={`mt-2 border-t pt-2 font-mono text-small ${
           theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
         }`}
       >
@@ -2715,7 +2719,7 @@ export function CrystalRadar3D({
               Aggregate score:{' '}
               <strong className="tabular-nums">{Math.round(aggregateReputationScore)}</strong> / 1000
             </p>
-            <p className={`mt-1 text-[10px] font-sans font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
+            <p className={`mt-1 text-small font-sans font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
               The aggregate is derived from the six category buckets (sum, then clamped to the system cap).
               Activity awards add points into a specific category; the headline score updates from those buckets.
             </p>
@@ -2734,13 +2738,14 @@ export function CrystalRadar3D({
               className="inline-block h-3 w-3 rounded-[1px]"
               style={{ background: armColourForTheme(effectiveSelected, theme) }}
             />
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
+            <p className="font-mono text-small uppercase tracking-[0.18em]">
               {LABELS[effectiveSelected]}
             </p>
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className={`ml-auto border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] ${
+              data-cursor-target="close"
+              className={`cursor-target ml-auto border px-1.5 py-0.5 font-mono text-small uppercase tracking-[0.14em] ${
                 theme === 'dark'
                   ? 'border-[#333355] bg-transparent text-white/80 hover:text-white'
                   : 'border-white/30 bg-zinc-900/50 text-white hover:bg-white/10'
@@ -2750,19 +2755,19 @@ export function CrystalRadar3D({
               Close
             </button>
           </div>
-          <p className="font-mono text-[11px]">
+          <p className="font-mono text-small">
             This category (all-time): <strong>{Math.round(selectedRaw)}</strong> / 1000
           </p>
           {selectedRecent !== null ? (
-            <p className={`font-mono text-[11px] ${subtleText}`}>
+            <p className={`font-mono text-small ${subtleText}`}>
               Last ~90 d: <strong>{Math.round(selectedRecent)}</strong>
             </p>
           ) : null}
-          <p className={`text-[11px] ${subtleText}`}>{GLOSSARY[effectiveSelected] ?? ''}</p>
-          <p className={`text-[11px] italic ${mutedText}`}>{ARM_HINT[effectiveSelected]}</p>
+          <p className={`text-small ${subtleText}`}>{GLOSSARY[effectiveSelected] ?? ''}</p>
+          <p className={`text-small italic ${mutedText}`}>{ARM_HINT[effectiveSelected]}</p>
         </div>
       ) : (
-        <p className={`mt-2 font-mono text-[10px] ${mutedText}`}>
+        <p className={`mt-2 font-mono text-small ${mutedText}`}>
           Drag to rotate. Tap a cell to open its detail — the mandala unfolds.
         </p>
       )}

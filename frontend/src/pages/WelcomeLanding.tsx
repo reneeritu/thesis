@@ -77,13 +77,13 @@ export default function WelcomeLanding() {
         <header className="pointer-events-none absolute left-0 right-0 top-0 z-[220] flex justify-end gap-2 p-4 sm:p-6">
           <Link
             to="/"
-            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:border-white/50 hover:text-white [touch-action:manipulation]"
+            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-small uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:border-white/50 hover:text-white [touch-action:manipulation]"
           >
             Main site
           </Link>
           <Link
             to="/login"
-            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:border-white/50 hover:text-white [touch-action:manipulation]"
+            className="pointer-events-auto border border-white/25 bg-[#18101F]/80 px-3 py-1.5 font-mono text-small uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:border-white/50 hover:text-white [touch-action:manipulation]"
           >
             Login
           </Link>
@@ -94,7 +94,7 @@ export default function WelcomeLanding() {
         {import.meta.env.DEV ? (
           <button
             type="button"
-            className="pointer-events-auto fixed bottom-4 left-4 z-[300] border border-white/30 bg-black/70 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-white backdrop-blur-sm hover:border-white/50 hover:text-white"
+            className="pointer-events-auto fixed bottom-4 left-4 z-[300] border border-white/30 bg-black/70 px-3 py-2 font-mono text-small uppercase tracking-[0.15em] text-white backdrop-blur-sm hover:border-white/50 hover:text-white"
             onClick={() => logEtchTheatreSaveJson()}
           >
             Log Theatre save (ETCH)
@@ -119,7 +119,7 @@ export default function WelcomeLanding() {
               >
                 Enter the chain
               </Link>
-              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/85">
+              <span className="mt-1 pl-1 font-mono text-small uppercase tracking-[0.2em] text-white/85">
                 Create an account
               </span>
             </div>
@@ -130,7 +130,7 @@ export default function WelcomeLanding() {
               >
                 Discover
               </Link>
-              <span className="mt-1 pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/85">
+              <span className="mt-1 pl-1 font-mono text-small uppercase tracking-[0.2em] text-white/85">
                 Browse public spaces
               </span>
             </div>

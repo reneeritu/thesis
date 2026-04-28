@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ISpaceCustomContract {
+  title: string;
+  body: string;
+  authorAlias: string;
+  createdAt: Date;
+}
+
 export interface ISpaceSettings {
   projectAccess: 'open' | 'invite_only' | 'application';
   vetoAuthority: string[];
@@ -8,6 +15,8 @@ export interface ISpaceSettings {
   customContractsAllowed: boolean;
   contentRestrictions: string[];
   minDocRequirements: string[];
+  customContracts: ISpaceCustomContract[];
+  enforceStrictMinDoc: boolean;
 }
 
 export interface IPendingVeto {
@@ -51,6 +60,16 @@ export interface ISpace extends Document {
   updatedAt: Date;
 }
 
+const spaceCustomContractSchema = new Schema<ISpaceCustomContract>(
+  {
+    title: { type: String, required: true },
+    body: { type: String, required: true },
+    authorAlias: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const spaceSettingsSchema = new Schema<ISpaceSettings>(
   {
     projectAccess: {
@@ -68,6 +87,8 @@ const spaceSettingsSchema = new Schema<ISpaceSettings>(
     customContractsAllowed: { type: Boolean, default: true },
     contentRestrictions: { type: [String], default: [] },
     minDocRequirements: { type: [String], default: [] },
+    customContracts: { type: [spaceCustomContractSchema], default: [] },
+    enforceStrictMinDoc: { type: Boolean, default: false },
   },
   { _id: false },
 );

@@ -11,6 +11,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import './styles/theme-modes.css'
 import { AppAtmosphere } from './components/AppAtmosphere'
 import { initFontInspect } from './lib/fontInspect'
+import TargetCursor from './components/TargetCursor/TargetCursor'
 
 // Everything below ships as its own JS chunk and is only downloaded when the
 // user navigates to that route. WelcomeLanding in particular carries Theatre +
@@ -33,6 +34,8 @@ const PublicNodePage = lazy(() => import('./pages/PublicNodePage'))
 const NftPage = lazy(() => import('./pages/NftPage'))
 const SpaceSearchPage = lazy(() => import('./pages/SpaceSearchPage'))
 const ProjectSearchPage = lazy(() => import('./pages/ProjectSearchPage'))
+const SimulationPage = lazy(() => import('./pages/SimulationPage'))
+const MessagesPage = lazy(() => import('./pages/MessagesPage'))
 
 function RequireAuth() {
   const token = getToken()
@@ -45,7 +48,7 @@ function RequireAuth() {
 function RouteFallback() {
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">
+      <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
         Loading…
       </p>
     </div>
@@ -60,6 +63,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <DefinitionsProvider>
+        <TargetCursor spinDuration={2} hideDefaultCursor />
         <AppAtmosphere />
         <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
           <LayoutDebugRoot />
@@ -71,6 +75,9 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/recover" element={<RecoverPage />} />
             <Route path="/nodes/:alias" element={<PublicNodePage />} />
+            <Route path="/spaces/:id" element={<SpaceDetailPage />} />
+            <Route path="/projects/:id" element={<ProjectDetailPage />} />
+            <Route path="/nfts/:id" element={<NftPage />} />
             <Route element={<RequireAuth />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/me" element={<ProfilePage />} />
@@ -79,15 +86,15 @@ export default function App() {
               <Route path="/spaces/new" element={<SpaceNewPage />} />
               <Route path="/spaces/join" element={<SpaceJoinPage />} />
               <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
-              <Route path="/spaces/:id" element={<SpaceDetailPage />} />
               <Route path="/projects" element={<ProjectsBoardPage />} />
               <Route path="/projects/search" element={<ProjectSearchPage />} />
               <Route path="/projects/new" element={<ProjectNewPage />} />
-              <Route path="/projects/:id" element={<ProjectDetailPage />} />
               <Route path="/archive/new" element={<ArchiveNewPage />} />
               <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/simulation" element={<SimulationPage />} />
               <Route path="/governance" element={<GovernancePage />} />
-              <Route path="/nfts/:id" element={<NftPage />} />
+              <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/messages/:id" element={<MessagesPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -1,0 +1,120 @@
+/* Root is positioned by Framer Motion (width/height + translate). */
+.target-cursor-wrapper {
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Center content in the spring-sized box. */
+.target-cursor-visual {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.target-cursor-pulse {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* Idle: solid 12px square, no rotation */
+.target-cursor-idle-square {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 0;
+  background: #fff;
+  will-change: transform;
+}
+
+/* Snapped: hollow corner brackets fill the padded element box */
+.target-cursor-snapped-brackets {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  pointer-events: none;
+}
+
+.target-cursor-snapped-brackets .target-cursor-corner-snap {
+  position: absolute;
+  width: min(32%, 22cqmin);
+  height: min(32%, 22cqmin);
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: #fff;
+}
+
+.target-cursor-snapped-brackets .target-cursor-corner-snap.corner-tl {
+  left: 0;
+  top: 0;
+  border-width: 2px 0 0 2px;
+}
+
+.target-cursor-snapped-brackets .target-cursor-corner-snap.corner-tr {
+  right: 0;
+  top: 0;
+  border-width: 2px 2px 0 0;
+}
+
+.target-cursor-snapped-brackets .target-cursor-corner-snap.corner-br {
+  right: 0;
+  bottom: 0;
+  border-width: 0 2px 2px 0;
+}
+
+.target-cursor-snapped-brackets .target-cursor-corner-snap.corner-bl {
+  left: 0;
+  bottom: 0;
+  border-width: 0 0 2px 2px;
+}
+
+/* Loading: fixed corner aesthetic, spun by GSAP on parent */
+.target-cursor-loading-rot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.target-cursor-loading-rot .target-cursor-corner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #fff;
+  will-change: transform;
+}
+
+.target-cursor-loading-rot .corner-tl {
+  transform: translate(-150%, -150%);
+  border-right: none;
+  border-bottom: none;
+}
+
+.target-cursor-loading-rot .corner-tr {
+  transform: translate(50%, -150%);
+  border-left: none;
+  border-bottom: none;
+}
+
+.target-cursor-loading-rot .corner-br {
+  transform: translate(50%, 50%);
+  border-left: none;
+  border-top: none;
+}
+
+.target-cursor-loading-rot .corner-bl {
+  transform: translate(-150%, 50%);
+  border-right: none;
+  border-top: none;
+}

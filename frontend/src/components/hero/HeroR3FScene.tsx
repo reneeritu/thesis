@@ -649,6 +649,7 @@ export function HeroR3FCanvas(props: HeroR3FCanvasProps) {
   } = props
 
   return (
+    <div data-target-cursor-exclude="">
     <Canvas
       onCreated={({ gl, camera }) => {
         props.onCanvasReady?.(gl.domElement as HTMLCanvasElement)
@@ -691,5 +692,6 @@ export function HeroR3FCanvas(props: HeroR3FCanvasProps) {
         />
       </SheetProvider>
     </Canvas>
+    </div>
   )
 }

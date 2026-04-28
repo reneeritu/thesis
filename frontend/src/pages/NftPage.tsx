@@ -166,7 +166,7 @@ export default function NftPage() {
               <div className="space-y-2">
                 <ArtworkDisplay nftId={bundle.nft._id} artwork={bundle.nft.artwork} />
                 {bundle.nft.artwork?.updatedBy ? (
-                  <p className="font-mono text-[10px] text-white uppercase tracking-[0.12em]">
+                  <p className="font-mono text-small text-white uppercase tracking-[0.12em]">
                     {bundle.nft.artwork.type} · by {bundle.nft.artwork.updatedBy}
                     {bundle.nft.artwork.updatedAt
                       ? ' · ' +
@@ -184,7 +184,7 @@ export default function NftPage() {
                   <button
                     type="button"
                     onClick={() => setEditorOpen((v) => !v)}
-                    className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] w-full hover:bg-black hover:text-yellow-400 transition"
+                    className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] w-full hover:bg-black hover:text-yellow-400 transition"
                   >
                     {editorOpen
                       ? 'Close editor'
@@ -194,7 +194,7 @@ export default function NftPage() {
                   </button>
                 ) : (
                   !hasArtwork && (
-                    <p className="font-mono text-[10px] text-white">
+                    <p className="font-mono text-small text-white">
                       {meAlias
                         ? 'Only accepted primary contributors can attach artwork.'
                         : 'Log in as a primary contributor to attach artwork.'}
@@ -209,7 +209,7 @@ export default function NftPage() {
                   {bundle.nft.title || 'Certificate'}
                 </h2>
                 {bundle.archive ? (
-                  <span className="inline-block border border-black bg-grey-100 px-2 py-1 text-[11px] font-mono uppercase">
+                  <span className="inline-block border border-black bg-grey-100 px-2 py-1 text-small font-mono uppercase">
                     Archive
                   </span>
                 ) : null}
@@ -236,17 +236,17 @@ export default function NftPage() {
                 {/* Contributors */}
                 {contributors.length > 0 ? (
                   <div className="border border-white/25 bg-zinc-900/55 px-3 py-2 space-y-1">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+                    <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
                       Contributors
                     </p>
                     <ul className="space-y-0.5">
                       {contributors.map((c) => (
-                        <li key={c.alias} className="flex items-center gap-2 font-mono text-[12px]">
+                        <li key={c.alias} className="flex items-center gap-2 font-mono text-small">
                           <Link to={`/nodes/${encodeURIComponent(c.alias)}`} className="underline">
                             {c.alias}
                           </Link>
                           {c.isPrimary ? (
-                            <span className="border border-black px-1 py-[1px] text-[9px] uppercase tracking-[0.14em]">
+                            <span className="border border-black px-1 py-[1px] text-small uppercase tracking-[0.14em]">
                               primary
                             </span>
                           ) : null}

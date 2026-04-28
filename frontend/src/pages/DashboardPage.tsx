@@ -233,7 +233,7 @@ export default function DashboardPage() {
                 >
                 {me._id ? (
                   <span
-                    className="min-w-0 max-w-full truncate font-mono text-[10px] text-white/50 tracking-widest"
+                    className="min-w-0 max-w-full truncate font-mono text-small text-white/50 tracking-widest"
                     title={String(me._id)}
                   >
                     node:{String(me._id)}
@@ -258,7 +258,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => toggleTheme()}
-                    className="border border-white/30 glassmorphic-light contour-border-neutral px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-white transition-etch [touch-action:manipulation]"
+                    className="border border-white/30 glassmorphic-light contour-border-neutral px-2 py-0.5 text-small font-mono uppercase tracking-[0.16em] text-white transition-etch [touch-action:manipulation]"
                     aria-label={`Switch theme (currently ${theme})`}
                     title="Switch between dark and light appearance"
                   >
@@ -267,7 +267,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setDefinitionsOn(!definitionsOn)}
-                    className="border border-white/30 glassmorphic-light contour-border-neutral px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-white transition-etch [touch-action:manipulation]"
+                    className="border border-white/30 glassmorphic-light contour-border-neutral px-2 py-0.5 text-small font-mono uppercase tracking-[0.16em] text-white transition-etch [touch-action:manipulation]"
                     aria-pressed={definitionsOn}
                     title="Show or hide inline definitions under form fields"
                   >
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={key}
-                          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-1.5 text-[10px] font-mono uppercase tracking-[0.12em]"
+                          className="grid grid-cols-[auto_1fr_auto] items-center gap-x-1.5 text-small font-mono uppercase tracking-[0.12em]"
                         >
                           <span
                             className="inline-block h-2.5 w-2.5 shrink-0 translate-y-px rounded-[1px]"
@@ -348,10 +348,10 @@ export default function DashboardPage() {
                     {recent ? (
                       <p
                         {...nx(
-                          'shrink-0 text-center font-mono text-[9px] uppercase tracking-[0.16em] text-white/90',
+                          'shrink-0 text-center font-mono text-small uppercase tracking-[0.16em] text-white/90',
                           'db-12',
                           'Ghost / trace line',
-                          'text-[9px] · uppercase',
+                          'text-small · uppercase',
                         )}
                       >
                         Ghost layer = last {recent.days} d · {recent.traceCount} trace
@@ -371,8 +371,8 @@ export default function DashboardPage() {
                     <div
                       {...nx('space-y-1.5', 'db-14', 'Spaces block', 'space-y-1.5')}
                     >
-                      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">Spaces</p>
-                      <div className="flex flex-col items-end gap-1.5 text-[11px] font-mono uppercase tracking-[0.16em]">
+                      <p className="font-mono text-small uppercase tracking-[0.2em] text-white/70">Spaces</p>
+                      <div className="flex flex-col items-end gap-1.5 text-small font-mono uppercase tracking-[0.16em]">
                         <Link
                           to="/spaces"
                           className="glassmorphic-light contour-border-cool px-2.5 py-0.5 transition-etch sm:px-3 sm:py-1"
@@ -390,10 +390,10 @@ export default function DashboardPage() {
                     <div
                       {...nx('space-y-1.5', 'db-15', 'Active projects block', 'space-y-1.5')}
                     >
-                      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">
+                      <p className="font-mono text-small uppercase tracking-[0.2em] text-white/70">
                         <DefTerm term="active_projects">Active projects</DefTerm>
                       </p>
-                      <div className="flex flex-col items-end gap-1.5 text-[11px] font-mono uppercase tracking-[0.16em]">
+                      <div className="flex flex-col items-end gap-1.5 text-small font-mono uppercase tracking-[0.16em]">
                         <Link
                           to="/projects"
                           className="glassmorphic-light contour-border-cool px-2.5 py-0.5 transition-etch sm:px-3 sm:py-1"
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                     {badges.map((b) => (
                       <span
                         key={b}
-                        className="glassmorphic-light contour-border-accent glow-subtle px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.16em] text-yellow-400"
+                        className="glassmorphic-light contour-border-accent glow-subtle px-2 py-0.5 text-small font-mono uppercase tracking-[0.16em] text-yellow-400"
                       >
                         {String(b).toUpperCase()}
                       </span>
@@ -447,7 +447,7 @@ export default function DashboardPage() {
                       'p-3 sm:p-4 · glass panel',
                     )}
                   >
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">Your chain is empty</p>
+                    <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Your chain is empty</p>
                     <p className="text-body text-small">
                       Your chain starts here — log your first <DefTerm term="trace">trace</DefTerm> to see it appear.
                     </p>

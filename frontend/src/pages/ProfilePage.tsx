@@ -148,7 +148,7 @@ export default function ProfilePage() {
                   {badges.map((b) => (
                     <span
                       key={b}
-                      className="border border-black bg-black px-2 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-yellow-400"
+                      className="border border-black bg-black px-2 py-1 text-small font-mono uppercase tracking-[0.16em] text-yellow-400"
                     >
                       {String(b).toUpperCase()}
                     </span>
@@ -161,7 +161,7 @@ export default function ProfilePage() {
           )}
 
           <div className="border-t border-white/10 pt-4">
-            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            <h2 className="mb-2 font-mono text-small uppercase tracking-[0.18em] text-white/70">
               Spaces
             </h2>
             {spaces.length ? (
@@ -180,7 +180,7 @@ export default function ProfilePage() {
 
         <section className="space-y-4">
           <div className="border border-white/20 bg-zinc-950/20 p-3">
-            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            <h2 className="mb-2 font-mono text-small uppercase tracking-[0.18em] text-white/70">
               Statement / Keywords
             </h2>
             <p className="text-body text-white">
@@ -189,7 +189,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="border border-white/20 bg-zinc-950/20 p-3">
-            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            <h2 className="mb-2 font-mono text-small uppercase tracking-[0.18em] text-white/70">
               Interests
             </h2>
             {profile?.interests?.length ? (
@@ -204,7 +204,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="border border-white/20 bg-zinc-950/20 p-3">
-            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            <h2 className="mb-2 font-mono text-small uppercase tracking-[0.18em] text-white/70">
               Links
             </h2>
             {profile?.portfolioUrl ? (
@@ -224,7 +224,7 @@ export default function ProfilePage() {
 
         <section className="space-y-4 md:col-span-2 lg:col-span-1">
           <div className="border border-white/20 bg-zinc-950/20 p-3">
-            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            <h2 className="mb-2 font-mono text-small uppercase tracking-[0.18em] text-white/70">
               Profile settings
             </h2>
             <form onSubmit={onSubmit} className="space-y-3 text-small">
@@ -282,7 +282,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="border border-white/20 bg-zinc-950/20 p-3">
-            <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            <h2 className="mb-2 font-mono text-small uppercase tracking-[0.18em] text-white/70">
               Completed projects
             </h2>
             {completed.length ? (

@@ -76,7 +76,7 @@ export function VetoForm({ projectId, traces, onDone }: Props) {
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
-          <p className="mt-1 font-mono text-[11px] text-white">{VETO_HELP[vetoType]}</p>
+          <p className="mt-1 font-mono text-small text-white">{VETO_HELP[vetoType]}</p>
         </div>
 
         <div>
@@ -97,7 +97,7 @@ export function VetoForm({ projectId, traces, onDone }: Props) {
             </summary>
             <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
               {traces.map((t) => (
-                <label key={t._id} className="flex items-center gap-2 font-mono text-[11px]">
+                <label key={t._id} className="flex items-center gap-2 font-mono text-small">
                   <input
                     type="checkbox"
                     checked={selectedTraceIds.has(t._id)}

@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
-import { getAlias } from '../lib/session'
+import { getAlias, getToken } from '../lib/session'
+import { SpaceDiscussion } from '../components/space/SpaceDiscussion'
 
 type InviteCode = {
   code: string
@@ -48,6 +49,7 @@ export default function SpaceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const meAlias = getAlias()
+  const isLoggedIn = Boolean(getToken())
 
   const [space, setSpace] = useState<Space | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
@@ -59,6 +61,7 @@ export default function SpaceDetailPage() {
   const [genMode, setGenMode] = useState<'single_use' | 'multi_use'>('single_use')
   const [genExpiry, setGenExpiry] = useState<number | null>(15)
   const [genResult, setGenResult] = useState<{ inviteCode: string; expiresAt: string | null } | null>(null)
+  const [spaceTab, setSpaceTab] = useState<'overview' | 'projects' | 'discussion'>('overview')
 
   const load = useCallback(async () => {
     if (!id) return
@@ -76,9 +79,11 @@ export default function SpaceDetailPage() {
 
   useEffect(() => { void load() }, [load])
 
-  const isMember = space?.members?.includes(meAlias) ?? false
-  const isAdmin = space?.admins?.includes(meAlias) ?? false
-  const hasPendingVeto = space?.pendingVeto?.some((p) => p.alias === meAlias) ?? false
+  const isMember = Boolean(isLoggedIn && meAlias && space?.members?.includes(meAlias))
+  const isAdmin = Boolean(isLoggedIn && meAlias && space?.admins?.includes(meAlias))
+  const hasPendingVeto = Boolean(
+    isLoggedIn && meAlias && space?.pendingVeto?.some((p) => p.alias === meAlias),
+  )
   const isDormant = space?.status === 'dormant'
 
   async function leaveSpace() {
@@ -145,13 +150,38 @@ export default function SpaceDetailPage() {
         )}
 
         {space ? (
+          <>
+            <nav className="flex flex-wrap gap-2 border border-white/15 bg-zinc-950/30 p-1">
+              {(
+                [
+                  ['overview', 'Overview'],
+                  ['projects', 'Projects'],
+                  ['discussion', 'Discussion'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSpaceTab(key)}
+                  className={`border px-3 py-1.5 font-mono text-small uppercase tracking-[0.14em] transition ${
+                    spaceTab === key
+                      ? 'border-yellow-400 bg-yellow-400/15 text-yellow-400'
+                      : 'border-transparent text-white hover:border-white/25'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            {spaceTab === 'overview' && (
           <div className="grid gap-8 xl:grid-cols-12">
             <div className="space-y-6 xl:col-span-5">
               {/* ── Info ── */}
               <section className="space-y-2 border border-white/20 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`inline-block border border-black px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] ${
+                    className={`inline-block border border-black px-2 py-0.5 font-mono text-small uppercase tracking-[0.18em] ${
                       isDormant ? 'bg-grey-100 text-white' : 'bg-black text-yellow-400'
                     }`}
                     title={
@@ -162,12 +192,12 @@ export default function SpaceDetailPage() {
                   >
                     {isDormant ? 'Dormant' : 'Active'}
                   </span>
-                  <p className="font-mono text-[10px] text-white">
+                  <p className="font-mono text-small text-white">
                     ID: <span className="break-all">{space._id}</span>
                   </p>
                 </div>
                 {space.description && <p className="text-body text-white">{space.description}</p>}
-                <p className="font-mono text-[11px] text-white">
+                <p className="font-mono text-small text-white">
                   Created by <strong>{space.creatorAlias}</strong> · {space.members.length} members
                   {space.settings?.vetoAuthority?.length
                     ? ` · Veto: ${space.settings.vetoAuthority.join(', ')}`
@@ -175,14 +205,14 @@ export default function SpaceDetailPage() {
                 </p>
                 {(space.pendingVeto?.length ?? 0) > 0 ? (
                   <div className="border border-grey-200 bg-grey-50 px-3 py-2 space-y-1">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+                    <p className="font-mono text-small uppercase tracking-[0.18em] text-white">
                       Pending veto invites
                     </p>
                     <ul className="flex flex-wrap gap-1">
                       {space.pendingVeto!.map((p) => (
                         <li key={p.alias}>
-                          <span className="inline-flex items-center gap-1 border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-[11px]">
-                            <span className="text-white text-[9px] uppercase tracking-[0.14em]">Veto invite</span>
+                          <span className="inline-flex items-center gap-1 border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-small">
+                            <span className="text-white text-small uppercase tracking-[0.14em]">Veto invite</span>
                             <span>{p.alias}</span>
                           </span>
                         </li>
@@ -195,7 +225,7 @@ export default function SpaceDetailPage() {
               {/* ── Veto invitation for current user ── */}
               {hasPendingVeto && (
                 <section className="border border-black p-4 space-y-3 bg-yellow-50">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.18em]">
+                  <p className="font-mono text-small uppercase tracking-[0.18em]">
                     You have been invited to join this space as veto authority
                   </p>
                   <p className="text-small text-white">Choose how to respond:</p>
@@ -204,7 +234,7 @@ export default function SpaceDetailPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => respondVeto(true, true)}
-                      className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
+                      className="border border-black bg-black text-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-yellow-400 hover:text-white transition disabled:opacity-60"
                     >
                       Join + Accept Veto
                     </button>
@@ -212,7 +242,7 @@ export default function SpaceDetailPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => respondVeto(true, false)}
-                      className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                      className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                     >
                       Join Only (no veto)
                     </button>
@@ -220,7 +250,7 @@ export default function SpaceDetailPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => respondVeto(false, false)}
-                      className="border border-white/20 bg-zinc-900/50 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10 transition disabled:opacity-60 text-white"
+                      className="border border-white/20 bg-zinc-900/50 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10 transition disabled:opacity-60 text-white"
                     >
                       Decline
                     </button>
@@ -230,12 +260,21 @@ export default function SpaceDetailPage() {
 
               {/* ── Actions ── */}
               <section className="flex flex-wrap gap-2 border border-white/20 p-3 text-small font-mono uppercase tracking-[0.18em]">
-                <Link
-                  to={`/projects/new?space=${encodeURIComponent(space._id)}`}
-                  className="border border-black bg-yellow-400 px-3 py-1 text-white hover:bg-black hover:text-yellow-400 transition"
-                >
-                  New project
-                </Link>
+                {isLoggedIn ? (
+                  <Link
+                    to={`/projects/new?space=${encodeURIComponent(space._id)}`}
+                    className="border border-black bg-yellow-400 px-3 py-1 text-white hover:bg-black hover:text-yellow-400 transition"
+                  >
+                    New project
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="border border-white/25 bg-zinc-900/55 px-3 py-1 hover:bg-black hover:text-yellow-400 transition"
+                  >
+                    Log in to create a project
+                  </Link>
+                )}
                 {isAdmin && (
                   <Link
                     to={`/spaces/${encodeURIComponent(space._id)}/settings`}
@@ -249,7 +288,7 @@ export default function SpaceDetailPage() {
                     type="button"
                     disabled={busy}
                     onClick={leaveSpace}
-                    className="border border-grey-400 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
+                    className="border border-grey-400 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] text-white hover:border-black hover:text-white transition disabled:opacity-60"
                   >
                     Leave space
                   </button>
@@ -262,21 +301,21 @@ export default function SpaceDetailPage() {
                   <h2 className="text-h3 font-heading uppercase tracking-[0.18em]">Invite Codes</h2>
 
                   <div className="border border-grey-200 p-3 space-y-2">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white">Generate new code</p>
+                    <p className="font-mono text-small uppercase tracking-[0.14em] text-white">Generate new code</p>
                     <div className="flex flex-wrap gap-2 items-end">
                       <div>
-                        <label className="block font-mono text-[10px] text-white mb-0.5">Type</label>
+                        <label className="block font-mono text-small text-white mb-0.5">Type</label>
                         <select
                           value={genMode}
                           onChange={(e) => setGenMode(e.target.value as 'single_use' | 'multi_use')}
-                          className="border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-[11px]"
+                          className="border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-small"
                         >
                           <option value="single_use">Single-use</option>
                           <option value="multi_use">Multi-use / shareable</option>
                         </select>
                       </div>
                       <div>
-                        <label className="flex items-center gap-1 font-mono text-[10px] text-white mb-0.5">
+                        <label className="flex items-center gap-1 font-mono text-small text-white mb-0.5">
                           <input
                             type="checkbox"
                             checked={genExpiry !== null}
@@ -290,7 +329,7 @@ export default function SpaceDetailPage() {
                             min={1}
                             value={genExpiry}
                             onChange={(e) => setGenExpiry(Number(e.target.value))}
-                            className="w-20 border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-[11px]"
+                            className="w-20 border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-small"
                           />
                         )}
                       </div>
@@ -298,7 +337,7 @@ export default function SpaceDetailPage() {
                         type="button"
                         disabled={busy}
                         onClick={() => generateInvite({ mode: genMode, expiryDays: genExpiry })}
-                        className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
+                        className="border border-white/25 bg-zinc-900/55 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-black hover:text-yellow-400 transition disabled:opacity-60"
                       >
                         Generate
                       </button>
@@ -306,29 +345,29 @@ export default function SpaceDetailPage() {
 
                     {genResult && (
                       <div className="mt-2 border border-black bg-grey-50 p-3 space-y-2">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white">New invite code</p>
+                        <p className="font-mono text-small uppercase tracking-[0.12em] text-white">New invite code</p>
                         <div className="flex items-center gap-2">
-                          <code className="font-mono text-[13px] tracking-widest break-all">{genResult.inviteCode}</code>
+                          <code className="font-mono text-small tracking-widest break-all">{genResult.inviteCode}</code>
                           <button
                             type="button"
                             onClick={() => copyToClipboard(genResult.inviteCode, 'code')}
-                            className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition"
+                            className="border border-black px-2 py-0.5 font-mono text-small hover:bg-black hover:text-yellow-400 transition"
                           >
                             {copied === 'code' ? 'Copied!' : 'Copy code'}
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-white break-all">{inviteJoinUrl(genResult.inviteCode)}</span>
+                          <span className="font-mono text-small text-white break-all">{inviteJoinUrl(genResult.inviteCode)}</span>
                           <button
                             type="button"
                             onClick={() => copyToClipboard(inviteJoinUrl(genResult.inviteCode), 'url')}
-                            className="border border-black px-2 py-0.5 font-mono text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                            className="border border-black px-2 py-0.5 font-mono text-small hover:bg-black hover:text-yellow-400 transition shrink-0"
                           >
                             {copied === 'url' ? 'Copied!' : 'Copy link'}
                           </button>
                         </div>
                         {genResult.expiresAt && (
-                          <p className="font-mono text-[10px] text-white">
+                          <p className="font-mono text-small text-white">
                             Expires: {new Date(genResult.expiresAt).toLocaleDateString()}
                           </p>
                         )}
@@ -344,10 +383,10 @@ export default function SpaceDetailPage() {
                         const expired = ic.expiresAt ? new Date(ic.expiresAt).getTime() < Date.now() : false
                         const consumed = isSingle && (ic.used || (ic.usedCount ?? 0) >= 1)
                         return (
-                          <li key={i} className="px-3 py-2 font-mono text-[11px] space-y-1">
+                          <li key={i} className="px-3 py-2 font-mono text-small space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span
-                                className={`inline-block px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] border border-black ${
+                                className={`inline-block px-2 py-0.5 text-small uppercase tracking-[0.16em] border border-black ${
                                   isSingle
                                     ? 'bg-black text-yellow-400'
                                     : 'bg-zinc-800/80 text-white'
@@ -361,12 +400,12 @@ export default function SpaceDetailPage() {
                                 {isSingle ? 'Single-use' : 'Multi-use'}
                               </span>
                               {consumed ? (
-                                <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white">
+                                <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-small uppercase tracking-[0.16em] text-white">
                                   Used
                                 </span>
                               ) : null}
                               {expired ? (
-                                <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white">
+                                <span className="inline-block border border-grey-300 bg-grey-100 px-2 py-0.5 text-small uppercase tracking-[0.16em] text-white">
                                   Expired
                                 </span>
                               ) : null}
@@ -374,7 +413,7 @@ export default function SpaceDetailPage() {
                               <button
                                 type="button"
                                 onClick={() => copyToClipboard(ic.code, 'ic-' + i)}
-                                className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition shrink-0"
+                                className="border border-black px-2 py-0.5 text-small hover:bg-black hover:text-yellow-400 transition shrink-0"
                               >
                                 {copied === 'ic-' + i ? 'Copied!' : 'Copy'}
                               </button>
@@ -398,7 +437,7 @@ export default function SpaceDetailPage() {
                 <h2 className="text-h3 font-heading uppercase tracking-[0.18em]">Members ({space.members.length})</h2>
                 <ul className="divide-y divide-grey-100 border border-grey-200">
                   {space.members.map((alias) => (
-                    <li key={alias} className="flex items-center justify-between px-3 py-2 font-mono text-[11px]">
+                    <li key={alias} className="flex items-center justify-between px-3 py-2 font-mono text-small">
                       <Link to={`/nodes/${encodeURIComponent(alias)}`} className="hover:underline">
                         {alias}
                       </Link>
@@ -410,9 +449,12 @@ export default function SpaceDetailPage() {
                   ))}
                 </ul>
               </section>
+            </div>
+          </div>
+            )}
 
-              {/* ── Projects ── */}
-              <section className="space-y-3">
+            {spaceTab === 'projects' && (
+              <section className="space-y-3 border border-white/20 p-3">
                 <h2 className="text-h3 font-heading uppercase tracking-[0.18em]">Projects</h2>
                 {projects.length === 0 ? (
                   <p className="text-small text-white">No projects yet.</p>
@@ -422,10 +464,10 @@ export default function SpaceDetailPage() {
                       <li key={p._id} className="flex items-center justify-between px-3 py-2 text-small font-mono">
                         <span>{p.title}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-white text-[10px] uppercase">{p.status}</span>
+                          <span className="text-white text-small uppercase">{p.status}</span>
                           <Link
                             to={`/projects/${encodeURIComponent(p._id)}`}
-                            className="border border-black px-2 py-0.5 text-[10px] hover:bg-black hover:text-yellow-400 transition"
+                            className="border border-black px-2 py-0.5 text-small hover:bg-black hover:text-yellow-400 transition"
                           >
                             Open
                           </Link>
@@ -435,8 +477,17 @@ export default function SpaceDetailPage() {
                   </ul>
                 )}
               </section>
-            </div>
-          </div>
+            )}
+
+            {spaceTab === 'discussion' && id ? (
+              <SpaceDiscussion
+                spaceId={id}
+                isMember={isMember}
+                isAdmin={isAdmin}
+                meAlias={meAlias}
+              />
+            ) : null}
+          </>
         ) : (
           !error && <p className="text-small font-mono text-white">Loading…</p>
         )}

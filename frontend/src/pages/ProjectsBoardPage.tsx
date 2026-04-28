@@ -114,7 +114,7 @@ export default function ProjectsBoardPage() {
                   <span className="text-white">
                     {item.spaceName ? `In ${item.spaceName}` : null}
                   </span>
-                  <span className="text-[11px] font-mono uppercase tracking-[0.18em]">
+                  <span className="text-small font-mono uppercase tracking-[0.18em]">
                     STATUS — {item.project.status.toUpperCase()}
                   </span>
                 </Link>

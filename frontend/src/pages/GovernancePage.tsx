@@ -58,7 +58,7 @@ function FieldHint({ term }: { term: string }) {
   const { definitionsOn } = useDefinitions()
   const text = GLOSSARY[term]
   if (!definitionsOn || !text) return null
-  return <p className="mt-1 text-[11px] font-mono leading-snug text-white">{text}</p>
+  return <p className="mt-1 text-small font-mono leading-snug text-white">{text}</p>
 }
 
 export default function GovernancePage() {
@@ -240,10 +240,10 @@ export default function GovernancePage() {
               const hours = lastFlag.timeLockHours ?? info?.hours
               return (
                 <div className="md:col-span-2 border-l-4 border-yellow-400 bg-grey-50 px-3 py-2 space-y-0.5">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                  <p className="font-mono text-small uppercase tracking-[0.16em]">
                     This looks like {info?.label ?? `Level ${lastFlag.complexityLevel}`}
                   </p>
-                  <p className="text-[12px] text-white">
+                  <p className="text-small text-white">
                     {info?.blurb ?? ''}{' '}
                     {hours ? `${prettyWindow(hours)} time-lock.` : ''}
                   </p>

@@ -138,8 +138,8 @@ export function RadarChart({
             x={p.x}
             y={p.y}
             textAnchor="middle"
-            className="font-mono text-[9px]"
-            style={{ fontSize: 9 }}
+            className="font-mono text-small"
+            style={{ fontSize: 14 }}
           >
             {hint ? <title>{hint}</title> : null}
             {label}

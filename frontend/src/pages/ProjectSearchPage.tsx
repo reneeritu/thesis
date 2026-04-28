@@ -54,17 +54,17 @@ export default function ProjectSearchPage() {
                   <p className="font-mono">{p.title}</p>
                   <Link
                     to={`/projects/${encodeURIComponent(p._id)}`}
-                    className="border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] transition hover:bg-black hover:text-yellow-400"
+                    className="border border-white/25 bg-zinc-900/55 px-2 py-0.5 font-mono text-small uppercase tracking-[0.16em] transition hover:bg-black hover:text-yellow-400"
                   >
                     Open
                   </Link>
                 </div>
                 <p className="text-white">{p.context || 'No context.'}</p>
-                <p className="font-mono text-[11px] text-white">
+                <p className="font-mono text-small text-white">
                   {p.status} · in {p.spaceName} · creator {p.creatorAlias}{p.mentorAlias ? ` · mentor ${p.mentorAlias}` : ''}
                 </p>
                 {p.tools.length > 0 ? (
-                  <p className="font-mono text-[11px]">Tools: {p.tools.join(', ')}</p>
+                  <p className="font-mono text-small">Tools: {p.tools.join(', ')}</p>
                 ) : null}
               </div>
             ))}

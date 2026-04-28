@@ -235,7 +235,7 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
 
   const showVideoTag = mode !== 'audio'
   const btn =
-    'border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] transition disabled:opacity-60'
+    'border border-black px-3 py-1 font-mono text-small uppercase tracking-[0.14em] transition disabled:opacity-60'
 
   return (
     <div className="space-y-2 border border-grey-200 p-3">
@@ -256,13 +256,13 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
             {MODE_LABEL[m]}
           </button>
         ))}
-        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-white">
+        <span className="ml-auto font-mono text-small uppercase tracking-[0.14em] text-white">
           Record directly
         </span>
       </div>
 
       {error ? (
-        <p className="border border-black bg-grey-100 px-2 py-1 font-mono text-[11px] text-white">{error}</p>
+        <p className="border border-black bg-grey-100 px-2 py-1 font-mono text-small text-white">{error}</p>
       ) : null}
 
       {showVideoTag ? (
@@ -275,7 +275,7 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
       ) : null}
 
       {active && !preview && mode === 'photo' ? (
-        <div className="flex flex-wrap gap-3 text-[10px] font-mono uppercase tracking-[0.14em] text-white">
+        <div className="flex flex-wrap gap-3 text-small font-mono uppercase tracking-[0.14em] text-white">
           <label className="flex items-center gap-1 cursor-pointer">
             <input
               type="checkbox"
@@ -325,7 +325,7 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
 
       {preview ? (
         <div className="space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white">Preview</p>
+          <p className="font-mono text-small uppercase tracking-[0.14em] text-white">Preview</p>
           {preview.mime.startsWith('image/') ? (
             <img src={preview.url} alt="capture preview" className="max-h-64 w-auto border border-grey-200" />
           ) : preview.mime.startsWith('video/') ? (
@@ -341,7 +341,7 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
               Retake
             </button>
           </div>
-          <p className="font-mono text-[10px] text-white">
+          <p className="font-mono text-small text-white">
             {preview.file.name} · {(preview.file.size / 1024).toFixed(1)} KB · {preview.mime}
           </p>
         </div>

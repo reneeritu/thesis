@@ -116,7 +116,7 @@ export function CertificateArtEditor({ nftId, input, onSaved }: Props) {
         <h3 className="text-small font-heading uppercase tracking-[0.18em]">
           Certificate artwork
         </h3>
-        <p className="text-[11px] text-white">
+        <p className="text-small text-white">
           The piece minted with this project's credit. Auto-generated from project
           facts by default — or upload your own if you already made one.
         </p>
@@ -126,7 +126,7 @@ export function CertificateArtEditor({ nftId, input, onSaved }: Props) {
         <button
           type="button"
           onClick={() => setTab('generate')}
-          className={`flex-1 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition ${
+          className={`flex-1 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] transition ${
             tab === 'generate'
               ? 'bg-black text-yellow-400'
               : 'bg-zinc-800/60 hover:bg-white/10'
@@ -137,7 +137,7 @@ export function CertificateArtEditor({ nftId, input, onSaved }: Props) {
         <button
           type="button"
           onClick={() => setTab('upload')}
-          className={`flex-1 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition border-l border-black ${
+          className={`flex-1 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] transition border-l border-black ${
             tab === 'upload'
               ? 'bg-black text-yellow-400'
               : 'bg-zinc-800/60 hover:bg-white/10'
@@ -173,10 +173,10 @@ export function CertificateArtEditor({ nftId, input, onSaved }: Props) {
       ) : (
         <div className="space-y-3">
           <div className="border border-dashed border-black bg-grey-100 p-3 space-y-2">
-            <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-white">
+            <p className="text-small font-mono uppercase tracking-[0.14em] text-white">
               File requirements
             </p>
-            <ul className="text-[11px] text-white space-y-0.5 pl-4 list-disc">
+            <ul className="text-small text-white space-y-0.5 pl-4 list-disc">
               <li>PNG, JPEG, WebP, GIF or SVG — images ≤ 5 MB</li>
               <li>MP4 or WebM — video ≤ 25 MB</li>
               <li>Images must be 256–4096 px per side</li>
@@ -190,10 +190,10 @@ export function CertificateArtEditor({ nftId, input, onSaved }: Props) {
               type="file"
               accept={ACCEPT}
               onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-small font-mono file:mr-3 file:border file:border-black file:bg-zinc-800/60 file:px-3 file:py-1 file:font-mono file:text-[11px] file:uppercase file:tracking-[0.14em] hover:file:bg-zinc-800/60/10"
+              className="block w-full text-small font-mono file:mr-3 file:border file:border-black file:bg-zinc-800/60 file:px-3 file:py-1 file:font-mono file:text-small file:uppercase file:tracking-[0.14em] hover:file:bg-zinc-800/60/10"
             />
             {file ? (
-              <p className="mt-2 text-[11px] font-mono text-white">
+              <p className="mt-2 text-small font-mono text-white">
                 {file.name} · {(file.size / 1024).toFixed(1)} KB · {file.type || '?'}
               </p>
             ) : null}

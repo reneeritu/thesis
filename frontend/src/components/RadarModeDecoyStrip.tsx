@@ -7,7 +7,7 @@ const MODES = ['Petal', 'Wireframe', 'Compare'] as const
 export function RadarModeDecoyStrip({ className = '' }: RadarModeDecoyStripProps) {
   return (
     <div
-      className={`inline-flex items-center gap-1.5 border border-white/20 bg-zinc-950/35 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] ${className}`.trim()}
+      className={`inline-flex items-center gap-1.5 border border-white/20 bg-zinc-950/35 px-2 py-1 font-mono text-small uppercase tracking-[0.2em] ${className}`.trim()}
       role="tablist"
       aria-label="Radar render mode preview"
     >

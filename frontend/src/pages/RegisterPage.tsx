@@ -269,7 +269,7 @@ export default function RegisterPage() {
                         <button
                           type="button"
                           onClick={() => removeTrustee(i)}
-                          className="border border-black px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10"
+                          className="border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
                         >
                           Remove
                         </button>
@@ -283,12 +283,12 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={addTrustee}
-                      className="border border-black px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] hover:bg-white/10"
+                      className="border border-black px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
                     >
                       + Add another
                     </button>
                   ) : null}
-                  <p className="text-[11px] font-mono text-white self-center">
+                  <p className="text-small font-mono text-white self-center">
                     {trustees.filter(Boolean).length} / {MAX_TRUSTEES} · need ≥ {MIN_TRUSTEES}
                   </p>
                 </div>

@@ -14,6 +14,7 @@ import { Notification } from '../models/Notification';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -202,14 +203,31 @@ router.get(
  */
 router.get(
   '/space/:spaceId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     const space = await Space.findById(req.params.spaceId);
     if (!space) throw new NotFoundError('Space');
 
-    const projects = await Project.find({ spaceId: req.params.spaceId }).sort({
+    const caller = req.node?.alias;
+    const isPublicSpace = space.settings?.privacyDefault === 'public';
+    const isMember = caller ? space.members.includes(caller) : false;
+
+    let projects = await Project.find({ spaceId: req.params.spaceId }).sort({
       createdAt: -1,
     });
+
+    if (!isMember) {
+      if (!isPublicSpace && !caller) {
+        throw new ForbiddenError('Sign in to view projects in this space');
+      }
+      if (!isPublicSpace) {
+        throw new ForbiddenError('You are not a member of this space');
+      }
+      projects = projects.filter(
+        (p) =>
+          p.visibility === 'fully_public' || p.visibility === 'process_visible',
+      );
+    }
 
     res.json(projects);
   },
@@ -286,11 +304,10 @@ router.get(
 
 /**
  * GET /projects/:id
+ * Readable without auth when visibility is process_visible or fully_public; space_only requires membership.
  */
-router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
-  const project = await Project.findById(req.params.id);
-  if (!project) throw new NotFoundError('Project');
-
+router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const project = await assertProjectReadableForOptionalViewer(req.params.id, req);
   res.json(project);
 });
 

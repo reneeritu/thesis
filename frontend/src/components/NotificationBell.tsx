@@ -159,7 +159,7 @@ export function NotificationBell() {
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex min-h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-yellow-400 px-0.5 text-[9px] font-mono font-medium leading-none text-white">
+          <span className="absolute -top-1 -right-1 flex min-h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-yellow-400 px-0.5 text-small font-mono font-medium leading-none text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         )}

@@ -173,7 +173,7 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
             ))}
           </tbody>
         </table>
-        <p className="text-[11px] text-white">Leave weights blank for equal split. Weights must sum to 1.0 if specified.</p>
+        <p className="text-small text-white">Leave weights blank for equal split. Weights must sum to 1.0 if specified.</p>
 
         <div>
           <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Medium (optional)</label>

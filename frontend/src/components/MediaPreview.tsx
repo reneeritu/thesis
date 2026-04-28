@@ -81,12 +81,12 @@ export function MediaPreview({ mediaId, mimeType = '', hash, originalName }: Pro
           Your browser doesn't support embedded audio.
         </audio>
       ) : (
-        <div className="border border-dashed border-grey-300 bg-grey-50 px-3 py-3 font-mono text-[11px] text-white">
+        <div className="border border-dashed border-grey-300 bg-grey-50 px-3 py-3 font-mono text-small text-white">
           Preview not available for this file type ({effectiveMime || 'checking…'}).
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em]">
+      <div className="flex flex-wrap gap-1.5 font-mono text-small uppercase tracking-[0.14em]">
         <a
           href={src}
           target="_blank"

@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import { createPivotSchema } from '../schemas/pivot';
 import { Pivot } from '../models/Pivot';
@@ -7,6 +8,7 @@ import { Project } from '../models/Project';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -53,8 +55,9 @@ router.post(
  */
 router.get(
   '/project/:projectId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
     const pivots = await Pivot.find({ projectId: req.params.projectId }).sort({
       createdAt: 1,
     });

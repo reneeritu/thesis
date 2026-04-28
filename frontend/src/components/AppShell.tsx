@@ -1,8 +1,10 @@
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { clearSession, getToken } from '../lib/session'
+import { isSimMode } from '../lib/simApi'
 import { layoutDebugZoneClass, useLayoutDebug } from '../lib/layoutDebug'
 import { NotificationBell } from './NotificationBell'
+import { MessagesNavLink } from './MessagesNavLink'
 import { HelpButton, HEADER_NAV_ICON_BUTTON_CLASS, HEADER_NAV_ICON_SVG_CLASS } from './HelpDrawer'
 
 type Props = {
@@ -12,7 +14,7 @@ type Props = {
 }
 
 const navBtn =
-  'glassmorphic-light contour-border-neutral px-2 py-1 text-[11px] sm:px-2.5 sm:py-1 hover:text-yellow-400 transition-etch [touch-action:manipulation]'
+  'glassmorphic-light contour-border-neutral px-2 py-1 text-small sm:px-2.5 sm:py-1 hover:text-yellow-400 transition-etch [touch-action:manipulation]'
 
 function AuthSiteNavDropdown({
   label,
@@ -57,7 +59,7 @@ function AuthSiteNavDropdown({
           aria-label={`${label}. Open site navigation menu.`}
         >
           <span className="min-w-0 truncate font-semibold">{label}</span>
-          <span className="shrink-0 text-[11px] opacity-60" aria-hidden>
+          <span className="shrink-0 text-small opacity-60" aria-hidden>
             ▾
           </span>
         </summary>
@@ -81,6 +83,9 @@ function AuthSiteNavDropdown({
             </Link>
             <Link to="/discover" className="etch-float-menu-item">
               Discover
+            </Link>
+            <Link to="/messages" className="etch-float-menu-item">
+              Messages
             </Link>
             <Link to="/governance" className="etch-float-menu-item">
               Governance
@@ -157,6 +162,12 @@ export function AppShell({ children, title }: Props) {
                     />
                   </svg>
                 </Link>
+                {isSimMode() ? (
+                  <Link to="/simulation" className={navBtn} aria-label="Simulation" title="Simulation">
+                    SIM
+                  </Link>
+                ) : null}
+                <MessagesNavLink />
                 <NotificationBell />
                 <HelpButton />
                 <button

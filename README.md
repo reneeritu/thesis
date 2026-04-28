@@ -5,7 +5,9 @@ Art Process Documentation Chain & dApp Backend.
 A trust-based, non-financial system for documenting, attributing, and preserving
 the artistic process.  See [docs/BACKEND.md](docs/BACKEND.md) for the full
 specification and [BACKEND-REVIEW.md](BACKEND-REVIEW.md) for the loophole and
-ambiguity review.
+ambiguity review. For a **chaptered** guide (spaces, projects, contracts,
+governance, flows, implemented vs planned), see
+[docs/etch-system/README.md](docs/etch-system/README.md).
 
 ---
 

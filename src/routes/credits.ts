@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { validate } from '../middleware/validate';
 import { creditProjectSchema, signCreditSchema } from '../schemas/credit';
 import { Project } from '../models/Project';
@@ -12,6 +13,7 @@ import { onProjectCompleted } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
 
 function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
@@ -299,8 +301,10 @@ router.post(
  */
 router.get(
   '/project/:projectId',
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
+
     const nft = await NFT.findOne({ projectId: req.params.projectId });
     if (!nft) throw new NotFoundError('No credit found for this project');
 

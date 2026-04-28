@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { api } from '../lib/api'
-import { getToken } from '../lib/session'
+import { createConversation } from '../lib/messagesApi'
+import { getAlias, getToken } from '../lib/session'
 
 type NodePublic = {
   alias: string
@@ -25,10 +26,21 @@ type NodeProject = {
 
 export default function PublicNodePage() {
   const { alias: aliasParam } = useParams<{ alias: string }>()
+  const navigate = useNavigate()
+  const meAlias = getAlias()
   const [node, setNode] = useState<NodePublic | null>(null)
   const [projects, setProjects] = useState<NodeProject[]>([])
   const [error, setError] = useState<string | null>(null)
   const authed = !!getToken()
+  const [msgOpen, setMsgOpen] = useState(false)
+  const [msgIntro, setMsgIntro] = useState('')
+  const [msgBusy, setMsgBusy] = useState(false)
+  const [msgErr, setMsgErr] = useState<string | null>(null)
+
+  const canMessage =
+    authed &&
+    Boolean(aliasParam) &&
+    aliasParam!.toLowerCase() !== (meAlias || '').toLowerCase()
 
   useEffect(() => {
     let cancelled = false
@@ -80,7 +92,22 @@ export default function PublicNodePage() {
 
         {node ? (
           <div className="space-y-4">
-            <p className="text-h3 font-heading text-white">{node.alias}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-h3 font-heading text-white">{node.alias}</p>
+              {canMessage ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMsgErr(null)
+                    setMsgIntro('')
+                    setMsgOpen(true)
+                  }}
+                  className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase tracking-[0.14em] text-black hover:bg-black hover:text-yellow-400 transition"
+                >
+                  Message
+                </button>
+              ) : null}
+            </div>
             {node.reputationScore != null && authed ? (
               <p className="text-small font-mono text-white">
                 Score — not shown publicly; open your own profile for details.
@@ -93,7 +120,7 @@ export default function PublicNodePage() {
                 {node.badges.map((b) => (
                   <span
                     key={b}
-                    className="border border-black bg-black px-2 py-1 text-[11px] font-mono uppercase tracking-[0.16em] text-yellow-400"
+                    className="border border-black bg-black px-2 py-1 text-small font-mono uppercase tracking-[0.16em] text-yellow-400"
                   >
                     {String(b).toUpperCase()}
                   </span>
@@ -147,10 +174,10 @@ export default function PublicNodePage() {
                         className="flex flex-wrap items-center gap-2 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small transition hover:bg-black hover:text-yellow-400"
                       >
                         <span className="truncate">{p.title}</span>
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-white">
+                        <span className="text-small uppercase tracking-[0.16em] text-white">
                           {p.spaceName}
                         </span>
-                        <span className="ml-auto text-[10px] uppercase tracking-[0.16em]">
+                        <span className="ml-auto text-small uppercase tracking-[0.16em]">
                           {p.role} · {p.status}
                         </span>
                       </Link>
@@ -162,6 +189,67 @@ export default function PublicNodePage() {
             <p className="text-small text-white">
               This profile is public. No personal data is stored beyond what you see.
             </p>
+
+            {msgOpen && aliasParam ? (
+              <div
+                className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4"
+                role="dialog"
+                aria-modal
+                aria-label="Send connection request"
+              >
+                <div className="w-full max-w-md border border-white/25 bg-zinc-950 p-4 space-y-3 shadow-xl">
+                  <p className="font-mono text-small uppercase tracking-[0.16em] text-white">
+                    Message @{node.alias}
+                  </p>
+                  <p className="text-small text-white">
+                    They’ll get a connection request with this intro. You can chat after they accept.
+                  </p>
+                  <textarea
+                    value={msgIntro}
+                    onChange={(e) => setMsgIntro(e.target.value)}
+                    placeholder="Intro line…"
+                    rows={4}
+                    className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small text-white"
+                  />
+                  {msgErr ? (
+                    <p className="text-small font-mono text-white border border-black bg-grey-100 px-2 py-1">
+                      {msgErr}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <button
+                      type="button"
+                      className="border border-white/25 px-3 py-1 font-mono text-small uppercase text-white"
+                      onClick={() => setMsgOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={msgBusy || !msgIntro.trim()}
+                      className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase text-black disabled:opacity-50"
+                      onClick={() => {
+                        void (async () => {
+                          setMsgBusy(true)
+                          setMsgErr(null)
+                          try {
+                            const r = await createConversation(aliasParam, msgIntro.trim())
+                            setMsgOpen(false)
+                            navigate('/messages/' + encodeURIComponent(r.conversation._id))
+                          } catch (e) {
+                            setMsgErr(e instanceof Error ? e.message : 'Failed')
+                          } finally {
+                            setMsgBusy(false)
+                          }
+                        })()
+                      }}
+                    >
+                      {msgBusy ? 'Sending…' : 'Send request'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : !error ? (
           <p className="text-small font-mono text-white">Loading…</p>
