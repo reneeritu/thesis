@@ -22,6 +22,8 @@ import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 import { SpaceMessage } from '../models/SpaceMessage';
 import { sendSpaceMessageSchema } from '../schemas/spaceMessage';
 import { validateObjectId } from '../utils/validateObjectId';
+import { Project } from '../models/Project';
+import { Trace } from '../models/Trace';
 
 const router = Router();
 
@@ -187,7 +189,7 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
       { 'settings.minDocRequirements': rx },
     ],
   })
-    .select('name description status members settings')
+    .select('name description status members settings logoSeed')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -201,6 +203,7 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
     minDocRequirements: s.settings?.minDocRequirements || [],
     memberCount: Array.isArray(s.members) ? s.members.length : 0,
     isMember: Array.isArray(s.members) ? s.members.includes(alias) : false,
+    logoSeed: s.logoSeed,
   }));
 
   res.json(out);
@@ -213,7 +216,7 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
 router.get('/discover', requireAuth, async (req: AuthRequest, res: Response) => {
   const alias = req.node!.alias;
   const spaces = await Space.find({ status: 'active' })
-    .select('name description creatorAlias members admins settings createdAt')
+    .select('name description creatorAlias members admins settings createdAt logoSeed')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -226,6 +229,7 @@ router.get('/discover', requireAuth, async (req: AuthRequest, res: Response) => 
     projectAccess: s.settings?.projectAccess || 'open',
     isMember: Array.isArray(s.members) ? s.members.includes(alias) : false,
     createdAt: s.createdAt,
+    logoSeed: s.logoSeed,
   }));
 
   res.json(out);
@@ -386,6 +390,58 @@ router.delete('/:id/messages/:msgId', requireAuth, async (req: AuthRequest, res:
 
   await SpaceMessage.deleteOne({ _id: msg._id });
   res.json({ deleted: true });
+});
+
+/**
+ * GET /spaces/:id/traces/recent?limit=5
+ * Latest traces across all projects in this space (newest first).
+ * Same visibility as GET /spaces/:id.
+ */
+router.get('/:id/traces/recent', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const space = await Space.findById(req.params.id);
+  if (!space) throw new NotFoundError('Space');
+
+  const alias = req.node?.alias;
+  const isPublicSpace = space.settings?.privacyDefault === 'public';
+
+  if (!alias) {
+    if (!isPublicSpace) {
+      throw new ForbiddenError('Sign in to view this space');
+    }
+  } else {
+    const isMember = space.members.includes(alias);
+    if (!isMember && !isPublicSpace) {
+      throw new ForbiddenError('Sign in as a member to view this space');
+    }
+  }
+
+  const rawLimit = Number.parseInt(String(req.query.limit ?? '5'), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 20 ? rawLimit : 5;
+
+  const projectsInSpace = await Project.find({ spaceId: space._id }).select('_id title').lean();
+  if (projectsInSpace.length === 0) {
+    return res.json([]);
+  }
+
+  const projectIds = projectsInSpace.map((p) => p._id);
+  const titleById = new Map(projectsInSpace.map((p) => [String(p._id), String(p.title ?? '')]));
+
+  const traces = await Trace.find({ projectId: { $in: projectIds } })
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .select('nodeAlias activityType timestamp projectId')
+    .lean();
+
+  const out = traces.map((t) => ({
+    nodeAlias: t.nodeAlias,
+    activityType: t.activityType,
+    timestamp:
+      t.timestamp instanceof Date ? t.timestamp.toISOString() : String(t.timestamp ?? ''),
+    projectId: String(t.projectId),
+    projectTitle: titleById.get(String(t.projectId)) || 'Project',
+  }));
+
+  res.json(out);
 });
 
 /**

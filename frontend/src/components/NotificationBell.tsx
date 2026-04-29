@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { getToken } from '../lib/session'
+import { AnchoredGlassDropdownPanel } from './AnchoredGlassDropdownPanel'
 import { HEADER_NAV_ICON_BUTTON_CLASS, HEADER_NAV_ICON_SVG_CLASS } from './HelpDrawer'
 
 type Notification = {
@@ -142,6 +143,7 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={HEADER_NAV_ICON_BUTTON_CLASS}
+        aria-expanded={open}
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         title="Notifications"
       >
@@ -165,30 +167,36 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 max-h-[80vh] overflow-y-auto border border-white/20 floating-glass-panel">
-          <div className="sticky top-0 z-[1] flex items-center justify-between border-b border-white/15 bg-zinc-950/50 px-3 py-2 backdrop-blur-md">
-            <span className="etch-float-caps">Notifications</span>
-            <div className="flex gap-2">
-              {unread > 0 && (
-                <button
-                  type="button"
-                  onClick={markAllRead}
-                  className="etch-float-caps underline underline-offset-2"
-                >
-                  Mark all read
-                </button>
-              )}
+      <AnchoredGlassDropdownPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        align="right"
+        ariaLabel="Notifications"
+        className="flex w-80 max-h-[min(calc(100dvh-4.5rem),42rem)] flex-col overflow-hidden border border-white/20 floating-glass-panel shadow-xl"
+      >
+        <div className="sticky top-0 z-[1] flex shrink-0 items-center justify-between border-b border-white/15 bg-zinc-950/50 px-3 py-2 backdrop-blur-md">
+          <span className="etch-float-caps">Notifications</span>
+          <div className="flex gap-2">
+            {unread > 0 && (
               <button
                 type="button"
-                onClick={() => setOpen(false)}
-                className="etch-float-caps hover:text-white"
+                onClick={markAllRead}
+                className="etch-float-caps underline underline-offset-2"
               >
-                ✕
+                Mark all read
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="etch-float-caps hover:text-white"
+            >
+              ✕
+            </button>
           </div>
+        </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {notes.length === 0 ? (
             <p className="etch-float-prose px-3 py-4 text-white/80">No notifications.</p>
           ) : (
@@ -199,7 +207,6 @@ export function NotificationBell() {
               >
                 <p className="etch-float-prose leading-snug">{label(n)}</p>
 
-                {/* Veto invite — action buttons */}
                 {n.type === 'veto_invite' && !n.read && (
                   <div className="flex flex-wrap gap-1">
                     <button
@@ -229,7 +236,6 @@ export function NotificationBell() {
                   </div>
                 )}
 
-                {/* Contributor invite — action buttons */}
                 {n.type === 'contributor_invite' && !n.read && (
                   <div className="flex gap-1">
                     <button
@@ -251,7 +257,6 @@ export function NotificationBell() {
                   </div>
                 )}
 
-                {/* Incoming collaboration request — primary accepts or declines */}
                 {n.type === 'collab_request' && !n.read && (
                   <div className="flex gap-1">
                     <button
@@ -273,7 +278,6 @@ export function NotificationBell() {
                   </div>
                 )}
 
-                {/* Open related page link */}
                 {(n.relatedType === 'space' || n.relatedType === 'project') && (
                   <button
                     type="button"
@@ -291,7 +295,7 @@ export function NotificationBell() {
             ))
           )}
         </div>
-      )}
+      </AnchoredGlassDropdownPanel>
     </div>
   )
 }

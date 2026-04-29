@@ -7,6 +7,7 @@ import {
   categoryForActivity,
   colourForActivity,
 } from '../../lib/reputationColours'
+import { activityLabel } from '../../lib/activityLabels'
 import { getAlias } from '../../lib/session'
 
 type TimelineEntry = {
@@ -77,15 +78,20 @@ function flagLink(targetType: 'trace' | 'project', targetId: string): string {
   return `/governance?${params.toString()}`
 }
 
+const SUBTLE_FOOTER =
+  'font-mono text-[10px] text-white/38 underline decoration-white/15 underline-offset-2 hover:text-white/55'
+
 type TraceCardProps = {
   data: Record<string, unknown>
   endorsements: Endorsement[]
   onEndorse: (traceId: string, kind: string) => Promise<void>
   onUnendorse: (endorsementId: string) => Promise<void>
   busy: boolean
+  /** Timeline summary already shows activity type — hide duplicate header row */
+  compactChainRecord?: boolean
 }
 
-function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCardProps) {
+function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy, compactChainRecord }: TraceCardProps) {
   const [showRaw, setShowRaw] = useState(false)
   const [pickingKind, setPickingKind] = useState(false)
   const mediaId = String(data.mediaId ?? '')
@@ -103,27 +109,38 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
   const activityColour = colourForActivity(activityType)
 
   return (
-    <div className="space-y-2 border-l-4 pl-3" style={{ borderColor: activityColour }}>
+    <div
+      className={`space-y-2 pl-3 ${compactChainRecord ? 'border-l-2' : 'border-l-4'}`}
+      style={{ borderColor: activityColour }}
+    >
       {ndaSealed ? (
         <div className="border-l-2 border-white/20 bg-zinc-900/40 px-3 py-2 font-mono text-small text-white">
           Trace sealed under NDA — hidden from contributors who were not parties.
         </div>
       ) : null}
+      {!compactChainRecord ? (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-small font-sans">
+          <span className="text-white">Activity</span>
+          <span className="flex items-center gap-2 font-mono uppercase tracking-[0.12em]">
+            <span
+              aria-hidden
+              className="inline-block h-2 w-2 rounded-full border border-black"
+              style={{ backgroundColor: activityColour }}
+            />
+            {activityType ? activityType.replace(/_/g, ' ') : '—'}
+            {activityCategory ? (
+              <span className="ml-1 border border-black px-1 py-[1px] text-small tracking-[0.14em] text-white">
+                {CATEGORY_LABELS[activityCategory]}
+              </span>
+            ) : null}
+          </span>
+        </div>
+      ) : activityCategory ? (
+        <p className="m-0 font-mono text-[10px] uppercase tracking-[0.14em] text-white/42">
+          {CATEGORY_LABELS[activityCategory]}
+        </p>
+      ) : null}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-small font-sans">
-        <span className="text-white">Activity</span>
-        <span className="flex items-center gap-2 font-mono uppercase tracking-[0.12em]">
-          <span
-            aria-hidden
-            className="inline-block h-2 w-2 rounded-full border border-black"
-            style={{ backgroundColor: activityColour }}
-          />
-          {activityType ? activityType.replace(/_/g, ' ') : '—'}
-          {activityCategory ? (
-            <span className="ml-1 border border-black px-1 py-[1px] text-small tracking-[0.14em] text-white">
-              {CATEGORY_LABELS[activityCategory]}
-            </span>
-          ) : null}
-        </span>
         {data.description ? (
           <>
             <span className="text-white">Description</span>
@@ -252,18 +269,26 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3 pt-1">
+      <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 ${compactChainRecord ? 'border-t border-white/10 mt-1' : ''}`}>
         <button
           type="button"
           onClick={() => setShowRaw((v) => !v)}
-          className="font-mono text-small text-white underline hover:text-white"
+          className={
+            compactChainRecord
+              ? SUBTLE_FOOTER
+              : 'font-mono text-small text-white underline hover:text-white'
+          }
         >
           {showRaw ? 'Hide raw data' : 'Show raw chain data'}
         </button>
         {traceId ? (
           <Link
             to={flagLink('trace', traceId)}
-            className="font-mono text-small uppercase tracking-[0.14em] text-white underline hover:text-white/80"
+            className={
+              compactChainRecord
+                ? `${SUBTLE_FOOTER} uppercase tracking-[0.1em]`
+                : 'font-mono text-small uppercase tracking-[0.14em] text-white underline hover:text-white/80'
+            }
             title="Raise a flag or dispute about this entry in Governance"
           >
             Flag / dispute
@@ -279,7 +304,7 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy }: TraceCa
   )
 }
 
-function ReferenceCard({ data }: { data: Record<string, unknown> }) {
+function ReferenceCard({ data, compactFooter }: { data: Record<string, unknown>; compactFooter?: boolean }) {
   const [showRaw, setShowRaw] = useState(false)
   return (
     <div className="space-y-2">
@@ -299,15 +324,19 @@ function ReferenceCard({ data }: { data: Record<string, unknown> }) {
           </>
         ) : null}
       </div>
-      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-small text-white underline hover:text-white">
-        {showRaw ? 'Hide raw' : 'Show raw'}
+      <button
+        type="button"
+        onClick={() => setShowRaw((v) => !v)}
+        className={compactFooter ? SUBTLE_FOOTER : 'font-mono text-small text-white underline hover:text-white'}
+      >
+        {showRaw ? 'Hide raw data' : 'Show raw chain data'}
       </button>
       {showRaw && <pre className="bg-grey-100 px-3 py-2 text-small font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>}
     </div>
   )
 }
 
-function PivotCard({ data }: { data: Record<string, unknown> }) {
+function PivotCard({ data, compactFooter }: { data: Record<string, unknown>; compactFooter?: boolean }) {
   const [showRaw, setShowRaw] = useState(false)
   return (
     <div className="space-y-2">
@@ -321,15 +350,19 @@ function PivotCard({ data }: { data: Record<string, unknown> }) {
           </>
         ) : null}
       </div>
-      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-small text-white underline hover:text-white">
-        {showRaw ? 'Hide raw' : 'Show raw'}
+      <button
+        type="button"
+        onClick={() => setShowRaw((v) => !v)}
+        className={compactFooter ? SUBTLE_FOOTER : 'font-mono text-small text-white underline hover:text-white'}
+      >
+        {showRaw ? 'Hide raw data' : 'Show raw chain data'}
       </button>
       {showRaw && <pre className="bg-grey-100 px-3 py-2 text-small font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>}
     </div>
   )
 }
 
-function VetoCard({ data }: { data: Record<string, unknown> }) {
+function VetoCard({ data, compactFooter }: { data: Record<string, unknown>; compactFooter?: boolean }) {
   const [showRaw, setShowRaw] = useState(false)
   return (
     <div className="space-y-2">
@@ -343,8 +376,12 @@ function VetoCard({ data }: { data: Record<string, unknown> }) {
           </>
         ) : null}
       </div>
-      <button type="button" onClick={() => setShowRaw((v) => !v)} className="font-mono text-small text-white underline hover:text-white">
-        {showRaw ? 'Hide raw' : 'Show raw'}
+      <button
+        type="button"
+        onClick={() => setShowRaw((v) => !v)}
+        className={compactFooter ? SUBTLE_FOOTER : 'font-mono text-small text-white underline hover:text-white'}
+      >
+        {showRaw ? 'Hide raw data' : 'Show raw chain data'}
       </button>
       {showRaw && <pre className="bg-grey-100 px-3 py-2 text-small font-mono overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>}
     </div>
@@ -354,11 +391,13 @@ function VetoCard({ data }: { data: Record<string, unknown> }) {
 type Props = {
   entries: TimelineEntry[]
   projectId?: string
+  /** Dense styling for project detail chain column */
+  variant?: 'default' | 'chainRecord'
 }
 
 export type { TimelineEntry }
 
-export function ProjectTimeline({ entries, projectId }: Props) {
+export function ProjectTimeline({ entries, projectId, variant = 'default' }: Props) {
   const [endorsements, setEndorsements] = useState<Endorsement[]>([])
   const [endorseBusy, setEndorseBusy] = useState(false)
 
@@ -402,11 +441,23 @@ export function ProjectTimeline({ entries, projectId }: Props) {
     }
   }
 
+  const chainRecord = variant === 'chainRecord'
+
   if (entries.length === 0) {
     return (
-      <div className="border border-dashed border-grey-300 px-4 py-6 text-center space-y-1">
-        <p className="font-mono text-small uppercase tracking-[0.18em] text-white">Nothing logged yet</p>
-        <p className="text-small text-white">Use "Log Work" to record activity on this project. Each entry is permanently added to the chain.</p>
+      <div
+        className={`border border-dashed px-4 py-6 text-center space-y-1 ${
+          chainRecord ? 'border-white/15 bg-black/20' : 'border-grey-300'
+        }`}
+      >
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/55">Nothing logged yet</p>
+        {!chainRecord ? (
+          <p className="text-small text-white">
+            Use &quot;Log Work&quot; to record activity on this project. Each entry is permanently added to the chain.
+          </p>
+        ) : (
+          <p className="text-[12px] text-white/42">Traces and contracts will appear here.</p>
+        )}
       </div>
     )
   }
@@ -419,34 +470,52 @@ export function ProjectTimeline({ entries, projectId }: Props) {
           item.kind === 'trace' && itemId
             ? endorsements.filter((e) => e.traceId === itemId)
             : []
+        const activityTypeStr = String(item.data.activityType || '')
+        const actColour = colourForActivity(activityTypeStr)
+
         return (
           <details
             key={`${item.kind}-${idx}`}
-            className="border border-white/20 bg-zinc-900/50"
-            open={idx === 0}
+            className={`border bg-zinc-900/50 ${chainRecord ? 'border-white/12' : 'border-white/20'}`}
+            open={!chainRecord && idx === 0}
           >
-            <summary className="flex flex-wrap items-center gap-2 px-3 py-2 cursor-pointer select-none">
-              <span className={`inline-block px-2 py-0.5 text-small font-mono uppercase tracking-[0.16em] ${KIND_COLOR[item.kind]}`}>
-                {KIND_LABEL[item.kind]}
-              </span>
-              <span className="font-mono text-small text-white">
-                {String(item.data.nodeAlias || '')}
-              </span>
-              <span className="font-mono text-small text-white ml-auto">
+            <summary className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+              {item.kind === 'trace' && chainRecord ? (
+                <span
+                  className="inline-block rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]"
+                  style={{
+                    borderColor: actColour,
+                    color: actColour,
+                    backgroundColor: `${actColour}14`,
+                  }}
+                >
+                  {activityLabel(activityTypeStr)}
+                </span>
+              ) : (
+                <span
+                  className={`inline-block px-2 py-0.5 text-small font-mono uppercase tracking-[0.16em] ${KIND_COLOR[item.kind]}`}
+                >
+                  {KIND_LABEL[item.kind]}
+                </span>
+              )}
+              <span className="font-mono text-[11px] text-white/85">{String(item.data.nodeAlias || '')}</span>
+              <span className="font-mono text-[10px] text-white/42 ml-auto">
                 {fmtDate(item.timestamp)}
               </span>
               {item.kind === 'trace' && (item.data.mediaId || item.data.mediaHash) ? (
-                <span className="inline-block px-2 py-0.5 text-small font-mono uppercase tracking-[0.12em] border border-black bg-yellow-400 text-white">
+                <span className="inline-block rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] border border-yellow-400/50 bg-yellow-400/15 text-yellow-100/90">
                   proof
                 </span>
               ) : null}
               {item.kind === 'trace' && itemEndorsements.length > 0 ? (
-                <span className="inline-block px-2 py-0.5 text-small font-mono uppercase tracking-[0.12em] border border-grey-400">
+                <span className="inline-block rounded border border-white/18 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">
                   +{itemEndorsements.length}
                 </span>
               ) : null}
             </summary>
-            <div className="px-3 py-3 border-t border-grey-100 text-small">
+            <div
+              className={`px-3 py-3 border-t text-small ${chainRecord ? 'border-white/10 bg-black/25' : 'border-grey-100'}`}
+            >
               {item.kind === 'trace' && (
                 <TraceCard
                   data={item.data}
@@ -454,11 +523,14 @@ export function ProjectTimeline({ entries, projectId }: Props) {
                   onEndorse={endorse}
                   onUnendorse={unendorse}
                   busy={endorseBusy}
+                  compactChainRecord={chainRecord}
                 />
               )}
-              {item.kind === 'reference' && <ReferenceCard data={item.data} />}
-              {item.kind === 'pivot' && <PivotCard data={item.data} />}
-              {item.kind === 'veto' && <VetoCard data={item.data} />}
+              {item.kind === 'reference' && (
+                <ReferenceCard data={item.data} compactFooter={chainRecord} />
+              )}
+              {item.kind === 'pivot' && <PivotCard data={item.data} compactFooter={chainRecord} />}
+              {item.kind === 'veto' && <VetoCard data={item.data} compactFooter={chainRecord} />}
             </div>
           </details>
         )

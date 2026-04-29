@@ -5,20 +5,20 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RecoverPage from './pages/RecoverPage'
 import { getToken } from './lib/session'
-import { LayoutDebugRoot } from './lib/layoutDebug'
 import { DefinitionsProvider } from './context/DefinitionsContext'
 import { ThemeProvider } from './context/ThemeContext'
 import './styles/theme-modes.css'
 import { AppAtmosphere } from './components/AppAtmosphere'
+import { AppAmbientDotField } from './components/AppAmbientDotField'
 import { initFontInspect } from './lib/fontInspect'
 import TargetCursor from './components/TargetCursor/TargetCursor'
+import { DotFieldBurstProvider } from './context/DotFieldBurstContext'
 
 // Everything below ships as its own JS chunk and is only downloaded when the
 // user navigates to that route. WelcomeLanding in particular carries Theatre +
 // R3F + Three (~1 MB gzipped) — splitting it out keeps the initial shell tiny.
 const WelcomeLanding = lazy(() => import('./pages/WelcomeLandingLayout'))
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
-const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const HubPage = lazy(() => import('./pages/HubPage'))
 const SpacesPage = lazy(() => import('./pages/SpacesPage'))
 const SpaceJoinPage = lazy(() => import('./pages/SpaceJoinPage'))
 const SpaceNewPage = lazy(() => import('./pages/SpaceNewPage'))
@@ -63,10 +63,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <DefinitionsProvider>
-        <TargetCursor spinDuration={2} hideDefaultCursor />
-        <AppAtmosphere />
-        <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
-          <LayoutDebugRoot />
+        <DotFieldBurstProvider>
+          <TargetCursor spinDuration={2} hideDefaultCursor />
+          <AppAtmosphere />
+          <AppAmbientDotField />
+          <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
           <Suspense fallback={<RouteFallback />}>
             <Routes>
             <Route path="/" element={<LandingLayout />} />
@@ -79,8 +80,8 @@ export default function App() {
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/nfts/:id" element={<NftPage />} />
             <Route element={<RequireAuth />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/me" element={<ProfilePage />} />
+              <Route path="/dashboard" element={<HubPage />} />
+              <Route path="/me" element={<HubPage />} />
               <Route path="/spaces" element={<SpacesPage />} />
               <Route path="/spaces/search" element={<SpaceSearchPage />} />
               <Route path="/spaces/new" element={<SpaceNewPage />} />
@@ -99,7 +100,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </div>
+          </div>
+        </DotFieldBurstProvider>
       </DefinitionsProvider>
     </ThemeProvider>
   )

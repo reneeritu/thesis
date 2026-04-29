@@ -1,5 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+function generateSeed(): string {
+  return Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+}
+
 export interface IContributor {
   alias: string;
   role: string;
@@ -22,6 +26,7 @@ export interface IProject extends Document {
   status: 'active' | 'halted' | 'completed' | 'disputed' | 'archived';
   visibility: 'space_only' | 'process_visible' | 'fully_public';
   startBlockIndex: number;
+  logoSeed: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +64,7 @@ const projectSchema = new Schema<IProject>(
       default: 'space_only',
     },
     startBlockIndex: { type: Number, required: true },
+    logoSeed: { type: String, default: () => generateSeed() },
   },
   {
     timestamps: true,

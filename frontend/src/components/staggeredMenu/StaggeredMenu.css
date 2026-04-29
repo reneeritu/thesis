@@ -1,0 +1,756 @@
+/* Base (React Bits) — variant modifiers below */
+.staggered-menu-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.staggered-menu-wrapper.fixed-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  z-index: 40;
+  overflow: hidden;
+}
+
+.staggered-menu-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2em;
+  background: transparent;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.staggered-menu-header > * {
+  pointer-events: auto;
+}
+
+.sm-logo {
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.sm-logo-img {
+  display: block;
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+.sm-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #e9e9ef;
+  font-weight: 500;
+  line-height: 1;
+  overflow: visible;
+}
+
+.sm-toggle:focus-visible {
+  outline: 2px solid #ffffffaa;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Open state with no label text (× only): override generous Tailwind padding on the shell toggle */
+.sm-toggle[data-label-empty='true'] {
+  padding-inline: 0.55rem 0.65rem !important;
+}
+
+.sm-toggle[data-label-empty='true'] .sm-toggle-textWrap {
+  display: none;
+}
+
+.sm-toggle-textWrap {
+  position: relative;
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  width: var(--sm-toggle-width, auto);
+  min-width: var(--sm-toggle-width, auto);
+}
+
+.sm-toggle-textInner {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.sm-toggle-line {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+.sm-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.sm-panel-itemWrap {
+  position: relative;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.sm-icon-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.sm-icon-line.sm-icon-line-v {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.sm-panel-item {
+  position: relative;
+  color: #000;
+  font-weight: 600;
+  font-size: 3.5rem;
+  cursor: pointer;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-transform: uppercase;
+  transition:
+    background 0.25s,
+    color 0.25s;
+  display: inline-block;
+  text-decoration: none;
+  padding-right: 1.4em;
+}
+
+.sm-panel-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.sm-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sm-panel-itemLabel {
+  display: inline-block;
+  will-change: transform;
+  transform-origin: 50% 100%;
+}
+
+.sm-panel-item:hover {
+  color: var(--sm-accent, #5227ff);
+}
+
+.sm-panel-list[data-numbering] {
+  counter-reset: smItem;
+}
+
+.sm-panel-list[data-numbering] .sm-panel-item::after {
+  counter-increment: smItem;
+  content: counter(smItem, decimal-leading-zero);
+  position: absolute;
+  top: 0.1em;
+  right: 2.8em;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--sm-accent, #5227ff);
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+  opacity: var(--sm-num-opacity, 0);
+}
+
+.sm-socials {
+  margin-top: auto;
+  padding-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sm-socials-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--sm-accent, #ff0000);
+}
+
+.sm-socials-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.staggered-menu-panel .sm-socials-list .sm-socials-link {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.staggered-menu-panel .sm-socials-list:hover .sm-socials-link:not(:hover) {
+  opacity: 0.35;
+}
+
+.staggered-menu-panel .sm-socials-list:focus-within .sm-socials-link:not(:focus-visible) {
+  opacity: 0.35;
+}
+
+.staggered-menu-panel .sm-socials-list .sm-socials-link:hover,
+.staggered-menu-panel .sm-socials-list .sm-socials-link:focus-visible {
+  opacity: 1;
+}
+
+.sm-socials-link:focus-visible {
+  outline: 2px solid var(--sm-accent, #ff0000);
+  outline-offset: 3px;
+}
+
+.sm-socials-link {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #111;
+  text-decoration: none;
+  position: relative;
+  padding: 2px 0;
+  display: inline-block;
+  transition:
+    color 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.sm-socials-link:hover {
+  color: var(--sm-accent, #ff0000);
+}
+
+.sm-prelayers {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: clamp(260px, 38vw, 420px);
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+}
+
+.sm-prelayer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  transform: translateX(0);
+  opacity: 0;
+}
+
+.staggered-menu-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: clamp(260px, 38vw, 420px);
+  height: 100%;
+  background: white;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  padding: 6em 2em 2em 2em;
+  overflow-y: auto;
+  z-index: 10;
+  pointer-events: auto;
+  opacity: 0;
+}
+
+[data-position='left'] .staggered-menu-panel {
+  right: auto;
+  left: 0;
+}
+
+[data-position='left'] .sm-prelayers {
+  right: auto;
+  left: 0;
+}
+
+.sm-panel-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/*
+ * Fullscreen: top-down “blueprint” overlay (matches GSAP yPercent wipe).
+ * Shell `variant="dropdown"` keeps compact panel rules below — do not widen those.
+ */
+.staggered-menu-wrapper:not(.sm-variant-dropdown) {
+  --sm-wipe-height: 60vh;
+  --sm-wipe-bg: var(--bg-color, rgba(12, 10, 18, 0.97));
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-prelayers {
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  width: 100vw;
+  height: var(--sm-wipe-height);
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .staggered-menu-panel {
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: var(--sm-wipe-height);
+  min-height: 12rem;
+  padding: clamp(4.5rem, 11vh, 6.5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(1.25rem, 3vh, 2rem);
+  background: var(--sm-wipe-bg);
+  border-bottom: 1px solid #333355;
+  border-radius: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  isolation: isolate;
+}
+
+/* Ben-Day substrate (technical “printed” ground) */
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .staggered-menu-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.42;
+  background-image: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.1) 0.85px,
+    transparent 1.05px
+  );
+  background-size: 8px 8px;
+  mix-blend-mode: soft-light;
+}
+
+/* Spider-Verse misregistration inks (fullscreen only): CMY slabs + keyed main copy */
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-print-register {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  isolation: isolate;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-print-main {
+  position: relative;
+  z-index: 3;
+  color: rgba(250, 250, 255, 0.96);
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-print-ink {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-print-magenta {
+  z-index: 1;
+  color: #ff2388;
+  mix-blend-mode: screen;
+  opacity: 0.78;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-print-cyan {
+  z-index: 2;
+  color: #00d0ff;
+  mix-blend-mode: screen;
+  opacity: 0.78;
+}
+
+/* Static ±0.5px offset after wipe completes (applied via GSAP cleanup + settled class). */
+.sm-print-register.sm-print--settled .sm-print-cyan {
+  transform: translate(-0.75px, 0);
+}
+
+.sm-print-register.sm-print--settled .sm-print-magenta {
+  transform: translate(0.75px, 0);
+}
+
+/* ~12fps ink buzz on hover — only when inks are CSS-controlled (after settle). */
+.staggered-menu-wrapper:not(.sm-variant-dropdown)
+  .sm-panel-item:hover
+  .sm-print-register.sm-print--settled
+  .sm-print-magenta {
+  animation: sm-glitch-magenta 0.083s steps(2, end) infinite;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown)
+  .sm-panel-item:hover
+  .sm-print-register.sm-print--settled
+  .sm-print-cyan {
+  animation: sm-glitch-cyan 0.083s steps(2, end) infinite;
+}
+
+@keyframes sm-glitch-magenta {
+  0%,
+  100% {
+    transform: translate(0.75px, 0);
+  }
+  50% {
+    transform: translate(1.75px, 1px);
+  }
+}
+
+@keyframes sm-glitch-cyan {
+  0%,
+  100% {
+    transform: translate(-0.75px, 0);
+  }
+  50% {
+    transform: translate(-1.75px, -1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staggered-menu-wrapper:not(.sm-variant-dropdown)
+    .sm-panel-item:hover
+    .sm-print-register.sm-print--settled
+    .sm-print-ink {
+    animation: none;
+  }
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-panel-inner {
+  position: relative;
+  z-index: 1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  gap: 1.25rem 2rem;
+  width: 100%;
+  max-width: min(72rem, 96vw);
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-panel-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-panel-item {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(1.15rem, 2.4vw, 2.25rem);
+  letter-spacing: -0.02em;
+  padding-right: 0.25em;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-panel-item.etch-float-menu-item {
+  border-bottom: none;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-socials {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(51, 51, 85, 0.55);
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-socials-title {
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-socials-link {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* --- Etch shell dropdown: wide enough to avoid nav scrollbar on typical viewports --- */
+.staggered-menu-wrapper.sm-variant-dropdown {
+  position: relative;
+  width: min(20rem, 58vw);
+  min-width: 280px;
+  max-width: min(22rem, 96vw);
+  height: auto;
+  z-index: 200;
+  pointer-events: none;
+}
+
+/* Preference / field row: fills parent width; panel reveals under the toggle only (see `dropdownEntrance="fromTriggerBelow"`). */
+.staggered-menu-wrapper.sm-variant-dropdown.sm-dropdown-from-trigger {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown.sm-dropdown-from-trigger .sm-toggle-textWrap {
+  max-width: 100%;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown.sm-dropdown-from-trigger .staggered-menu-panel {
+  transform-origin: top center;
+  will-change: transform;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .staggered-menu-header {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 0;
+  background: transparent;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-logo {
+  display: none;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-toggle {
+  max-width: 100%;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-toggle-textWrap {
+  min-width: 0;
+  max-width: min(10rem, 58vw);
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .staggered-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: auto;
+  width: 100%;
+  height: auto;
+  max-height: min(92vh, 42rem);
+  min-height: 0;
+  padding: 0.75rem 0 1rem;
+  opacity: 1;
+  isolation: isolate;
+  backdrop-filter: blur(14px) saturate(1.12);
+  -webkit-backdrop-filter: blur(14px) saturate(1.12);
+  background-color: rgba(9, 7, 14, 0.92);
+  overflow-y: auto;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown.sm-etch-shell .staggered-menu-panel {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  width: min(22rem, calc(100vw - 1rem));
+  min-width: min(280px, calc(100vw - 1rem));
+}
+
+/* Shell header: shrink-wrap the toggle — avoid reserving ~280px so “Navigate” sits beside Etch */
+.staggered-menu-wrapper.sm-variant-dropdown.sm-etch-shell {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+/* App shell nav: CMY inks + halftone (must not override absolute positioning above). */
+
+.staggered-menu-wrapper.sm-variant-dropdown .staggered-menu-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.32;
+  background-image: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.075) 0.75px,
+    transparent 0.95px
+  );
+  background-size: 8px 8px;
+  mix-blend-mode: soft-light;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-panel-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-register {
+  position: relative;
+  display: block;
+  line-height: 1.4;
+  isolation: isolate;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-main {
+  position: relative;
+  z-index: 3;
+  color: rgba(248, 246, 252, 0.98);
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-ink {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-magenta {
+  z-index: 1;
+  color: #ff2388;
+  mix-blend-mode: screen;
+  opacity: 0.72;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-cyan {
+  z-index: 2;
+  color: #00d0ff;
+  mix-blend-mode: screen;
+  opacity: 0.72;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-register.sm-print--settled .sm-print-cyan {
+  transform: translate(-0.5px, 0);
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-print-register.sm-print--settled .sm-print-magenta {
+  transform: translate(0.5px, 0);
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown
+  .sm-panel-item:hover
+  .sm-print-register.sm-print--settled
+  .sm-print-magenta {
+  animation: sm-glitch-magenta-dd 0.083s steps(2, end) infinite;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown
+  .sm-panel-item:hover
+  .sm-print-register.sm-print--settled
+  .sm-print-cyan {
+  animation: sm-glitch-cyan-dd 0.083s steps(2, end) infinite;
+}
+
+@keyframes sm-glitch-magenta-dd {
+  0%,
+  100% {
+    transform: translate(0.5px, 0);
+  }
+  50% {
+    transform: translate(1.25px, 0.75px);
+  }
+}
+
+@keyframes sm-glitch-cyan-dd {
+  0%,
+  100% {
+    transform: translate(-0.5px, 0);
+  }
+  50% {
+    transform: translate(-1.25px, -0.75px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staggered-menu-wrapper.sm-variant-dropdown .sm-panel-item:hover .sm-print-ink {
+    animation: none;
+  }
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-panel-item {
+  font-size: 1rem;
+  letter-spacing: 0;
+  padding-right: 0;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-panel-itemLabel {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.staggered-menu-wrapper.sm-variant-dropdown .sm-panel-list[data-numbering] .sm-panel-item::after {
+  right: 0.35em;
+  font-size: 11px;
+  top: 0.15em;
+}
+
+@media (max-width: 640px) {
+  .staggered-menu-wrapper:not(.sm-variant-dropdown) {
+    --sm-wipe-height: min(70vh, 32rem);
+  }
+
+  .staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-panel-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .staggered-menu-wrapper:not(.sm-variant-dropdown) .sm-panel-list {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .staggered-menu-wrapper.sm-variant-dropdown {
+    width: min(94vw, 20rem);
+  }
+}

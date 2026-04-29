@@ -8,7 +8,7 @@ html[data-theme='light'] {
 }
 
 html[data-theme='light'] body {
-  color: rgba(24, 18, 38, 0.92);
+  color: rgba(0, 0, 0, 0.92);
   background-color: #f0ecf8;
   background-image: linear-gradient(168deg, #faf8ff 0%, #f2eef9 42%, #e9e4f2 100%);
   background-size: 100% 100%;
@@ -45,15 +45,15 @@ html[data-theme='light'] .floating-glass-scrim {
 }
 
 html[data-theme='light'] .etch-float-caps {
-  color: rgb(24 24 27);
+  color: rgb(0 0 0);
 }
 
 html[data-theme='light'] .etch-float-prose {
-  color: rgb(39 39 42);
+  color: rgb(0 0 0);
 }
 
 html[data-theme='light'] .etch-float-menu-item {
-  color: rgb(24 24 27);
+  color: rgb(0 0 0);
   border-color: rgba(0, 0, 0, 0.08);
 }
 
@@ -77,52 +77,84 @@ html[data-theme='light'] .app-atmosphere__screen-slip {
   opacity: 0.22;
 }
 
-/* Common Tailwind ink on light shell */
+/* Dashboard crystal row radial wash — lighter footprint so DotField + paper stay airy */
+html[data-theme='light'] .dashboard-crystal-row::before {
+  opacity: 0.26;
+}
+
+/* Common Tailwind ink on light shell — map “white” utilities → black (same opacity steps) */
 html[data-theme='light'] .text-white {
-  color: rgb(24 24 27) !important;
+  color: rgb(0 0 0) !important;
 }
 
 html[data-theme='light'] .text-white\/95 {
-  color: rgb(24 24 27 / 0.95) !important;
+  color: rgb(0 0 0 / 0.95) !important;
 }
 html[data-theme='light'] .text-white\/90 {
-  color: rgb(24 24 27 / 0.9) !important;
+  color: rgb(0 0 0 / 0.9) !important;
 }
 html[data-theme='light'] .text-white\/85 {
-  color: rgb(24 24 27 / 0.85) !important;
+  color: rgb(0 0 0 / 0.85) !important;
 }
 html[data-theme='light'] .text-white\/80 {
-  color: rgb(24 24 27 / 0.8) !important;
+  color: rgb(0 0 0 / 0.8) !important;
+}
+html[data-theme='light'] .text-white\/75 {
+  color: rgb(0 0 0 / 0.75) !important;
 }
 html[data-theme='light'] .text-white\/70 {
-  color: rgb(24 24 27 / 0.7) !important;
+  color: rgb(0 0 0 / 0.7) !important;
 }
 html[data-theme='light'] .text-white\/65 {
-  color: rgb(24 24 27 / 0.65) !important;
+  color: rgb(0 0 0 / 0.65) !important;
 }
 html[data-theme='light'] .text-white\/60 {
-  color: rgb(24 24 27 / 0.6) !important;
+  color: rgb(0 0 0 / 0.6) !important;
 }
 html[data-theme='light'] .text-white\/55 {
-  color: rgb(24 24 27 / 0.55) !important;
+  color: rgb(0 0 0 / 0.55) !important;
 }
 html[data-theme='light'] .text-white\/50 {
-  color: rgb(24 24 27 / 0.5) !important;
+  color: rgb(0 0 0 / 0.5) !important;
 }
 html[data-theme='light'] .text-white\/45 {
-  color: rgb(24 24 27 / 0.45) !important;
+  color: rgb(0 0 0 / 0.45) !important;
 }
 html[data-theme='light'] .text-white\/40 {
-  color: rgb(24 24 27 / 0.4) !important;
+  color: rgb(0 0 0 / 0.4) !important;
 }
 html[data-theme='light'] .text-white\/35 {
-  color: rgb(24 24 27 / 0.35) !important;
+  color: rgb(0 0 0 / 0.35) !important;
 }
 html[data-theme='light'] .text-white\/25 {
-  color: rgb(24 24 27 / 0.25) !important;
+  color: rgb(0 0 0 / 0.25) !important;
 }
 html[data-theme='light'] .text-white\/20 {
-  color: rgb(24 24 27 / 0.2) !important;
+  color: rgb(0 0 0 / 0.2) !important;
+}
+
+html[data-theme='light'] .hover\:text-white:hover {
+  color: rgb(0 0 0) !important;
+}
+
+html[data-theme='light'] .group:hover .group-hover\:text-white {
+  color: rgb(0 0 0) !important;
+}
+html[data-theme='light'] .group:hover .group-hover\:text-white\/85 {
+  color: rgb(0 0 0 / 0.85) !important;
+}
+html[data-theme='light'] .group:hover .group-hover\:text-white\/80 {
+  color: rgb(0 0 0 / 0.8) !important;
+}
+html[data-theme='light'] .group:hover .group-hover\:text-white\/70 {
+  color: rgb(0 0 0 / 0.7) !important;
+}
+html[data-theme='light'] .group:hover .group-hover\:text-white\/60 {
+  color: rgb(0 0 0 / 0.6) !important;
+}
+
+html[data-theme='light'] .placeholder\:text-white\/40::placeholder {
+  color: rgb(0 0 0 / 0.4) !important;
 }
 
 /* Panels that read as dark glass in default theme */
@@ -206,4 +238,76 @@ html[data-theme='light'] .bg-grey-100 {
 
 html[data-theme='light'] .bg-yellow-50 {
   background-color: #fffbeb;
+}
+
+/*
+ * Dark shell — grey-50 / grey-100 are light paper. Body ink defaults to white,
+ * so without this, alerts and forms read as white-on-paper. Force black ink on
+ * these surfaces (including mistaken text-white on the same node or inside).
+ */
+html:not([data-theme='light']) .bg-grey-100,
+html:not([data-theme='light']) .bg-grey-50 {
+  color: rgba(0, 0, 0, 0.92);
+}
+
+html:not([data-theme='light']) .bg-grey-100.text-white,
+html:not([data-theme='light']) .bg-grey-50.text-white,
+html:not([data-theme='light']) .bg-grey-100 .text-white,
+html:not([data-theme='light']) .bg-grey-50 .text-white {
+  color: rgba(0, 0, 0, 0.92) !important;
+}
+
+/*
+ * Yellow utilities → neon lavender/fuchsia (dark) / deep violet (light).
+ * Hover remaps stay saturated — same hex targets as static accents.
+ */
+html:not([data-theme='light']) .text-yellow-400 {
+  color: #e879f9 !important;
+}
+
+html[data-theme='light'] .text-yellow-400 {
+  color: #7c3aed !important;
+}
+
+/*
+ * Hover accents — Tailwind yellow-400 hover remaps per theme (neon purple family).
+ */
+html:not([data-theme='light']) .hover\:text-yellow-400:hover {
+  color: #f0abfc !important;
+}
+
+html:not([data-theme='light']) .hover\:bg-yellow-400:hover {
+  background-color: #d946ef !important;
+}
+
+html:not([data-theme='light']) .hover\:bg-yellow-400\/5:hover {
+  background-color: rgba(232, 121, 249, 0.22) !important;
+}
+
+html:not([data-theme='light']) .focus-visible\:outline-yellow-400\/50:focus-visible {
+  outline-color: rgba(232, 121, 249, 0.75) !important;
+}
+
+html:not([data-theme='light']) .etch-float-menu-item:hover {
+  color: #f0abfc !important;
+}
+
+html[data-theme='light'] .hover\:text-yellow-400:hover {
+  color: #6d28d9 !important;
+}
+
+html[data-theme='light'] .hover\:bg-yellow-400:hover {
+  background-color: #8b5cf6 !important;
+}
+
+html[data-theme='light'] .hover\:bg-yellow-400\/5:hover {
+  background-color: rgba(109, 40, 217, 0.18) !important;
+}
+
+html[data-theme='light'] .focus-visible\:outline-yellow-400\/50:focus-visible {
+  outline-color: rgba(109, 40, 217, 0.55) !important;
+}
+
+html[data-theme='light'] .etch-float-menu-item:hover {
+  color: #6d28d9 !important;
 }

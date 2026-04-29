@@ -16,7 +16,7 @@ export function DefTerm({ term, children, className = '' }: Props) {
     return <span className={className}>{children}</span>
   }
   return (
-    <span className={`cursor-help border-b border-dotted border-grey-400 ${className}`} title={def}>
+    <span className={`cursor-help ${className}`} data-etch-def-term="" title={def}>
       {children}
     </span>
   )

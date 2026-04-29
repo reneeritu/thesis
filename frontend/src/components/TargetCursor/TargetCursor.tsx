@@ -1,7 +1,6 @@
 /**
- * Custom cursor: idle = 12px solid square (difference); hovered snap target =
- * springs to element center + padded size; snapped = hollow corner brackets.
- * Loading = spinning corner brackets when global loading is active.
+ * Custom cursor: idle = 18px circle (difference); glossary-linked spans — same
+ * size + small “?”; hovered snap target = springs to element center + brackets.
  */
 import {
   useEffect,
@@ -24,27 +23,40 @@ export type TargetCursorProps = {
   /** One full rotation duration while global loading (seconds). */
   spinDuration?: number
   hideDefaultCursor?: boolean
+  /**
+   * After this many ms without pointer movement, glide the cursor toward screen center.
+   * Skipped while over any `targetSelector` match (buttons, links, etc.). `false` disables.
+   */
+  idleSnapToCenterMs?: number | false
 }
 
 export const ETCH_CURSOR_TARGET_SELECTOR =
   'button:not(:disabled,[data-no-target-cursor]), a[href]:not([data-no-target-cursor]), input[type="submit"]:not(:disabled,[data-no-target-cursor]), input[type="button"]:not(:disabled,[data-no-target-cursor]), summary:not([data-no-target-cursor]), [role="button"]:not(:disabled,[data-no-target-cursor]), .cursor-target'
 
-const PAD = 8
+const IDLE = 18
+/** Same footprint as idle — “?” fits inside the 18px circle */
+const IDLE_DEF_TERM = 18
+/** Extra padding around snapped controls (lighter than thick chrome). */
+const PAD = 6
 
 const springPhysics = Object.freeze({
-  stiffness: 250,
-  damping: 25,
+  mass: 0.72,
+  stiffness: 360,
+  damping: 21,
 })
 
 function copyDomRect(r: DOMRectReadOnly): DOMRect {
   return new DOMRect(r.x, r.y, r.width, r.height)
 }
 
+const DEFAULT_IDLE_SNAP_MS = 3200
+
 export default function TargetCursor({
   targetSelector = ETCH_CURSOR_TARGET_SELECTOR,
   excludeSelector = '[data-target-cursor-exclude]',
   spinDuration = 2,
   hideDefaultCursor = true,
+  idleSnapToCenterMs = DEFAULT_IDLE_SNAP_MS,
 }: TargetCursorProps) {
   const iw = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
   const ih = typeof window !== 'undefined' ? window.innerHeight / 2 : 0
@@ -55,6 +67,7 @@ export default function TargetCursor({
 
   const snapTargetRef = useRef<HTMLElement | null>(null)
   const snappingRef = useRef(false)
+  const idleSnapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Always updated so mouseleave can snap back to real pointer position. */
   const lastMouseRef = useRef({ x: iw, y: ih })
 
@@ -66,6 +79,9 @@ export default function TargetCursor({
     getGlobalLoading,
     () => false,
   )
+
+  /** Hovering inline glossary spans (`data-etch-def-term`) — same 18px dot + “?” */
+  const [defTermHover, setDefTermHover] = useState(false)
 
   const isMobile = useMemo(() => {
     if (typeof window === 'undefined') return false
@@ -79,16 +95,14 @@ export default function TargetCursor({
 
   const targetCx = useMotionValue(iw)
   const targetCy = useMotionValue(ih)
-  const targetW = useMotionValue(12)
-  const targetH = useMotionValue(12)
+  const targetW = useMotionValue(IDLE)
+  const targetH = useMotionValue(IDLE)
 
   const springX = useSpring(targetCx, springPhysics)
   const springY = useSpring(targetCy, springPhysics)
-  const springW = useSpring(targetW, springPhysics)
-  const springH = useSpring(targetH, springPhysics)
-
-  const tx = useTransform([springX, springW], ([x, w]) => (x as number) - (w as number) / 2)
-  const ty = useTransform([springY, springH], ([y, h]) => (y as number) - (h as number) / 2)
+  /** Size is not spring-smoothed — avoids overshoot so idle stays a true 18px hit area */
+  const tx = useTransform([springX, targetW], ([x, w]) => (x as number) - (w as number) / 2)
+  const ty = useTransform([springY, targetH], ([y, h]) => (y as number) - (h as number) / 2)
 
   const applyRect = useCallback(
     (r: DOMRectReadOnly) => {
@@ -134,8 +148,8 @@ export default function TargetCursor({
     gsap.killTweensOf(el)
     gsap
       .timeline()
-      .to(el, { scale: 1.5, duration: 0.1, ease: 'power2.out' })
-      .to(el, { scale: 1, duration: 0.2, ease: 'power2.inOut' })
+      .to(el, { scale: 1.35, duration: 0.08, ease: 'power2.out' })
+      .to(el, { scale: 1, duration: 0.16, ease: 'power2.inOut' })
   }, [globalLoading])
 
   useEffect(() => {
@@ -149,6 +163,40 @@ export default function TargetCursor({
     let activeTarget: HTMLElement | null = null
     let currentLeaveHandler: (() => void) | null = null
 
+    function clearIdleSnapTimer() {
+      if (idleSnapTimerRef.current != null) {
+        clearTimeout(idleSnapTimerRef.current)
+        idleSnapTimerRef.current = null
+      }
+    }
+
+    function scheduleIdleSnapToCenter() {
+      clearIdleSnapTimer()
+      if (idleSnapToCenterMs === false) return
+      idleSnapTimerRef.current = setTimeout(() => {
+        idleSnapTimerRef.current = null
+        if (snappingRef.current || getGlobalLoading()) return
+        const { x, y } = lastMouseRef.current
+        const hit = document.elementFromPoint(x, y)
+        if (!(hit instanceof Element)) return
+        if (excludeSelector && hit.closest(excludeSelector)) return
+        if (hit.closest(targetSelector)) return
+        const cx = window.innerWidth / 2
+        const cy = window.innerHeight / 2
+        let idleSz = IDLE
+        let overDef = false
+        if (!(excludeSelector && hit.closest(excludeSelector)) && hit.closest('[data-etch-def-term]')) {
+          idleSz = IDLE_DEF_TERM
+          overDef = true
+        }
+        targetCx.set(cx)
+        targetCy.set(cy)
+        targetW.set(idleSz)
+        targetH.set(idleSz)
+        setDefTermHover(overDef)
+      }, idleSnapToCenterMs)
+    }
+
     function cleanupTarget(target: Element) {
       if (currentLeaveHandler) {
         target.removeEventListener('mouseleave', currentLeaveHandler)
@@ -158,11 +206,23 @@ export default function TargetCursor({
 
     const moveHandler = (e: MouseEvent) => {
       lastMouseRef.current = { x: e.clientX, y: e.clientY }
+      clearIdleSnapTimer()
       if (snappingRef.current) return
+      const hit = document.elementFromPoint(e.clientX, e.clientY)
+      let idleSz = IDLE
+      let overDef = false
+      if (hit instanceof Element && !(excludeSelector && hit.closest(excludeSelector))) {
+        if (hit.closest('[data-etch-def-term]')) {
+          idleSz = IDLE_DEF_TERM
+          overDef = true
+        }
+      }
+      setDefTermHover(overDef)
       targetCx.set(e.clientX)
       targetCy.set(e.clientY)
-      targetW.set(12)
-      targetH.set(12)
+      targetW.set(idleSz)
+      targetH.set(idleSz)
+      scheduleIdleSnapToCenter()
     }
 
     const scrollHandler = () => {
@@ -193,6 +253,7 @@ export default function TargetCursor({
     window.addEventListener('pointerdown', pointerDownHandler)
 
     const enterHandler = (e: MouseEvent) => {
+      clearIdleSnapTimer()
       const raw = e.target
       if (!(raw instanceof Element)) return
       if (excludeSelector && raw.closest(excludeSelector)) return
@@ -218,6 +279,7 @@ export default function TargetCursor({
       activeTarget = target
       snappingRef.current = true
       snapTargetRef.current = target
+      setDefTermHover(false)
       applyRect(target.getBoundingClientRect())
 
       const leaveHandler = () => {
@@ -227,8 +289,8 @@ export default function TargetCursor({
         const last = lastMouseRef.current
         targetCx.set(last.x)
         targetCy.set(last.y)
-        targetW.set(12)
-        targetH.set(12)
+        targetW.set(IDLE)
+        targetH.set(IDLE)
       }
 
       currentLeaveHandler = leaveHandler
@@ -239,6 +301,7 @@ export default function TargetCursor({
     window.addEventListener('mouseover', enterHandler, { passive: true })
 
     return () => {
+      clearIdleSnapTimer()
       window.removeEventListener('mousemove', moveHandler)
       window.removeEventListener('mouseover', enterHandler)
       window.removeEventListener('scroll', scrollHandler)
@@ -252,14 +315,15 @@ export default function TargetCursor({
       clearSnap()
       targetCx.set(window.innerWidth / 2)
       targetCy.set(window.innerHeight / 2)
-      targetW.set(12)
-      targetH.set(12)
+      targetW.set(IDLE)
+      targetH.set(IDLE)
       document.body.style.cursor = originalCursor
     }
   }, [
     targetSelector,
     excludeSelector,
     hideDefaultCursor,
+    idleSnapToCenterMs,
     isMobile,
     playClickPulse,
     applyRect,
@@ -286,8 +350,8 @@ export default function TargetCursor({
         position: 'fixed',
         left: 0,
         top: 0,
-        width: springW,
-        height: springH,
+        width: targetW,
+        height: targetH,
         x: tx,
         y: ty,
         mixBlendMode: 'difference',
@@ -295,7 +359,28 @@ export default function TargetCursor({
     >
       <div className="target-cursor-visual">
         <div ref={pulseRef} className="target-cursor-pulse">
-          {showIdle ? <div className="target-cursor-idle-square" aria-hidden /> : null}
+          {showIdle ? (
+            defTermHover ? (
+              <svg className="target-cursor-idle-svg" viewBox="0 0 18 18" aria-hidden>
+                <circle cx="9" cy="9" r="9" fill="#ffffff" />
+                <text
+                  x="9"
+                  y="12.25"
+                  textAnchor="middle"
+                  fill="#0a0a0a"
+                  fontSize="8.5"
+                  fontWeight="700"
+                  fontFamily="ui-sans-serif, system-ui, sans-serif"
+                >
+                  ?
+                </text>
+              </svg>
+            ) : (
+              <svg className="target-cursor-idle-svg" viewBox="0 0 18 18" aria-hidden>
+                <circle cx="9" cy="9" r="9" fill="#ffffff" />
+              </svg>
+            )
+          ) : null}
 
           {showSnappedTarget ? (
             <div className="target-cursor-snapped-brackets" aria-hidden>

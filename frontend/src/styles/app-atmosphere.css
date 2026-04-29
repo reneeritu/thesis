@@ -264,17 +264,20 @@
 
 @media (min-width: 1024px) {
   .dashboard-crystal-row {
-    grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) minmax(0, 7.5rem);
+    /* Legend / rail fit three 96px cards + gaps (~304px) + slack */
+    grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr) minmax(20rem, 24rem);
     grid-template-rows: minmax(0, 1fr);
     grid-template-areas: 'legend crystal rail';
     /* Match `lg:gap-x-2` + `gap-y-2` */
     column-gap: 16px;
+    /* Top-align columns so legend categories ↔ rail cards share one horizontal band */
+    align-items: start;
   }
 }
 
 .dashboard-crystal-row__legend {
   grid-area: legend;
-  align-self: center;
+  align-self: start;
 }
 
 .dashboard-crystal-row__crystal {
@@ -286,7 +289,23 @@
 
 .dashboard-crystal-row__rail {
   grid-area: rail;
-  align-self: center;
+  align-self: start;
+}
+
+.dashboard-crystal-row > .dashboard-crystal-row__crystal {
+  z-index: 0;
+}
+
+.dashboard-crystal-row > .dashboard-crystal-row__legend,
+.dashboard-crystal-row > .dashboard-crystal-row__rail {
+  z-index: 2;
+}
+
+@media (min-width: 1024px) {
+  /* Legend opens with category grid; rail has “Earned in” + section headings above thumbnails */
+  .dashboard-spaces-cards-align {
+    margin-top: 0.5rem;
+  }
 }
 
 .dashboard-crystal-row::before {
@@ -295,7 +314,8 @@
   inset: -8%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.55;
+  /* Softer wash so DotField particles + gradients read clearly */
+  opacity: 0.36;
   mix-blend-mode: multiply;
   filter: blur(14px);
   background:

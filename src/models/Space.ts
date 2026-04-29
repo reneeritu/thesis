@@ -1,5 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+function generateSeed(): string {
+  return Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+}
+
 export interface ISpaceCustomContract {
   title: string;
   body: string;
@@ -56,6 +60,7 @@ export interface ISpace extends Document {
   inviteCodes: IInviteCode[];
   status: 'active' | 'dormant';
   parentSpaceId: mongoose.Types.ObjectId | null;
+  logoSeed: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -126,6 +131,7 @@ const spaceSchema = new Schema<ISpace>(
     inviteCodes: { type: [inviteCodeSchema], default: [] },
     status: { type: String, enum: ['active', 'dormant'], default: 'active' },
     parentSpaceId: { type: Schema.Types.ObjectId, ref: 'Space', default: null },
+    logoSeed: { type: String, default: () => generateSeed() },
   },
   {
     timestamps: true,

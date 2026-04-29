@@ -1,0 +1,37 @@
+.dot-field-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Dots soften behind the radar so the jewel keeps visual room; stronger at edges */
+.dot-field-container--fade-center {
+  -webkit-mask-image: radial-gradient(
+    ellipse min(118%, 88vw) min(104%, 75vh) at 50% 46%,
+    transparent 26%,
+    rgba(0, 0, 0, 0.42) 48%,
+    #000 86%
+  );
+  mask-image: radial-gradient(
+    ellipse min(118%, 88vw) min(104%, 75vh) at 50% 46%,
+    transparent 26%,
+    rgba(0, 0, 0, 0.42) 48%,
+    #000 86%
+  );
+}
+
+html[data-theme='light'] .dot-field-container--fade-center {
+  -webkit-mask-image: radial-gradient(
+    ellipse min(118%, 88vw) min(104%, 75vh) at 50% 46%,
+    transparent 22%,
+    rgba(0, 0, 0, 0.35) 44%,
+    #000 88%
+  );
+  mask-image: radial-gradient(
+    ellipse min(118%, 88vw) min(104%, 75vh) at 50% 46%,
+    transparent 22%,
+    rgba(0, 0, 0, 0.35) 44%,
+    #000 88%
+  );
+}

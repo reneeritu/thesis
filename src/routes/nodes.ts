@@ -12,6 +12,7 @@ import { Space } from '../models/Space';
 import { Project } from '../models/Project';
 import { Trace } from '../models/Trace';
 import { NFT } from '../models/NFT';
+import { Archive } from '../models/Archive';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 
@@ -45,131 +46,70 @@ type RecentCategories = {
 const router = Router();
 
 /**
- * GET /nodes/:alias
- * Public profile. Hides score (shown only to self), respects blocks.
+ * GET /nodes/me/traces?limit=8
+ * Recent traces authored by the authenticated node (newest first), with project title.
  */
-router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
-  const { alias } = req.params;
+router.get('/me/traces', requireAuth, async (req: AuthRequest, res: Response) => {
+  const alias = req.node!.alias;
+  const rawLimit = Number.parseInt(String(req.query.limit ?? '8'), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 50 ? rawLimit : 8;
 
-  const node = await ChainNode.findOne({ alias }).select(
-    '-hashedPassword -seedHash -encryptedSeedPhrase',
-  );
-  if (!node) throw new NotFoundError('Node');
-
-  if (node.status === 'removed') {
-    throw new NotFoundError('Node');
-  }
-
-  if (req.node && node.blockedNodes.includes(req.node.alias)) {
-    throw new ForbiddenError('You are blocked by this node');
-  }
-
-  const isSelf = req.node?.alias === alias;
-
-  let spacesWithNames: { id: string; name: string; status?: string }[] = [];
-  if (node.spaces && node.spaces.length > 0) {
-    const spaceDocs = await Space.find({ _id: { $in: node.spaces } })
-      .select('name status')
-      .lean();
-    const byId = new Map(
-      spaceDocs.map((s) => [String(s._id), { name: s.name as string, status: s.status as string }]),
-    );
-    spacesWithNames = node.spaces.map((id) => {
-      const meta = byId.get(String(id));
-      return {
-        id: String(id),
-        name: meta?.name || String(id),
-        status: meta?.status,
-      };
-    });
-  }
-
-  const portfolioProjects = await Project.find({
-    status: { $in: ['completed', 'archived'] },
-    $or: [{ creatorAlias: alias }, { 'contributors.alias': alias }],
-  })
-    .select('title _id')
-    .sort({ updatedAt: -1 })
+  const traces = await Trace.find({ nodeAlias: alias })
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .select('activityType timestamp projectId')
     .lean();
 
-  const pids = portfolioProjects.map((p) => p._id);
-  const nftsForProjects =
-    pids.length > 0 ? await NFT.find({ projectId: { $in: pids } }).select('projectId _id').lean() : [];
-  const nftIdByProject = new Map(nftsForProjects.map((n) => [String(n.projectId), String(n._id)]));
+  const projectIds = [...new Set(traces.map((t) => String(t.projectId)))];
+  const projects =
+    projectIds.length > 0
+      ? await Project.find({ _id: { $in: projectIds } })
+          .select('title status')
+          .lean()
+      : [];
 
-  const completedProjects = portfolioProjects.map((p) => ({
-    title: p.title,
-    projectId: String(p._id),
-    nftId: nftIdByProject.get(String(p._id)) || null,
+  const titleById = new Map(projects.map((p) => [String(p._id), String(p.title ?? '')]));
+  const statusById = new Map(projects.map((p) => [String(p._id), String(p.status ?? '')]));
+
+  const out = traces.map((t) => ({
+    activityType: t.activityType,
+    timestamp:
+      t.timestamp instanceof Date ? t.timestamp.toISOString() : String(t.timestamp ?? ''),
+    projectId: String(t.projectId),
+    projectTitle: titleById.get(String(t.projectId)) || 'Project',
+    projectStatus: statusById.get(String(t.projectId)) || '',
   }));
 
-  res.json({
-    _id: String(node._id),
-    alias: node.alias,
-    interests: node.interests,
-    portfolioUrl: node.portfolioUrl,
-    keywords: node.keywords,
-    spaces: node.spaces,
-    spacesWithNames,
-    reputationCategories: node.reputationCategories,
-    badges: node.badges,
-    status: node.status,
-    completedProjects,
-    ...(isSelf && { reputationScore: node.reputationScore }),
-  });
+  res.json(out);
 });
 
 /**
- * GET /nodes/:alias/reputation/recent?days=90
- *
- * Approximate reputation-by-category slice for the last N days. Computed by scanning
- * traces authored (or proxy-logged to) this alias in the window and summing 1 point per
- * trace under the mapped category. This is the lightweight "motion = recent change"
- * overlay the radar shows; it intentionally omits project completions / attestations,
- * which move the all-time polygon but are sparse relative to trace cadence.
+ * GET /nodes/me/archives-preview
+ * Two most recent archives created by this node (hub thumbnails).
  */
-router.get('/:alias/reputation/recent', optionalAuth, async (req: AuthRequest, res: Response) => {
-  const { alias } = req.params;
-  const rawDays = Number.parseInt(String(req.query.days ?? '90'), 10);
-  const days = Number.isFinite(rawDays) && rawDays > 0 && rawDays <= 365 ? rawDays : 90;
-
-  const node = await ChainNode.findOne({ alias }).select('_id status blockedNodes');
-  if (!node || node.status === 'removed') throw new NotFoundError('Node');
-  if (req.node && node.blockedNodes?.includes(req.node.alias)) {
-    throw new ForbiddenError('You are blocked by this node');
-  }
-
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-  const traces = await Trace.find({
-    $or: [
-      { nodeAlias: alias, timestamp: { $gte: since } },
-      { proxyForAlias: alias, proxyConfirmed: true, timestamp: { $gte: since } },
-    ],
-  })
-    .select('activityType')
+router.get('/me/archives-preview', requireAuth, async (req: AuthRequest, res: Response) => {
+  const alias = req.node!.alias;
+  const rows = await Archive.find({ creatorAlias: alias })
+    .sort({ createdAt: -1 })
+    .limit(2)
+    .select('title _id createdAt medium projectId')
     .lean();
 
-  const cats: RecentCategories = {
-    craft: 0,
-    research: 0,
-    collaboration: 0,
-    pedagogy: 0,
-    consistency: 0,
-    community: 0,
-  };
-
-  for (const t of traces) {
-    const cat = ACTIVITY_TO_CATEGORY[t.activityType];
-    if (cat) cats[cat] += 1;
-  }
-
-  res.json({ days, since, traceCount: traces.length, categories: cats });
+  res.json(
+    rows.map((a) => ({
+      id: String(a._id),
+      title: String(a.title ?? ''),
+      medium: String(a.medium ?? ''),
+      projectId: String(a.projectId ?? ''),
+      createdAt:
+        a.createdAt instanceof Date ? a.createdAt.toISOString() : String(a.createdAt ?? ''),
+    })),
+  );
 });
 
 /**
  * PATCH /nodes/me
- * Update own profile (interests, portfolioUrl, keywords).
+ * Update own profile (interests, portfolioUrl, keywords, profileStatement, profileLinks).
  */
 router.patch(
   '/me',
@@ -180,6 +120,9 @@ router.patch(
     if (req.body.interests !== undefined) updates.interests = req.body.interests;
     if (req.body.portfolioUrl !== undefined) updates.portfolioUrl = req.body.portfolioUrl;
     if (req.body.keywords !== undefined) updates.keywords = req.body.keywords;
+    if (req.body.profileStatement !== undefined)
+      updates.profileStatement = req.body.profileStatement;
+    if (req.body.profileLinks !== undefined) updates.profileLinks = req.body.profileLinks;
 
     const node = await ChainNode.findOneAndUpdate(
       { alias: req.node!.alias },
@@ -264,5 +207,159 @@ router.delete(
     res.json({ message: `Unblocked ${req.params.targetAlias}` });
   },
 );
+
+/**
+ * GET /nodes/:alias
+ * Public profile. Hides score (shown only to self), respects blocks.
+ */
+router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const { alias } = req.params;
+
+  const node = await ChainNode.findOne({ alias }).select(
+    '-hashedPassword -seedHash -encryptedSeedPhrase',
+  );
+  if (!node) throw new NotFoundError('Node');
+
+  if (node.status === 'removed') {
+    throw new NotFoundError('Node');
+  }
+
+  if (req.node && node.blockedNodes.includes(req.node.alias)) {
+    throw new ForbiddenError('You are blocked by this node');
+  }
+
+  const isSelf = req.node?.alias === alias;
+
+  let spacesWithNames: {
+    id: string;
+    name: string;
+    status?: string;
+    description?: string;
+    memberCount?: number;
+  }[] = [];
+  if (node.spaces && node.spaces.length > 0) {
+    const spaceDocs = await Space.find({ _id: { $in: node.spaces } })
+      .select('name status description members admins')
+      .lean();
+    const byId = new Map(
+      spaceDocs.map((s) => {
+        const admins = Array.isArray(s.admins) ? (s.admins as string[]) : [];
+        const members = Array.isArray(s.members) ? (s.members as string[]) : [];
+        const memberCount = new Set([...admins, ...members]).size;
+        const desc = typeof s.description === 'string' ? s.description.trim() : '';
+        return [
+          String(s._id),
+          {
+            name: s.name as string,
+            status: s.status as string,
+            description: desc || undefined,
+            memberCount,
+          },
+        ];
+      }),
+    );
+    spacesWithNames = node.spaces.map((id) => {
+      const meta = byId.get(String(id));
+      return {
+        id: String(id),
+        name: meta?.name || String(id),
+        status: meta?.status,
+        description: meta?.description,
+        memberCount: meta?.memberCount,
+      };
+    });
+  }
+
+  const portfolioProjects = await Project.find({
+    status: { $in: ['completed', 'archived'] },
+    $or: [{ creatorAlias: alias }, { 'contributors.alias': alias }],
+  })
+    .select('title _id')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const pids = portfolioProjects.map((p) => p._id);
+  const nftsForProjects =
+    pids.length > 0 ? await NFT.find({ projectId: { $in: pids } }).select('projectId _id').lean() : [];
+  const nftIdByProject = new Map(nftsForProjects.map((n) => [String(n.projectId), String(n._id)]));
+
+  const completedProjects = portfolioProjects.map((p) => ({
+    title: p.title,
+    projectId: String(p._id),
+    nftId: nftIdByProject.get(String(p._id)) || null,
+  }));
+
+  const profileStatement =
+    typeof node.profileStatement === 'string' ? node.profileStatement : '';
+  const profileLinks = Array.isArray(node.profileLinks) ? node.profileLinks : [];
+
+  res.json({
+    _id: String(node._id),
+    alias: node.alias,
+    interests: node.interests,
+    portfolioUrl: node.portfolioUrl,
+    keywords: node.keywords,
+    profileStatement,
+    profileLinks,
+    spaces: node.spaces,
+    spacesWithNames,
+    reputationCategories: node.reputationCategories,
+    badges: node.badges,
+    status: node.status,
+    completedProjects,
+    ...(isSelf && {
+      reputationScore: node.reputationScore,
+      trustees: node.trustees ?? [],
+    }),
+  });
+});
+
+/**
+ * GET /nodes/:alias/reputation/recent?days=90
+ *
+ * Approximate reputation-by-category slice for the last N days. Computed by scanning
+ * traces authored (or proxy-logged to) this alias in the window and summing 1 point per
+ * trace under the mapped category. This is the lightweight "motion = recent change"
+ * overlay the radar shows; it intentionally omits project completions / attestations,
+ * which move the all-time polygon but are sparse relative to trace cadence.
+ */
+router.get('/:alias/reputation/recent', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const { alias } = req.params;
+  const rawDays = Number.parseInt(String(req.query.days ?? '90'), 10);
+  const days = Number.isFinite(rawDays) && rawDays > 0 && rawDays <= 365 ? rawDays : 90;
+
+  const node = await ChainNode.findOne({ alias }).select('_id status blockedNodes');
+  if (!node || node.status === 'removed') throw new NotFoundError('Node');
+  if (req.node && node.blockedNodes?.includes(req.node.alias)) {
+    throw new ForbiddenError('You are blocked by this node');
+  }
+
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const traces = await Trace.find({
+    $or: [
+      { nodeAlias: alias, timestamp: { $gte: since } },
+      { proxyForAlias: alias, proxyConfirmed: true, timestamp: { $gte: since } },
+    ],
+  })
+    .select('activityType')
+    .lean();
+
+  const cats: RecentCategories = {
+    craft: 0,
+    research: 0,
+    collaboration: 0,
+    pedagogy: 0,
+    consistency: 0,
+    community: 0,
+  };
+
+  for (const t of traces) {
+    const cat = ACTIVITY_TO_CATEGORY[t.activityType];
+    if (cat) cats[cat] += 1;
+  }
+
+  res.json({ days, since, traceCount: traces.length, categories: cats });
+});
 
 export default router;

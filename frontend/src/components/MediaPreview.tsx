@@ -81,7 +81,7 @@ export function MediaPreview({ mediaId, mimeType = '', hash, originalName }: Pro
           Your browser doesn't support embedded audio.
         </audio>
       ) : (
-        <div className="border border-dashed border-grey-300 bg-grey-50 px-3 py-3 font-mono text-small text-white">
+        <div className="border border-dashed border-grey-300 bg-grey-50 px-3 py-3 font-mono text-small text-black">
           Preview not available for this file type ({effectiveMime || 'checking…'}).
         </div>
       )}

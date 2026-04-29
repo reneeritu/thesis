@@ -92,7 +92,7 @@ function fract01(n: number): number {
 
 
 const LIGHT_MATTE_COLOURS_BASE: Record<CategoryKey, string> = {
-  craft: '#facc15', // yellow
+  craft: '#7c3aed', // vibrant violet — aligns with light-theme accents
   research: '#3b82f6', // blue
   collaboration: '#ef4444', // red
   pedagogy: '#22c55e', // green
@@ -148,10 +148,11 @@ function scoreToDepth(score: number): number {
   return 0
 }
 
-/** Map raw score → outward arm length (world units). Minimum so cells exist. */
+/** Map raw score → outward arm length (world units). Minimum so cells exist.
+ *  Factor ≥2 vs legacy curve so low scores stay visibly large; rings unchanged. */
 function scoreToArmLen(score: number): number {
   const n = Math.sqrt(Math.min(1, Math.max(0, score) / 1000))
-  return 0.32 + n * 0.78
+  return (0.32 + n * 0.78) * 2
 }
 
 /** Pull a hex colour toward black by `factor` (0..1) — deeper gem body. */
@@ -2200,6 +2201,8 @@ type FractalCellProps = {
   onSelect: () => void
   onHover: (hovered: boolean) => void
   selected: boolean
+  /** Legend hover — dims arms that do not match */
+  dimmed?: boolean
 }
 
 function FractalCell({
@@ -2212,6 +2215,7 @@ function FractalCell({
   onSelect,
   onHover,
   selected,
+  dimmed = false,
 }: FractalCellProps) {
   const depth = useMemo(() => {
     let d = scoreToDepth(score)
@@ -2233,7 +2237,13 @@ function FractalCell({
     [depth, armLen, seed, score, theme],
   )
 
-  const baseColour = armColourForTheme(category, theme)
+  const baseColour = useMemo(() => {
+    const raw = armColourForTheme(category, theme)
+    if (!dimmed) return raw
+    const col = new THREE.Color(raw)
+    col.lerp(new THREE.Color(theme === 'dark' ? '#0a0a14' : '#3a3a44'), 0.52)
+    return '#' + col.getHexString()
+  }, [category, theme, dimmed])
   const groupRef = useRef<THREE.Group>(null)
   const spinRef = useRef<THREE.Group>(null)
   const spinRate = useMemo(() => {
@@ -2309,6 +2319,8 @@ type MandalaProps = {
   selected: CategoryKey | null
   onSelect: (key: CategoryKey) => void
   clickToken: number // increments on every click — Mandala captures own time
+  /** Dashboard legend hover — highlights matching arm */
+  hoveredCategory?: CategoryKey | null
 }
 
 function Mandala({
@@ -2318,6 +2330,7 @@ function Mandala({
   selected,
   onSelect,
   clickToken,
+  hoveredCategory,
 }: MandalaProps) {
   const rootRef = useRef<THREE.Group>(null)
 
@@ -2442,6 +2455,8 @@ function Mandala({
         {KEYS.map((k, i) => {
           const dir = CELL_DIRECTIONS[i]!
           const raw = Number(categories?.[k] ?? 0)
+          const dim =
+            hoveredCategory != null && hoveredCategory !== k
           return (
             <FractalCell
               key={k}
@@ -2451,6 +2466,7 @@ function Mandala({
               expansionRef={expansionRef}
               theme={theme}
               ghost={false}
+              dimmed={dim}
               selected={selected === k}
               onHover={(h) => {
                 document.body.style.cursor = h ? 'pointer' : ''
@@ -2495,6 +2511,16 @@ export type CrystalRadarProps = {
   className?: string
   showDefinitions?: boolean
   theme?: 'dark' | 'light'
+  /** Fired when the user rotates the mandala / clicks the canvas / uses legend chips — for ambient coupling (e.g. dot field ripple). */
+  onInteract?: () => void
+  /** Controlled selection — when provided, the component uses this value instead of internal state. */
+  controlledSelected?: CategoryKey | null
+  /** Called when the user selects or deselects a category. Use with controlledSelected for controlled mode. */
+  onCategorySelect?: (key: CategoryKey | null) => void
+  /** Dashboard: legend row hover — dims non-matching arms */
+  hoveredCategory?: CategoryKey | null
+  /** When true, omits legend chips, score list, aggregate paragraph, and hint/dialog below the canvas (e.g. profile embed). */
+  hideLegendPanels?: boolean
 }
 
 export function CrystalRadar3D({
@@ -2504,6 +2530,11 @@ export function CrystalRadar3D({
   className = '',
   showDefinitions = false,
   theme = 'dark',
+  onInteract,
+  controlledSelected,
+  onCategorySelect,
+  hoveredCategory,
+  hideLegendPanels = false,
 }: CrystalRadarProps) {
   const viewRootRef = useRef<HTMLDivElement>(null)
   /** Don't even mount the Canvas until it's near the viewport — keeps initial page paint fast. */
@@ -2543,10 +2574,9 @@ export function CrystalRadar3D({
     setClickToken((x) => x + 1)
   }, [])
 
-  // Derive the effective selection without an effect — if the selected key is
-  // no longer present in the data, treat the drawer as closed.
+  // Controlled: use parent-supplied value; uncontrolled: fall back to internal state.
   const effectiveSelected: CategoryKey | null =
-    selected && categories && categories[selected] !== undefined ? selected : null
+    controlledSelected !== undefined ? controlledSelected : selected
 
   const selectedRaw = effectiveSelected ? Number(categories?.[effectiveSelected] ?? 0) : 0
   const selectedRecent =
@@ -2563,26 +2593,34 @@ export function CrystalRadar3D({
 
   const handleSelect = useCallback(
     (key: CategoryKey) => {
-      setSelected((prev) => (prev === key ? null : key))
+      const next: CategoryKey | null = effectiveSelected === key ? null : key
+      if (controlledSelected === undefined) setSelected(next)
+      onCategorySelect?.(next)
       triggerPulse()
+      onInteract?.()
     },
-    [triggerPulse],
+    [controlledSelected, effectiveSelected, triggerPulse, onInteract, onCategorySelect],
   )
 
+  const showAuxPanels = !hideLegendPanels && onCategorySelect === undefined
+
   return (
-    <div ref={viewRootRef} className={`relative overflow-visible ${className}`}>
+    <div ref={viewRootRef} className={`relative flex w-full justify-center overflow-visible ${className}`}>
       {/* Large square viewport; overflow visible on parents so layout never clips the art.
           Camera is pulled back so gyro rings + mandala stay fully in frame. */}
       <div
-        className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] overflow-visible bg-transparent sm:max-w-[44rem]"
+        className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] shrink-0 overflow-visible bg-transparent sm:max-w-[44rem]"
         data-target-cursor-exclude=""
+        onPointerDown={() => {
+          onInteract?.()
+        }}
       >
         {everInView && (
         <Canvas
           className="!h-full !w-full touch-none"
           frameloop={runLoop ? 'always' : 'never'}
           style={{ display: 'block', overflow: 'visible' }}
-          camera={{ position: [0, 0.88, 3.75], fov: 48 }}
+          camera={{ position: [0, 0.42, 3.75], fov: 48 }}
           dpr={1}
           gl={{
             antialias: false,
@@ -2596,7 +2634,10 @@ export function CrystalRadar3D({
             stencil: false,
             depth: true,
           }}
-          onPointerMissed={() => setSelected(null)}
+          onPointerMissed={() => {
+            if (controlledSelected === undefined) setSelected(null)
+            onCategorySelect?.(null)
+          }}
           onCreated={({ gl, scene }) => {
             scene.background = null
             gl.setClearColor(0x000000, 0)
@@ -2610,8 +2651,10 @@ export function CrystalRadar3D({
             selected={effectiveSelected}
             onSelect={handleSelect}
             clickToken={clickToken}
+            hoveredCategory={hoveredCategory}
           />
           <OrbitControls
+            target={[0, 0.06, 0]}
             enableRotate
             enablePan={false}
             enableZoom={false}
@@ -2619,7 +2662,10 @@ export function CrystalRadar3D({
             minPolarAngle={Math.PI / 4}
             maxPolarAngle={(Math.PI * 3) / 5}
             enableDamping
-            dampingFactor={0.12}
+            dampingFactor={0.06}
+            onStart={() => {
+              onInteract?.()
+            }}
           />
           {theme === 'dark' ? (
           <EffectComposer enableNormalPass={false} multisampling={0}>
@@ -2640,94 +2686,98 @@ export function CrystalRadar3D({
         )}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-        {KEYS.map((k) => {
-          const isSel = effectiveSelected === k
-          const cat = Math.round(Number(categories?.[k] ?? 0))
-          return (
-            <button
-              key={k}
-              type="button"
-              onClick={() => handleSelect(k)}
-              data-cursor-target="legend"
-              className={`cursor-target flex items-center gap-1 border px-1.5 py-0.5 font-mono text-small uppercase tracking-[0.16em] transition ${
-                isSel
-                  ? theme === 'dark'
-                    ? 'border-white bg-white/10 text-white'
-                    : 'border-black bg-black text-yellow-400'
-                  : theme === 'dark'
-                    ? 'border-transparent text-white/80 hover:text-white'
-                    : 'border-transparent text-white hover:text-white'
-              }`}
-              title={
-                showDefinitions
-                  ? `${LABELS[k]} — ${cat} / 1000. ${GLOSSARY[k] ?? ''}`
-                  : `${LABELS[k]} — ${cat} / 1000 (all-time category)`
-              }
-            >
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-[1px]"
-                style={{ background: armColourForTheme(k, theme) }}
-              />
-              {LABELS[k]}
-              <span className="tabular-nums normal-case tracking-normal opacity-85">{cat}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div
-        className={`mt-2 border-t pt-2 font-mono text-small ${
-          theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
-        }`}
-      >
-        <p className={`mb-1 uppercase tracking-[0.14em] ${subtleText}`}>
-          Category scores (all-time, each cap 1000)
-        </p>
-        <ul className="space-y-0.5">
-          {KEYS.map((k) => {
-            const all = Math.round(Number(categories?.[k] ?? 0))
-            const recent =
-              recentCategories != null ? Math.round(Number(recentCategories[k] ?? 0)) : null
-            return (
-              <li key={k} className="flex justify-between gap-3">
-                <span className="flex min-w-0 items-center gap-1.5">
+      {showAuxPanels ? (
+        <>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            {KEYS.map((k) => {
+              const isSel = effectiveSelected === k
+              const cat = Math.round(Number(categories?.[k] ?? 0))
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => handleSelect(k)}
+                  data-cursor-target="legend"
+                  className={`cursor-target flex items-center gap-1 border px-1.5 py-0.5 font-mono text-small uppercase tracking-[0.16em] transition ${
+                    isSel
+                      ? theme === 'dark'
+                        ? 'border-white bg-white/10 text-white'
+                        : 'border-black bg-black text-yellow-400'
+                      : theme === 'dark'
+                        ? 'border-transparent text-white/80 hover:text-white'
+                        : 'border-transparent text-white hover:text-white'
+                  }`}
+                  title={
+                    showDefinitions
+                      ? `${LABELS[k]} — ${cat} / 1000. ${GLOSSARY[k] ?? ''}`
+                      : `${LABELS[k]} — ${cat} / 1000 (all-time category)`
+                  }
+                >
                   <span
-                    className="inline-block h-2 w-2 shrink-0 rounded-[1px]"
+                    className="inline-block h-2.5 w-2.5 rounded-[1px]"
                     style={{ background: armColourForTheme(k, theme) }}
                   />
-                  <span className={`truncate ${mutedText}`}>{LABELS[k]}</span>
-                </span>
-                <span className="shrink-0 tabular-nums text-right">
-                  <span className={theme === 'dark' ? 'text-white' : 'text-white'}>{all}</span>
-                  <span className="opacity-70"> / 1000</span>
-                  {recent !== null ? (
-                    <span className={`ml-2 ${subtleText}`}>· ~90d {recent}</span>
-                  ) : null}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-        {aggregateReputationScore != null && Number.isFinite(aggregateReputationScore) ? (
-          <>
-            <p
-              className={`mt-2 border-t pt-2 ${
-                theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
-              } ${theme === 'dark' ? 'text-white' : 'text-white'}`}
-            >
-              Aggregate score:{' '}
-              <strong className="tabular-nums">{Math.round(aggregateReputationScore)}</strong> / 1000
-            </p>
-            <p className={`mt-1 text-small font-sans font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
-              The aggregate is derived from the six category buckets (sum, then clamped to the system cap).
-              Activity awards add points into a specific category; the headline score updates from those buckets.
-            </p>
-          </>
-        ) : null}
-      </div>
+                  {LABELS[k]}
+                  <span className="tabular-nums normal-case tracking-normal opacity-85">{cat}</span>
+                </button>
+              )
+            })}
+          </div>
 
-      {effectiveSelected ? (
+          <div
+            className={`mt-2 border-t pt-2 font-mono text-small ${
+              theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
+            }`}
+          >
+            <p className={`mb-1 uppercase tracking-[0.14em] ${subtleText}`}>
+              Category scores (all-time, each cap 1000)
+            </p>
+            <ul className="space-y-0.5">
+              {KEYS.map((k) => {
+                const all = Math.round(Number(categories?.[k] ?? 0))
+                const recent =
+                  recentCategories != null ? Math.round(Number(recentCategories[k] ?? 0)) : null
+                return (
+                  <li key={k} className="flex justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-[1px]"
+                        style={{ background: armColourForTheme(k, theme) }}
+                      />
+                      <span className={`truncate ${mutedText}`}>{LABELS[k]}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-right">
+                      <span className={theme === 'dark' ? 'text-white' : 'text-white'}>{all}</span>
+                      <span className="opacity-70"> / 1000</span>
+                      {recent !== null ? (
+                        <span className={`ml-2 ${subtleText}`}>· ~90d {recent}</span>
+                      ) : null}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            {aggregateReputationScore != null && Number.isFinite(aggregateReputationScore) ? (
+              <>
+                <p
+                  className={`mt-2 border-t pt-2 ${
+                    theme === 'dark' ? 'border-[#1a1a2e]' : 'border-white/20'
+                  } ${theme === 'dark' ? 'text-white' : 'text-white'}`}
+                >
+                  Aggregate score:{' '}
+                  <strong className="tabular-nums">{Math.round(aggregateReputationScore)}</strong> / 1000
+                </p>
+                <p className={`mt-1 text-small font-sans font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
+                  The aggregate is derived from the six category buckets (sum, then clamped to the system cap).
+                  Activity awards add points into a specific category; the headline score updates from those buckets.
+                </p>
+              </>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+
+      {showAuxPanels && (effectiveSelected ? (
         <div
           className={`mt-3 border p-3 space-y-1 text-small ${bgPanel}`}
           role="dialog"
@@ -2770,7 +2820,7 @@ export function CrystalRadar3D({
         <p className={`mt-2 font-mono text-small ${mutedText}`}>
           Drag to rotate. Tap a cell to open its detail — the mandala unfolds.
         </p>
-      )}
+      ))}
     </div>
   )
 }

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { GLOSSARY } from '../lib/glossary'
+import { AnchoredGlassDropdownPanel } from './AnchoredGlassDropdownPanel'
 
 /** Discover, notifications, glossary triggers in AppShell — same hit area, no boxed chrome. */
 export const HEADER_NAV_ICON_BUTTON_CLASS =
@@ -26,49 +27,83 @@ const HELP_KEYS: Array<{ term: string; label: string }> = [
   { term: 'trustees', label: 'Trustees' },
 ]
 
-type Props = {
-  open: boolean
-  onClose: () => void
-}
+/** Small standalone button — opens glossary in an anchored dropdown under the icon (same motion as notifications). */
+export function HelpButton({ className }: { className?: string }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
 
-export function HelpDrawer({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    function onPointerDown(e: PointerEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false)
+      }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  if (!open) return null
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Quick glossary"
-      className="floating-glass-scrim fixed inset-0 z-[200] flex items-stretch justify-end"
-      onClick={onClose}
-    >
-      <aside
-        onClick={(e) => e.stopPropagation()}
-        className="floating-glass-panel flex h-full w-full max-w-md flex-col border-l border-white/20 text-white shadow-xl"
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={className ?? HEADER_NAV_ICON_BUTTON_CLASS}
+        aria-label={open ? 'Close quick glossary' : 'Open quick glossary'}
+        title="Quick glossary"
+        aria-expanded={open}
       >
-        <header className="flex items-center justify-between border-b border-white/15 px-4 py-3">
-          <p className="etch-float-caps">30-second glossary</p>
+        <svg
+          viewBox="0 0 24 24"
+          className={HEADER_NAV_ICON_SVG_CLASS}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <rect
+            x="3.25"
+            y="3.25"
+            width="17.5"
+            height="17.5"
+            rx="4.75"
+            ry="4.75"
+            fill="currentColor"
+            fillOpacity="0.08"
+            stroke="currentColor"
+            strokeOpacity="0.22"
+            strokeWidth="1.5"
+          />
+          <path d="M12 5.5 5 6.75v10.5L12 18.5M12 5.5 19 6.75v10.5L12 18.5" />
+          <line x1="12" y1="5.5" x2="12" y2="18.5" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      </button>
+
+      <AnchoredGlassDropdownPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        align="right"
+        className="flex w-[min(22rem,calc(100vw-1rem))] max-h-[min(calc(100dvh-4.5rem),36rem)] flex-col overflow-hidden border border-white/20 floating-glass-panel shadow-xl"
+        ariaLabelledBy="etch-quick-glossary-title"
+      >
+        <header className="flex shrink-0 items-center justify-between border-b border-white/15 bg-zinc-950/40 px-3 py-2 backdrop-blur-md">
+          <p id="etch-quick-glossary-title" className="etch-float-caps">
+            30-second glossary
+          </p>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => setOpen(false)}
             className="etch-float-caps border border-white/25 bg-zinc-900/55 px-2 py-0.5 transition hover:bg-black hover:text-yellow-400"
-            aria-label="Close help"
+            aria-label="Close glossary"
           >
             ✕
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <p className="etch-float-prose mb-4 text-white/90">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <p className="etch-float-prose mb-3 text-white/90">
             Everything on Etch has a fingerprint. Here's the vocabulary.
           </p>
           <dl className="space-y-3">
@@ -83,55 +118,10 @@ export function HelpDrawer({ open, onClose }: Props) {
           </dl>
         </div>
 
-        <footer className="etch-float-caps border-t border-white/15 px-4 py-2 text-white/85">
+        <footer className="etch-float-caps shrink-0 border-t border-white/15 px-4 py-2 text-white/85">
           Turn the "Hints: on" toggle off to hide these definitions inline.
         </footer>
-      </aside>
+      </AnchoredGlassDropdownPanel>
     </div>
-  )
-}
-
-/** Small standalone button — renders the drawer when opened. */
-export function HelpButton({ className }: { className?: string }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={className ?? HEADER_NAV_ICON_BUTTON_CLASS}
-        aria-label="Open quick glossary"
-        title="Quick glossary"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className={HEADER_NAV_ICON_SVG_CLASS}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.35"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          {/* Squircle tile + open book with spine (currentColor only) */}
-          <rect
-            x="3.25"
-            y="3.25"
-            width="17.5"
-            height="17.5"
-            rx="4.75"
-            ry="4.75"
-            fill="currentColor"
-            fillOpacity="0.08"
-            stroke="currentColor"
-            strokeOpacity="0.22"
-            strokeWidth="1"
-          />
-          <path d="M12 5.5 5 6.75v10.5L12 18.5M12 5.5 19 6.75v10.5L12 18.5" />
-          <line x1="12" y1="5.5" x2="12" y2="18.5" stroke="currentColor" strokeWidth="1.35" />
-        </svg>
-      </button>
-      <HelpDrawer open={open} onClose={() => setOpen(false)} />
-    </>
   )
 }

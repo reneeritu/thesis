@@ -137,7 +137,7 @@ router.get(
         { mentorAlias: rx },
       ],
     })
-      .select('_id title status spaceId context creatorAlias mentorAlias')
+      .select('_id title status spaceId context creatorAlias mentorAlias logoSeed')
       .lean();
 
     const toolProjectIds = await Trace.find({ toolSoftware: rx })
@@ -155,7 +155,7 @@ router.get(
       _id: { $in: idList },
       ...(spaceId ? { spaceId } : {}),
     })
-      .select('_id title status spaceId context creatorAlias mentorAlias createdAt')
+      .select('_id title status spaceId context creatorAlias mentorAlias createdAt logoSeed')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -191,6 +191,7 @@ router.get(
       creatorAlias: p.creatorAlias,
       mentorAlias: p.mentorAlias || '',
       tools: toolsByProject.get(String(p._id)) || [],
+      logoSeed: p.logoSeed,
     }));
 
     res.json(out);
@@ -252,7 +253,7 @@ router.get(
     const projects = await Project.find({
       $or: [{ creatorAlias: target }, { 'contributors.alias': target }],
     })
-      .select('_id title status spaceId visibility creatorAlias contributors createdAt')
+      .select('_id title status spaceId visibility creatorAlias contributors createdAt logoSeed')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -296,6 +297,7 @@ router.get(
         p.creatorAlias === target
           ? 'creator'
           : (p.contributors?.find((c) => c.alias === target)?.role || 'contributor'),
+      logoSeed: p.logoSeed,
     }));
 
     res.json(out);

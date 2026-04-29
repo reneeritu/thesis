@@ -23,6 +23,11 @@
     --contour-underlay: 0.05;
     --contour-overlay: 0.1;
     --contour-interactive: 0.14;
+
+    /* Wireframe scrollbars: thin center guide + hollow pill thumb (WebKit); Firefox uses muted thumb */
+    --scrollbar-gutter: 12px;
+    --scrollbar-line: #555556;
+    --scrollbar-firefox-thumb: rgba(130, 130, 140, 0.5);
   }
 
   html {
@@ -40,7 +45,7 @@
   body {
     @apply m-0 h-full min-h-0 max-h-full min-w-[80vw] max-w-[100vw] w-full overflow-x-visible overflow-y-hidden;
     @apply bg-grey-50 text-body leading-snug font-sans;
-    color: rgba(235, 230, 245, 0.92);
+    color: rgba(255, 255, 255, 0.92);
     /* Only change from paper: desaturated blue–violet black (all other body chrome unchanged) */
     background-color: #0a0712;
     background-image:
@@ -106,6 +111,61 @@
 
   #root {
     @apply flex h-full min-h-0 min-w-[80vw] max-h-full max-w-[100vw] w-full flex-col overflow-x-visible;
+  }
+
+  /* Wireframe scrollbars — hollow outlined thumb + 1px center-line track (see ::-webkit-scrollbar-track:* orientation). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-firefox-thumb) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-gutter);
+    height: var(--scrollbar-gutter);
+  }
+
+  *::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  *::-webkit-scrollbar-track:vertical {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(50% - 0.5px),
+      var(--scrollbar-line) calc(50% - 0.5px),
+      var(--scrollbar-line) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px),
+      transparent 100%
+    );
+  }
+
+  *::-webkit-scrollbar-track:horizontal {
+    background-image: linear-gradient(
+      180deg,
+      transparent 0,
+      transparent calc(50% - 0.5px),
+      var(--scrollbar-line) calc(50% - 0.5px),
+      var(--scrollbar-line) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px),
+      transparent 100%
+    );
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px var(--scrollbar-line);
+  }
+
+  *::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background-color: transparent;
   }
 }
 

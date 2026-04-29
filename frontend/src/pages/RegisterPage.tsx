@@ -6,6 +6,7 @@ import { DefTerm } from '../components/DefTerm'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
 import { setSession } from '../lib/session'
+import { INTEREST_PRESETS, MIN_PROFILE_INTERESTS } from '../lib/interestPresets'
 
 type RegisterResponse = {
   alias: string
@@ -13,7 +14,7 @@ type RegisterResponse = {
   seedPhrase: string
 }
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4 | 5
 
 const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
@@ -26,11 +27,12 @@ function Progress({ step }: { step: Step }) {
   const items = [
     { n: 1, label: 'Identity' },
     { n: 2, label: 'Seed phrase' },
-    { n: 3, label: 'Trustees' },
-    { n: 4, label: 'Done' },
+    { n: 3, label: 'Interests' },
+    { n: 4, label: 'Trustees' },
+    { n: 5, label: 'Done' },
   ] as const
   return (
-    <div className="grid w-full grid-cols-2 gap-x-3 gap-y-2 border-b border-white/10 pb-3 text-small font-mono uppercase tracking-[0.18em] text-white sm:grid-cols-4">
+    <div className="grid w-full grid-cols-2 gap-x-3 gap-y-2 border-b border-white/10 pb-3 text-small font-mono uppercase tracking-[0.18em] text-white sm:grid-cols-5">
       {items.map(({ n, label }) => (
         <span key={n} className={step === n ? 'text-white border-b-2 border-black pb-0.5' : 'text-white/65'}>
           {n}. {label}
@@ -46,6 +48,11 @@ export default function RegisterPage() {
   const [alias, setAlias] = useState('')
   const [seedWords, setSeedWords] = useState<string[]>([])
   const [seedAck, setSeedAck] = useState(false)
+
+  const [interestSel, setInterestSel] = useState<Set<string>>(() => new Set())
+  const [customInterest, setCustomInterest] = useState('')
+  const [interestMsg, setInterestMsg] = useState<string | null>(null)
+  const [interestBusy, setInterestBusy] = useState(false)
 
   const [trustees, setTrustees] = useState<string[]>([''])
   const [trusteeBusy, setTrusteeBusy] = useState(false)
@@ -80,6 +87,45 @@ export default function RegisterPage() {
     if (!seedAck) return
     setStep(3)
     setError(null)
+  }
+
+  function toggleInterest(tag: string) {
+    setInterestSel((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) next.delete(tag)
+      else next.add(tag)
+      return next
+    })
+  }
+
+  async function onSaveInterests(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const interests = [...interestSel].filter(Boolean)
+    if (interests.length < MIN_PROFILE_INTERESTS) {
+      setInterestMsg(`Pick at least ${MIN_PROFILE_INTERESTS} interests (preset or custom).`)
+      return
+    }
+    setInterestBusy(true)
+    setInterestMsg(null)
+    try {
+      await api('/nodes/me', {
+        method: 'PATCH',
+        body: { interests },
+      })
+      setStep(4)
+      flashDone()
+    } catch (err) {
+      setInterestMsg(err instanceof Error ? err.message : 'Failed to save interests')
+    } finally {
+      setInterestBusy(false)
+    }
+  }
+
+  function addCustomInterest() {
+    const t = customInterest.trim()
+    if (!t || interestSel.has(t)) return
+    setInterestSel((prev) => new Set(prev).add(t))
+    setCustomInterest('')
   }
 
   function setTrusteeAt(i: number, val: string) {
@@ -118,7 +164,7 @@ export default function RegisterPage() {
         method: 'PUT',
         body: { trustees: cleaned },
       })
-      setStep(4)
+      setStep(5)
       flashDone()
     } catch (err) {
       setTrusteeMsg(err instanceof Error ? err.message : 'Failed to save trustees')
@@ -128,7 +174,7 @@ export default function RegisterPage() {
   }
 
   function skipTrustees() {
-    setStep(4)
+    setStep(5)
     flashDone()
   }
 
@@ -202,7 +248,7 @@ export default function RegisterPage() {
                 Write these words down in order. This is the only time they are shown. There is no account
                 recovery without them.
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                 {seedWords.map((w, i) => (
                   <div
                     key={i}
@@ -213,7 +259,7 @@ export default function RegisterPage() {
                 ))}
               </div>
               <form onSubmit={onStep2} className="space-y-4">
-                <label className="flex items-start gap-3 text-body cursor-pointer">
+                <label className="flex cursor-pointer items-start gap-3 text-body">
                   <input
                     type="checkbox"
                     checked={seedAck}
@@ -232,16 +278,92 @@ export default function RegisterPage() {
 
           {step === 3 ? (
             <div className="max-w-xl space-y-4 border-t border-white/10 pt-6">
+              <h2 className="text-h3 font-heading">Pick your interests</h2>
+              <p className="text-body text-white">
+                Choose at least {MIN_PROFILE_INTERESTS} tags so peers can find you. Add custom tags if you
+                like.
+              </p>
+              {interestMsg ? (
+                <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">
+                  {interestMsg}
+                </p>
+              ) : null}
+              <form onSubmit={onSaveInterests} className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {INTEREST_PRESETS.map((tag) => {
+                    const on = interestSel.has(tag)
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleInterest(tag)}
+                        className={`border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+                          on ? 'border-white bg-white/15 text-white' : 'border-white/25 text-white/75 hover:border-white/50'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[...interestSel]
+                    .filter((t) => !(INTEREST_PRESETS as readonly string[]).includes(t))
+                    .map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 border border-[#e879f9]/60 bg-[#e879f9]/10 px-2 py-0.5 font-mono text-[11px] text-white"
+                      >
+                        {tag}
+                        <button type="button" className="text-white/70 hover:text-white" onClick={() => toggleInterest(tag)}>
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={customInterest}
+                    onChange={(e) => setCustomInterest(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addCustomInterest()
+                      }
+                    }}
+                    placeholder="Custom tag + Enter"
+                    className="min-w-[12rem] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomInterest}
+                    className="border border-white/25 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
+                  >
+                    Add
+                  </button>
+                </div>
+                <p className="text-small text-white/65">
+                  Selected: {interestSel.size} (need ≥ {MIN_PROFILE_INTERESTS})
+                </p>
+                <Button type="submit" variant="primary" loading={interestBusy}>
+                  Continue
+                </Button>
+              </form>
+            </div>
+          ) : null}
+
+          {step === 4 ? (
+            <div className="max-w-xl space-y-4 border-t border-white/10 pt-6">
               <div className="space-y-2">
                 <h2 className="text-h3 font-heading">Pick your trustees (optional)</h2>
                 <p className="text-body text-white">
-                  <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who
-                  can help you recover this account if you lose your seed phrase. A majority of them
-                  must agree before any recovery happens. Pick people who know you.
+                  <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who can help
+                  you recover this account if you lose your seed phrase. A majority of them must agree before any
+                  recovery happens. Pick people who know you.
                 </p>
                 <p className="text-small text-white">
-                  You can skip this now and set it up from your settings later — but without trustees,
-                  losing your seed phrase means losing the account.
+                  You can skip this now and set it up from your settings later — but without trustees, losing your
+                  seed phrase means losing the account.
                 </p>
               </div>
 
@@ -288,12 +410,12 @@ export default function RegisterPage() {
                       + Add another
                     </button>
                   ) : null}
-                  <p className="text-small font-mono text-white self-center">
+                  <p className="self-center text-small font-mono text-white">
                     {trustees.filter(Boolean).length} / {MAX_TRUSTEES} · need ≥ {MIN_TRUSTEES}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-grey-200">
+                <div className="flex flex-wrap gap-2 border-t border-grey-200 pt-2">
                   <Button type="submit" variant="primary" loading={trusteeBusy}>
                     Save trustees
                   </Button>
@@ -309,7 +431,7 @@ export default function RegisterPage() {
             </div>
           ) : null}
 
-          {step === 4 ? (
+          {step === 5 ? (
             <div className="space-y-4 border-t border-white/10 pt-6">
               <p className="text-h3 font-heading">Welcome to the chain</p>
               <p className="text-body">
@@ -317,9 +439,9 @@ export default function RegisterPage() {
               </p>
               <a
                 href="/dashboard"
-                className="inline-block border border-black bg-yellow-400 text-white font-mono text-small uppercase tracking-[0.2em] px-6 py-2 hover:bg-black hover:text-yellow-400 transition active:scale-[0.98]"
+                className="inline-block border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:bg-black hover:text-yellow-400 active:scale-[0.98]"
               >
-                Go to dashboard
+                Go to home
               </a>
             </div>
           ) : null}

@@ -50,6 +50,19 @@ function isApiRequest(method?: string, accept?: string): boolean {
   return a.includes('application/json')
 }
 
+/**
+ * GET /media/:mongoObjectId serves raw bytes from Express. Browsers request those URLs
+ * via <img src> with Accept: image/* — not application/json — so they must still be
+ * proxied. Otherwise `isApiRequest` is false and bypass serves index.html, producing
+ * broken images in dev.
+ */
+function isMediaBinaryPath(req: { method?: string; url?: string }): boolean {
+  const method = (req.method || 'GET').toUpperCase()
+  if (method !== 'GET' && method !== 'HEAD') return false
+  const pathname = (req.url || '').split('?')[0] || ''
+  return /^\/media\/[a-fA-F0-9]{24}\/?$/i.test(pathname)
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, repoRoot, '')
@@ -61,7 +74,12 @@ export default defineConfig(({ mode }) => {
     proxy[prefix] = {
       target: proxyTarget,
       changeOrigin: false,
-      bypass: (req: { method?: string; headers?: { accept?: string | string[] } }) => {
+      bypass: (req: {
+        method?: string
+        headers?: { accept?: string | string[] }
+        url?: string
+      }) => {
+        if (prefix === '/media' && isMediaBinaryPath(req)) return undefined
         const accept = Array.isArray(req.headers?.accept)
           ? req.headers!.accept.join(',')
           : req.headers?.accept

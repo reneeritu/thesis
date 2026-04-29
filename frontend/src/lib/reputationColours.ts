@@ -20,7 +20,7 @@ export type ReputationCategory =
 
 /** Primary colour per category — jewel-tone palette, one per arm on the 3D radar. */
 export const CATEGORY_COLOURS: Record<ReputationCategory, string> = {
-  craft:         '#ffd700', // gold (cubic / diamond)
+  craft:         '#e879f9', // neon lavender — aligns with shell accents / radar craft arm (dark)
   research:      '#4f8ef7', // sapphire blue (hexagonal / quartz)
   collaboration: '#ff4757', // ruby red (tetragonal)
   pedagogy:      '#2ecc71', // emerald green (triclinic)
@@ -55,6 +55,16 @@ export const ACTIVITY_TO_CATEGORY: Record<string, ReputationCategory> = {
   admin: 'consistency',
   review: 'consistency',
   other: 'consistency',
+}
+
+/** "Grows when…" hint per category — mirrors ARM_HINT in CrystalRadar3D. */
+export const CATEGORY_GROW_HINTS: Record<ReputationCategory, string> = {
+  craft:         'Grows when you log execution traces — making the thing.',
+  research:      'Grows when you log reference / study traces — investigating.',
+  collaboration: 'Grows when you log group work and co-authored traces.',
+  pedagogy:      'Grows when you mentor, teach, or review others.',
+  consistency:   'Grows from steady cadence — showing up across time.',
+  community:     'Grows from cross-space work and public-facing projects.',
 }
 
 /** Looks up the category (or null for unmapped / unknown types). */

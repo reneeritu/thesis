@@ -28,16 +28,30 @@ function pickVideoMime(): string {
 }
 
 function pickAudioMime(): string {
-  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
-  for (const c of candidates) {
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) return c
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/ogg',
+    'audio/mp4',
+    'audio/mp4;codecs=aac',
+  ]
+  if (typeof MediaRecorder !== 'undefined') {
+    for (const c of candidates) {
+      if (MediaRecorder.isTypeSupported(c)) return c
+    }
   }
+  /** Browser default — often works when no explicit MIME matches */
   return ''
 }
+
+/** Milliseconds — periodic chunks avoid empty blobs when `.stop()` fires before the encoder flushes (common with audio-only WebM). */
+const RECORD_TIMESLICE_MS = 120
 
 function extFromMime(m: string): string {
   if (m.includes('webm')) return 'webm'
   if (m.includes('mp4')) return 'mp4'
+  if (m.includes('ogg')) return 'ogg'
   if (m.includes('jpeg') || m.includes('jpg')) return 'jpg'
   if (m.includes('png')) return 'png'
   return 'bin'
@@ -188,21 +202,46 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
   function startRecording() {
     const stream = streamRef.current
     if (!stream) return
+    if (typeof MediaRecorder === 'undefined') {
+      setError('Recording is not supported in this browser.')
+      return
+    }
+    if (recording || recorderRef.current?.state === 'recording') return
+
     const mime = mode === 'audio' ? pickAudioMime() : pickVideoMime()
     let recorder: MediaRecorder
     try {
       recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Recording not supported')
-      return
+      /** Retry without mime — some builds reject explicit audio MIME but accept default */
+      try {
+        recorder = new MediaRecorder(stream)
+      } catch (e2) {
+        setError(e instanceof Error ? e.message : 'Recording not supported')
+        return
+      }
     }
     chunksRef.current = []
     recorder.ondataavailable = (ev) => {
+      /** Include tiny chunks — filtering size>0 dropped valid trailing packets on some Edge builds */
       if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data)
     }
     recorder.onstop = () => {
-      const outMime = recorder.mimeType || mime || (mode === 'audio' ? 'audio/webm' : 'video/webm')
+      const outMime =
+        recorder.mimeType ||
+        mime ||
+        (mode === 'audio' ? pickAudioMime() || 'audio/webm' : 'video/webm')
       const blob = new Blob(chunksRef.current, { type: outMime })
+      if (blob.size === 0) {
+        setError(
+          mode === 'audio'
+            ? 'Recording came back empty. Allow microphone access, record at least 1–2 seconds, then stop — or try Chrome/Firefox if Safari preview stays silent.'
+            : 'Recording came back empty — try a slightly longer clip.',
+        )
+        setRecording(false)
+        recorderRef.current = null
+        return
+      }
       const file = new File(
         [blob],
         `${mode}-${Date.now()}.${extFromMime(outMime)}`,
@@ -210,8 +249,14 @@ export function LiveCapture({ onCapture, disabled = false }: Props) {
       )
       setPreview({ url: URL.createObjectURL(blob), file, mime: outMime })
       setRecording(false)
+      recorderRef.current = null
     }
-    recorder.start()
+    /** Timeslice forces regular dataavailable events so Stop doesn’t flush before any encoded audio exists */
+    try {
+      recorder.start(RECORD_TIMESLICE_MS)
+    } catch {
+      recorder.start()
+    }
     recorderRef.current = recorder
     setRecording(true)
   }

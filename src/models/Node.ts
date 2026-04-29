@@ -21,6 +21,10 @@ export interface IChainNode extends Document {
   interests: string[];
   portfolioUrl: string;
   keywords: string[];
+  /** Short public prose — drives hub “personal statement”. */
+  profileStatement: string;
+  /** Additional URLs (beyond portfolioUrl), max enforced in route schema. */
+  profileLinks: string[];
   spaces: mongoose.Types.ObjectId[];
   reputationScore: number;
   reputationCategories: IReputationCategories;
@@ -71,6 +75,8 @@ const chainNodeSchema = new Schema<IChainNode>(
     interests: { type: [String], default: [] },
     portfolioUrl: { type: String, default: '' },
     keywords: { type: [String], default: [] },
+    profileStatement: { type: String, default: '' },
+    profileLinks: { type: [String], default: [] },
     spaces: [{ type: Schema.Types.ObjectId, ref: 'Space' }],
     reputationScore: { type: Number, default: chainDefaults.reputationBaseScore },
     reputationCategories: {
