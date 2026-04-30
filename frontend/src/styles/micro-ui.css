@@ -166,6 +166,16 @@ html.light-mode .etch-chain-flash-icon {
   opacity: 1;
 }
 
+html[data-theme='light'] .etch-nav-icon-btn,
+html.light-mode .etch-nav-icon-btn {
+  opacity: 1;
+}
+
+html[data-theme='light'] .etch-nav-icon-btn:hover,
+html.light-mode .etch-nav-icon-btn:hover {
+  opacity: 1;
+}
+
 /* Login page — neutral surfaces, no blue-gray tint */
 .login-page-input {
   box-sizing: border-box;

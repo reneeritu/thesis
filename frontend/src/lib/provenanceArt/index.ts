@@ -1,41 +1,39 @@
 /**
  * Public entrypoint for the Etch provenance-certificate generative engine.
  *
- * Usage (from a page or component):
+ * The engine renders a 3D IFS point cloud through Three.js. Consumers
+ * typically mount a scene via `createIFSScene` and call `.capture()` to
+ * save the result as a PNG.
  *
  * ```ts
- * import { renderSvg, DEFAULT_OPTIONS, type GenInput } from '@/lib/provenanceArt'
+ * import {
+ *   createIFSScene,
+ *   DEFAULT_OPTIONS,
+ *   type GenInput,
+ * } from '@/lib/provenanceArt'
  *
- * const input: GenInput = {
- *   projectId, title, contributors,
- *   traceCount, pivotCount, referenceCount,
- *   blockHash,
- * }
- * const svg = renderSvg(input, DEFAULT_OPTIONS)
+ * const scene = createIFSScene(container, input, DEFAULT_OPTIONS)
+ * // ...orbit, customise, etc.
+ * const dataUrl = scene.capture()
+ * scene.dispose()
  * ```
  *
- * Nothing in this module touches the DOM, the API, or randomness outside the
- * seeded RNG — the same inputs always produce the same bytes.
+ * Everything in this module is deterministic per
+ * `(projectId, blockHash, rerollIndex, options)` — same inputs always
+ * produce the same point cloud bytes.
  */
 
-export { renderSvg, buildParams } from './render'
+export {
+  buildParams,
+  createIFSScene,
+  generatePointCloud,
+  renderSvg,
+  type IFSPointCloud,
+  type IFSSceneHandle,
+} from './render'
 export {
   DEFAULT_OPTIONS,
   MAX_REROLLS,
   RENDERER_VERSION,
-  MOTIFS,
-  PALETTES,
-  LINE_WEIGHTS,
-  DENSITIES,
 } from './types'
-export type {
-  Motif,
-  PaletteId,
-  LineWeight,
-  Density,
-  LayerFlags,
-  GenInput,
-  GenOptions,
-  GenParams,
-} from './types'
-export { PALETTE_LIST, PALETTE_BY_ID } from './palettes'
+export type { GenInput, GenOptions, GenParams } from './types'

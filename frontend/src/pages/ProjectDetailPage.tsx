@@ -154,11 +154,17 @@ export default function ProjectDetailPage() {
   const [creditBundle, setCreditBundle] = useState<NftCredit | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeForm, setActiveForm] = useState<ActiveForm>(null)
+  const [artEditorFullWidth, setArtEditorFullWidth] = useState(false)
   const [loadKey, setLoadKey] = useState(0)
   const [respondBusy, setRespondBusy] = useState(false)
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
 
   const reload = useCallback(() => setLoadKey((k) => k + 1), [])
+
+  const changeForm = useCallback((f: ActiveForm) => {
+    setActiveForm(f)
+    if (f !== 'credit') setArtEditorFullWidth(false)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -360,7 +366,7 @@ export default function ProjectDetailPage() {
   }
 
   function toggle(form: ActiveForm) {
-    setActiveForm((prev) => (prev === form ? null : form))
+    changeForm(activeForm === form ? null : form)
   }
 
   const compactAction = (label: string, form: ActiveForm, primary?: boolean, danger?: boolean) => (
@@ -374,7 +380,7 @@ export default function ProjectDetailPage() {
             ? 'border-yellow-400/90 bg-yellow-400 text-black hover:bg-yellow-300'
             : danger
               ? 'border-rose-400/40 bg-rose-950/40 text-rose-100/90 hover:border-rose-400/60'
-              : 'border-white/18 bg-black/40 text-white/70 hover:border-white/35 hover:text-white/90'
+              : 'project-compact-action border-white/18 bg-black/40 text-white/70 hover:border-white/35 hover:text-white/90'
       }`}
     >
       {label}
@@ -413,7 +419,7 @@ export default function ProjectDetailPage() {
 
   return (
     <AppShell title={project?.title || 'Project'} scrollMain>
-      <div className="font-mono text-white">
+      <div className="font-mono text-white project-detail-page">
         {error && (
           <p className="mb-4 border border-white/15 bg-black/40 px-3 py-2 text-xs" role="alert">
             {error}
@@ -421,7 +427,11 @@ export default function ProjectDetailPage() {
         )}
 
         {project ? (
-          <div className="grid min-h-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-10">
+          <div
+            className={`grid min-h-0 grid-cols-1 gap-8 ${
+              artEditorFullWidth ? '' : 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'
+            } lg:items-start lg:gap-10`}
+          >
             {/* LEFT ~60% */}
             <div className="min-w-0 space-y-5">
               <div className="relative h-[160px] w-full overflow-hidden rounded-sm bg-neutral-950/75">
@@ -588,8 +598,11 @@ export default function ProjectDetailPage() {
                 ) : null}
 
                 {contributors.length ? (
-                  <ul className="m-0 list-none divide-y divide-white/10 p-0">
-                    {contributors.map((c) => (
+                  <ul className="project-contributors-list m-0 list-none divide-y divide-white/10 p-0">
+                    {contributors.map((c) => {
+                      const roleLabel = contributorRoleLabel(c)
+                      const roleAccent = roleLabel === 'Creator' || roleLabel === 'Mentor'
+                      return (
                       <li
                         key={c.alias}
                         className="flex max-h-[60px] min-h-[44px] items-center gap-3 py-2 first:pt-0 last:pb-0"
@@ -604,8 +617,12 @@ export default function ProjectDetailPage() {
                           >
                             {c.alias.toLowerCase()}
                           </Link>
-                          <span className="shrink-0 rounded-sm border border-white/14 bg-white/[0.04] px-1.5 py-px font-mono text-xs uppercase tracking-[0.12em] text-white/55">
-                            {contributorRoleLabel(c)}
+                          <span
+                            className={`contributor-role-badge shrink-0 rounded-sm border px-1.5 py-px font-mono text-xs uppercase tracking-[0.12em] text-white/55 ${
+                              roleAccent ? 'contributor-role-badge--accent border-white/14 bg-white/[0.04]' : 'border-white/14 bg-white/[0.04]'
+                            }`}
+                          >
+                            {roleLabel}
                           </span>
                           {c.isPrimary ? (
                             <span className="shrink-0 rounded-sm border border-yellow-400/45 bg-yellow-400/10 px-1.5 py-px font-mono text-xs uppercase tracking-[0.12em] text-yellow-200/90">
@@ -622,7 +639,8 @@ export default function ProjectDetailPage() {
                           ) : null}
                         </div>
                       </li>
-                    ))}
+                      )
+                    })}
                   </ul>
                 ) : (
                   <p className="text-xs text-white/42">No contributors listed.</p>
@@ -682,6 +700,8 @@ export default function ProjectDetailPage() {
                   contributors={contributors}
                   onDone={reload}
                   isPrimary={amPrimary}
+                  onArtEditorOpen={() => setArtEditorFullWidth(true)}
+                  onArtEditorClose={() => setArtEditorFullWidth(false)}
                   genInput={{
                     projectId: project._id,
                     title: project.title,

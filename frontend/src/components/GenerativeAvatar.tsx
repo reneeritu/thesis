@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useRef } from 'react'
+import { useTheme } from '../context/ThemeContext'
 import { CATEGORY_COLOURS, type ReputationCategory } from '../lib/reputationColours'
 
 interface Props {
@@ -17,6 +18,22 @@ interface Props {
 }
 
 const RADAR_CATEGORIES = Object.keys(CATEGORY_COLOURS) as ReputationCategory[]
+
+/** Light-mode thumbnail palette — soft pastels on paper (#e8e6e0 base). */
+const LIGHT_PALETTE_HEX = [
+  '#c084fc',
+  '#86efac',
+  '#67e8f9',
+  '#fca5a5',
+  '#fdba74',
+  '#a5b4fc',
+  '#f0abfc',
+  '#6ee7b7',
+  '#fde68a',
+  '#93c5fd',
+] as const
+
+const LIGHT_THUMB_BG = '#e8e6e0'
 
 /** Reference tile size from the p5 sketch — scales Voronoi block + line counts */
 const REF_PX = 140
@@ -193,6 +210,19 @@ function mixTowardWhite(rgb: [number, number, number], t: number): [number, numb
  * Heavy white-mix = airy, inner-lit colour (not edge glow — that's CSS-free).
  * Slot 4 is Voronoi trough — soft deep tint, not harsh black.
  */
+function paletteLightPaper(seedStr: string): [
+  [number, number, number],
+  [number, number, number],
+  [number, number, number],
+  [number, number, number],
+  [number, number, number],
+] {
+  const h = djb2(seedStr)
+  const pick = (salt: number) =>
+    hexToRgb(LIGHT_PALETTE_HEX[Math.abs(h + salt) % LIGHT_PALETTE_HEX.length]!)
+  return [pick(0), pick(11), pick(23), pick(37), hexToRgb(LIGHT_THUMB_BG)]
+}
+
 function paletteLuminescent(hashVal: number): [
   [number, number, number],
   [number, number, number],
@@ -435,9 +465,11 @@ function renderWhiteInkLines(
     steps: number
     stepDiv: number
     frost?: boolean
+    /** Paper UI: soften bright white streaks (rgba white × 0.5 effective). */
+    lightSurface?: boolean
   },
 ) {
-  const { lines, alpha, widthMul, steps, stepDiv, frost } = opts
+  const { lines, alpha, widthMul, steps, stepDiv, frost, lightSurface } = opts
   const STEP = px / stepDiv
 
   ctx.lineCap = 'round'
@@ -447,7 +479,7 @@ function renderWhiteInkLines(
   for (let i = 0; i < lines; i++) {
     let x = rng() * px
     let y = rng() * px
-    const a = frost ? alpha * (0.85 + rng() * 0.15) : alpha
+    const a = (frost ? alpha * (0.85 + rng() * 0.15) : alpha) * (lightSurface ? 0.5 : 1)
     ctx.strokeStyle = frost ? `rgba(245,248,255,${a})` : `rgba(255,255,255,${a})`
     ctx.beginPath()
     ctx.moveTo(x, y)
@@ -467,9 +499,10 @@ function renderStackedAvatar(
   seed: string,
   px: number,
   ctx: CanvasRenderingContext2D,
-  opts?: { luminescent?: boolean },
+  opts?: { luminescent?: boolean; lightSurface?: boolean },
 ) {
   const lum = opts?.luminescent ?? false
+  const lightSurface = opts?.lightSurface ?? false
   const hashVal = djb2(seed)
   const halftoneKind = halftoneVariantFromSeed(seed)
 
@@ -478,7 +511,7 @@ function renderStackedAvatar(
 
   const { gradients, p } = buildTables(() => rngNoise())
 
-  const palRgb = lum ? paletteLuminescent(hashVal) : paletteFromHash(hashVal)
+  const palRgb = lightSurface ? paletteLightPaper(seed) : lum ? paletteLuminescent(hashVal) : paletteFromHash(hashVal)
 
   ctx.save()
   ctx.imageSmoothingEnabled = false
@@ -487,7 +520,9 @@ function renderStackedAvatar(
 
   if (!lum) {
     ctx.globalCompositeOperation = 'multiply'
+    if (lightSurface) ctx.globalAlpha = 0.6
     renderHalftoneMultiplyOverlay(px, gradients, p, ctx, halftoneKind)
+    ctx.globalAlpha = 1
     ctx.globalCompositeOperation = 'source-over'
   }
 
@@ -497,8 +532,10 @@ function renderStackedAvatar(
     const rngWhiteB = makeRng(seed + '_whiteB')
     const rngWhiteC = makeRng(seed + '_whiteC')
 
+    const colAlpha = lightSurface ? 0.34 * 0.6 : 0.34
+
     // Softer coloured strokes — colour sits behind white ink
-    renderWaveFlowLines(px, gradients, p, rngInk, palRgb, ctx, 0.34, {
+    renderWaveFlowLines(px, gradients, p, rngInk, palRgb, ctx, colAlpha, {
       baseN: 5,
       lineMult: 1.15,
       steps: 10,
@@ -513,6 +550,7 @@ function renderStackedAvatar(
       widthMul: 0.95,
       steps: 12,
       stepDiv: 4.5,
+      lightSurface,
     })
     renderWhiteInkLines(px, gradients, p, rngWhiteB, ctx, {
       lines: nLines(7),
@@ -521,6 +559,7 @@ function renderStackedAvatar(
       steps: 14,
       stepDiv: 5,
       frost: true,
+      lightSurface,
     })
     renderWhiteInkLines(px, gradients, p, rngWhiteC, ctx, {
       lines: nLines(5),
@@ -529,9 +568,11 @@ function renderStackedAvatar(
       steps: 8,
       stepDiv: 6,
       frost: true,
+      lightSurface,
     })
   } else {
-    renderWaveFlowLines(px, gradients, p, rngGeom, palRgb, ctx, 105 / 255)
+    const baseLineA = (105 / 255) * (lightSurface ? 0.6 : 1)
+    renderWaveFlowLines(px, gradients, p, rngGeom, palRgb, ctx, baseLineA)
   }
 
   ctx.restore()
@@ -561,6 +602,8 @@ export function GenerativeAvatar({
   luminescent = false,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const { theme } = useTheme()
+  const lightSurface = theme === 'light'
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -574,9 +617,9 @@ export function GenerativeAvatar({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    renderStackedAvatar(seed, px, ctx, { luminescent })
+    renderStackedAvatar(seed, px, ctx, { luminescent, lightSurface })
     if (monochrome) applyGreyscale(ctx, px)
-  }, [seed, size, monochrome, luminescent])
+  }, [seed, size, monochrome, luminescent, lightSurface])
 
   return (
     <canvas

@@ -1,4 +1,12 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import { Link } from 'react-router-dom'
 import DecryptedText from '../components/landing/DecryptedText'
 
@@ -8,17 +16,53 @@ const FaultyTerminal = lazy(() => import('../components/landing/FaultyTerminal')
 const PURPLE = '#a78bfa'
 const CYAN = '#67e8f9'
 const GREEN = '#4ade80'
+const RED = '#ef4444'
 const BORDER = 'rgba(26,26,46,0.8)'
 
 const CONNECTOR_COLORS = [PURPLE, CYAN, GREEN, 'var(--text-muted)']
 
-const MARQUEE_TEXT =
-  'BRAINSTORM · RESEARCH · FABRICATION · SKILLWORK · PEDAGOGY · REVIEW · ITERATE · AI_TOOL · REFERENCE · FORK · ARCHIVE · VETO · CREDIT · PIVOT · '
+function useSectionProgress(
+  sectionRef: RefObject<HTMLElement | null>,
+  containerRef: RefObject<HTMLElement | null>,
+): number {
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const onScroll = () => {
+      const section = sectionRef.current
+      if (!section) return
+      const containerRect = container.getBoundingClientRect()
+      const sectionRect = section.getBoundingClientRect()
+      const h = containerRect.height
+      if (h <= 0) return
+      const p = Math.max(
+        0,
+        Math.min(1, -(sectionRect.top - containerRect.top) / h),
+      )
+      setProgress(p)
+    }
+
+    onScroll()
+    container.addEventListener('scroll', onScroll, { passive: true })
+    return () => container.removeEventListener('scroll', onScroll)
+  }, [sectionRef, containerRef])
+
+  return progress
+}
 
 export default function Landing() {
   const [reducedMotion, setReducedMotion] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const heroSectionRef = useRef<HTMLElement>(null)
+  const section2Ref = useRef<HTMLElement>(null)
+  const section2PlayedRef = useRef(false)
   const [activeSection, setActiveSection] = useState(0)
+  const [scrollProgress, setScrollProgress] = useState(0)
+  const section1Progress = useSectionProgress(heroSectionRef, containerRef)
+  const [s2Visible, setS2Visible] = useState<Record<string, boolean>>({})
+  const [statValue, setStatValue] = useState(0)
 
   useLayoutEffect(() => {
     const html = document.documentElement
@@ -42,6 +86,14 @@ export default function Landing() {
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    const updateScrollProgress = () => {
+      const maxScroll = container.scrollHeight - container.clientHeight
+      const progress = maxScroll <= 0 ? 0 : container.scrollTop / maxScroll
+      setScrollProgress(progress)
+    }
+    updateScrollProgress()
+
     const sections = Array.from(container.querySelectorAll<HTMLElement>('[data-section]'))
     const obs = new IntersectionObserver(
       (entries) => {
@@ -54,11 +106,74 @@ export default function Landing() {
       { threshold: 0.6 },
     )
     sections.forEach((s) => obs.observe(s))
-    return () => obs.disconnect()
+
+    container.addEventListener('scroll', updateScrollProgress, { passive: true })
+    return () => {
+      obs.disconnect()
+      container.removeEventListener('scroll', updateScrollProgress)
+    }
+  }, [])
+
+  useEffect(() => {
+    const target = section2Ref.current
+    if (!target) return
+    const timers: ReturnType<typeof setTimeout>[] = []
+    let countId: ReturnType<typeof setInterval> | null = null
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting || section2PlayedRef.current) continue
+          section2PlayedRef.current = true
+          obs.disconnect()
+
+          const stamps: [string, number][] = [
+            ['m1', 0],
+            ['m2', 300],
+            ['m3', 900],
+            ['m4', 1600],
+            ['m5', 2200],
+            ['m6', 3000],
+            ['m7', 3600],
+            ['m8', 4400],
+            ['m8label', 5200],
+            ['m9', 5800],
+          ]
+          for (const [key, delay] of stamps) {
+            timers.push(
+              setTimeout(() => {
+                setS2Visible((prev) => ({ ...prev, [key]: true }))
+                if (key === 'm8') {
+                  const start = performance.now()
+                  const duration = 1200
+                  const final = 50.1
+                  countId = setInterval(() => {
+                    const t = Math.min(1, (performance.now() - start) / duration)
+                    setStatValue(t * final)
+                    if (t >= 1 && countId) {
+                      clearInterval(countId)
+                      countId = null
+                    }
+                  }, 16)
+                }
+              }, delay),
+            )
+          }
+        }
+      },
+      { threshold: 0.3 },
+    )
+    obs.observe(target)
+
+    return () => {
+      obs.disconnect()
+      timers.forEach((t) => clearTimeout(t))
+      if (countId) clearInterval(countId)
+    }
   }, [])
 
   return (
-    <>
+    <div className="landing-page-root" style={{ isolation: 'isolate' }}>
       <style>{`
         html.landing-scroll,
         html.landing-scroll body {
@@ -101,12 +216,26 @@ export default function Landing() {
           from { transform: translateX(0); }
           to   { transform: translateX(-50%); }
         }
+        @keyframes blurIn {
+          from { filter: blur(4px); opacity: 0; }
+          to   { filter: blur(0); opacity: 1; }
+        }
+
+        .s2-reveal {
+          opacity: 0;
+          transition:
+            opacity 400ms cubic-bezier(0.4, 0, 0.2, 1),
+            transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .s2-reveal-up { transform: translateY(12px); }
+        .s2-reveal.show { opacity: 1; transform: none; }
       `}</style>
 
       <div ref={containerRef} className="landing-root bg-[#0a0a0f] font-mono text-[var(--text-primary)]">
 
         {/* ── SECTION 1 — HERO ── */}
         <section
+          ref={heroSectionRef}
           className="landing-section"
           data-section={0}
           style={{
@@ -189,7 +318,12 @@ export default function Landing() {
             {/* ETCH wordmark — instant, large */}
             <h1
               className="font-mono font-bold leading-none text-[var(--text-primary)]"
-              style={{ fontSize: 'clamp(100px, 14vw, 180px)', marginTop: 16, letterSpacing: '-0.02em' }}
+              style={{
+                fontSize: 'clamp(100px, 14vw, 180px)',
+                marginTop: 16,
+                letterSpacing: '-0.02em',
+                transform: `translateY(${section1Progress * -40}px)`,
+              }}
             >
               ETCH
             </h1>
@@ -210,14 +344,12 @@ export default function Landing() {
               />
             </p>
 
-            {/* Body — fade in after 600ms */}
+            {/* Body — blur-in after 800ms */}
             <p
               className="font-mono text-[length:var(--text-sm)] text-[var(--text-muted)]"
               style={{
                 marginTop: 24,
-                animation: 'fadeIn 400ms ease both',
-                animationDelay: '600ms',
-                opacity: 0,
+                animation: 'blurIn 600ms cubic-bezier(0.4, 0, 0.2, 1) 800ms both',
               }}
             >
               No coins. No hype. No algorithms.
@@ -268,112 +400,149 @@ export default function Landing() {
           {activeSection === 0 && (
             <div
               className="absolute font-mono text-xl text-[var(--text-ghost)]"
-              style={{ bottom: 24, left: '50%', animation: 'landingBounce 2s ease-in-out infinite' }}
+              style={{
+                bottom: 24,
+                left: '50%',
+                animation: 'landingBounce 2s ease-in-out infinite',
+                opacity: scrollProgress > 0.02 ? 0 : 1,
+                transition: 'opacity 200ms ease-out',
+              }}
             >
               ↓
             </div>
           )}
         </section>
 
-        {/* ── SECTION 2 — WHAT IT IS ── */}
-        <section className="landing-section flex flex-col" data-section={1}>
-          <div className="flex h-full flex-col px-10 py-16 lg:px-16">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-ghost)]">
-              01 / WHAT IS ETCH
+        {/* ── SECTION 2 — THE PROBLEM ── */}
+        <section
+          ref={section2Ref}
+          className="landing-section"
+          data-section={1}
+          style={
+            {
+              ['--accent-red' as string]: RED,
+              ['--accent-purple' as string]: PURPLE,
+              ['--border' as string]: 'rgba(255,255,255,0.12)',
+            } as React.CSSProperties
+          }
+        >
+          <div
+            style={{
+              maxWidth: 680,
+              margin: '0 auto',
+              padding: '80px 48px',
+              minHeight: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: 0,
+            }}
+          >
+            <span
+              className={`s2-reveal font-mono uppercase text-[var(--text-ghost)] ${s2Visible.m1 ? 'show' : ''}`}
+              style={{ fontSize: 'var(--text-xs)', letterSpacing: '0.22em' }}
+            >
+              THE PROBLEM
+            </span>
+
+            <h2
+              className={`s2-reveal s2-reveal-up font-mono font-bold text-[var(--text-primary)] ${s2Visible.m2 ? 'show' : ''}`}
+              style={{
+                fontSize: 'clamp(32px, 4vw, 52px)',
+                lineHeight: 1.15,
+                marginTop: 20,
+              }}
+            >
+              Someone made this.
+            </h2>
+
+            <h2
+              className={`s2-reveal s2-reveal-up font-mono font-bold text-[var(--text-muted)] ${s2Visible.m3 ? 'show' : ''}`}
+              style={{
+                fontSize: 'clamp(32px, 4vw, 52px)',
+                lineHeight: 1.15,
+                marginTop: 8,
+              }}
+            >
+              You don't know who.
+            </h2>
+
+            <div
+              aria-hidden
+              style={{
+                marginTop: 40,
+                height: 1,
+                background: 'var(--border)',
+                width: s2Visible.m4 ? '100%' : '0%',
+                transition: 'width 600ms ease',
+              }}
+            />
+
+            <p
+              className={`s2-reveal font-mono text-[var(--text-muted)] ${s2Visible.m5 ? 'show' : ''}`}
+              style={{
+                fontSize: 'clamp(16px, 2vw, 22px)',
+                lineHeight: 1.6,
+                marginTop: 40,
+              }}
+            >
+              In any collaborative work, the people who teach, fabricate, and
+              guide rarely appear in the final record.
             </p>
 
-            <div className="mt-12 grid flex-1 grid-cols-1 gap-10 lg:grid-cols-3" style={{ alignItems: 'start' }}>
-              {/* Col 1 */}
-              <div>
-                <p className="font-mono font-bold leading-[1.3] text-[var(--text-primary)]" style={{ fontSize: 'clamp(20px, 2.5vw, 32px)' }}>
-                  Work happens. Most of it disappears.
-                </p>
-                <p className="mt-6 font-mono text-[length:var(--text-sm)] leading-[1.8] text-[var(--text-muted)]">
-                  Etch is an art process documentation chain. It records who did
-                  what, when, with what evidence, and in relation to what other work.
-                </p>
-                <p className="mt-6 font-mono text-[length:var(--text-sm)] leading-[1.8] text-[var(--text-muted)]">
-                  The system is not a marketplace, a token economy, or a social
-                  network. It is infrastructure for making creative labor legible.
-                </p>
-              </div>
+            <p
+              className={`s2-reveal font-mono text-[var(--text-ghost)] ${s2Visible.m6 ? 'show' : ''}`}
+              style={{
+                fontSize: 'clamp(16px, 2vw, 22px)',
+                lineHeight: 1.6,
+                marginTop: 20,
+              }}
+            >
+              Not because their work didn't happen.
+            </p>
 
-              {/* Col 2 — IS / IS NOT */}
+            <p
+              className={`s2-reveal font-mono text-[var(--text-ghost)] ${s2Visible.m7 ? 'show' : ''}`}
+              style={{
+                fontSize: 'clamp(16px, 2vw, 22px)',
+                lineHeight: 1.6,
+                marginTop: 12,
+              }}
+            >
+              Because no one wrote it down.
+            </p>
+
+            <div style={{ marginTop: 56 }}>
               <div
-                className="flex flex-col gap-0"
-                style={{ border: `1px solid ${BORDER}`, background: 'rgba(10,10,20,0.6)', padding: 28 }}
+                className={`s2-reveal font-mono font-bold ${s2Visible.m8 ? 'show' : ''}`}
+                style={{
+                  fontSize: 'clamp(48px, 6vw, 72px)',
+                  lineHeight: 1,
+                  color: 'var(--accent-red)',
+                }}
               >
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)]">IS</span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)]">IS NOT</span>
-                </div>
-                <div className="my-3 h-px bg-[rgba(26,26,46,0.8)]" />
-                {([
-                  ['a process record', 'a marketplace'],
-                  ['an attribution chain', 'a token economy'],
-                  ['a governance system', 'a credit score'],
-                  ['a provenance certificate', 'a social network'],
-                  ['a dispute resolver', 'a financial product'],
-                ] as [string, string][]).map(([is, isNot]) => (
-                  <div
-                    key={is}
-                    className="grid grid-cols-2 gap-2 border-b py-2 font-mono text-[10px]"
-                    style={{ borderColor: 'rgba(26,26,46,0.5)' }}
-                  >
-                    <span className="text-[var(--text-secondary)]">{is}</span>
-                    <span className="text-[var(--text-ghost)] line-through">{isNot}</span>
-                  </div>
-                ))}
+                {statValue.toFixed(1)}%
               </div>
-
-              {/* Col 3 — stats */}
-              <div className="flex flex-col gap-5">
-                {([
-                  { num: '50.1%', color: 'var(--text-primary)', label: 'of labor in collaborative creative work is invisible or uncompensated' },
-                  { num: '0', color: CYAN, label: 'financial instruments. no tokens, no trading, no speculation.' },
-                  { num: '3', color: GREEN, label: 'things that change with documentation: consent, credit, compensation.' },
-                ] as const).map(({ num, color, label }) => (
-                  <div key={num} className="flex flex-col gap-1 border-l-2 pl-4" style={{ borderColor: PURPLE }}>
-                    <span className="font-mono text-4xl font-bold leading-none" style={{ color }}>{num}</span>
-                    <span className="font-mono text-[10px] leading-relaxed text-[var(--text-muted)]">{label}</span>
-                  </div>
-                ))}
-                <a
-                  href="/simulation"
-                  className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-ghost)] no-underline hover:text-[var(--text-primary)]"
-                >
-                  READ THE RESEARCH →
-                </a>
-              </div>
+              <p
+                className={`s2-reveal font-mono text-[var(--text-muted)] ${s2Visible.m8label ? 'show' : ''}`}
+                style={{ fontSize: 'var(--text-sm)', marginTop: 14 }}
+              >
+                of creative labor leaves no record.
+              </p>
             </div>
 
-            {/* Marquee activity-type strip */}
-            <div
-              className="mt-auto overflow-hidden"
-              style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}
+            <p
+              className={`s2-reveal font-mono uppercase ${s2Visible.m9 ? 'show' : ''}`}
+              style={{
+                marginTop: 56,
+                fontSize: 'var(--text-xs)',
+                letterSpacing: '0.22em',
+                color: 'var(--accent-purple)',
+              }}
             >
-              <div style={{ overflow: 'hidden' }}>
-                <span
-                  className="inline-block whitespace-nowrap font-mono text-[10px] text-[var(--text-ghost)]"
-                  style={{
-                    letterSpacing: '0.15em',
-                    animation: 'marquee 20s linear infinite',
-                  }}
-                >
-                  {MARQUEE_TEXT}{MARQUEE_TEXT}
-                </span>
-              </div>
-            </div>
+              ETCH IS BUILT TO FIX THIS.
+            </p>
           </div>
-
-          {activeSection === 1 && (
-            <div
-              className="absolute font-mono text-xl text-[var(--text-ghost)]"
-              style={{ bottom: 24, left: '50%', animation: 'landingBounce 2s ease-in-out infinite' }}
-            >
-              ↓
-            </div>
-          )}
         </section>
 
         {/* ── SECTION 3 — HOW IT WORKS ── */}
@@ -571,6 +740,6 @@ export default function Landing() {
         </section>
 
       </div>
-    </>
+    </div>
   )
 }

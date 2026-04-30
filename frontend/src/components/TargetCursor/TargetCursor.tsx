@@ -9,6 +9,7 @@ import {
   useMemo,
   useSyncExternalStore,
   useState,
+  type CSSProperties,
 } from 'react'
 import gsap from 'gsap'
 import {
@@ -390,11 +391,31 @@ export default function TargetCursor({
   const showSnappedTarget = !loadingVisualActive && isSnapped
   const showLoading = loadingVisualActive
 
-  const lightCursor = theme === 'light'
+  const isLight = theme === 'light'
+
+  const lightBlendReset: CSSProperties = {
+    mixBlendMode: 'normal',
+    boxShadow: 'none',
+    filter: 'none',
+  }
+
+  const pulseLightStyle = isLight
+    ? ({
+        ...lightBlendReset,
+        ...(showIdle ? { opacity: 0.8 } : {}),
+      } as CSSProperties)
+    : undefined
+
+  const snappedBracketsLightStyle = isLight
+    ? ({
+        ...lightBlendReset,
+        backdropFilter: 'none',
+      } as CSSProperties)
+    : undefined
 
   return (
     <motion.div
-      className={`target-cursor-wrapper${lightCursor ? ' target-cursor-wrapper--light' : ''}`}
+      className={`target-cursor-wrapper${isLight ? ' target-cursor-wrapper--light' : ''}`}
       style={{
         position: 'fixed',
         left: 0,
@@ -404,17 +425,24 @@ export default function TargetCursor({
         x: tx,
         y: ty,
         /* difference reads as a dark fringe/shadow on light UI — use normal blend + ink strokes */
-        mixBlendMode: lightCursor ? 'normal' : 'difference',
+        mixBlendMode: isLight ? 'normal' : 'difference',
+        ...(isLight ? { boxShadow: 'none', filter: 'none' } : {}),
       }}
     >
       <div className="target-cursor-visual">
-        <div ref={pulseRef} className="target-cursor-pulse">
+        <div ref={pulseRef} className="target-cursor-pulse" style={pulseLightStyle}>
           {showIdle ? (
             defTermHover ? (
               <svg className="target-cursor-idle-svg" viewBox="0 0 18 18" aria-hidden>
-                {lightCursor ? (
+                {isLight ? (
                   <>
-                    <circle cx="9" cy="9" r="8" className="target-cursor-idle-disk--light" />
+                    <circle
+                      cx="9"
+                      cy="9"
+                      r="8"
+                      className="target-cursor-idle-disk--light"
+                      style={isLight ? { mixBlendMode: 'normal', fill: '#111110' } : undefined}
+                    />
                     <text
                       x="9"
                       y="12.25"
@@ -446,8 +474,14 @@ export default function TargetCursor({
               </svg>
             ) : (
               <svg className="target-cursor-idle-svg" viewBox="0 0 18 18" aria-hidden>
-                {lightCursor ? (
-                  <circle cx="9" cy="9" r="8" className="target-cursor-idle-disk--light" />
+                {isLight ? (
+                  <circle
+                    cx="9"
+                    cy="9"
+                    r="8"
+                    className="target-cursor-idle-disk--light"
+                    style={{ mixBlendMode: 'normal', fill: '#111110' }}
+                  />
                 ) : (
                   <circle cx="9" cy="9" r="9" fill="#ffffff" />
                 )}
@@ -456,7 +490,7 @@ export default function TargetCursor({
           ) : null}
 
           {showSnappedTarget ? (
-            <div className="target-cursor-snapped-brackets" aria-hidden>
+            <div className="target-cursor-snapped-brackets" aria-hidden style={snappedBracketsLightStyle}>
               <div className="target-cursor-corner-snap corner-tl" />
               <div className="target-cursor-corner-snap corner-tr" />
               <div className="target-cursor-corner-snap corner-br" />

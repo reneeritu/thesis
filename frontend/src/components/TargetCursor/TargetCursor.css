@@ -31,11 +31,10 @@
   pointer-events: none;
 }
 
-/* Light theme idle: solid black dot + soft white halo (readable on any background) */
+/* Light theme idle: flat ink dot — no halo/shadow (readable on paper bg) */
 .target-cursor-idle-disk--light {
-  fill: #0a0a0a;
-  filter: drop-shadow(0 0 1px rgb(255, 255, 255)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.85))
-    drop-shadow(0 0 6px rgba(255, 255, 255, 0.45));
+  fill: #111110;
+  filter: none;
 }
 
 /* Snapped: hollow corner brackets fill the padded element box */
@@ -79,9 +78,9 @@
   border-width: 0 0 1.5px 1.5px;
 }
 
-/* Light theme: ink brackets (blend mode is normal — no difference fringe / shadow) */
+/* Light theme: faint ink brackets, no shadow */
 .target-cursor-wrapper--light .target-cursor-snapped-brackets .target-cursor-corner-snap {
-  border-color: #1a1a18;
+  border-color: rgba(17, 17, 16, 0.4);
 }
 
 /* Loading: three small dots that bounce in sequence (CSS-driven). */
@@ -119,7 +118,7 @@
 }
 
 .target-cursor-wrapper--light .target-cursor-loading-dots .dot {
-  background-color: #1a1a18;
+  background-color: #111110;
 }
 
 @keyframes target-cursor-dot-bounce {

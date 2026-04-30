@@ -1,7 +1,6 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type CSSProperties, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../lib/api'
-import { Button } from '../Button'
 import { CertificateArtEditor } from '../CertificateArtEditor'
 import type { GenInput } from '../../lib/provenanceArt'
 
@@ -20,12 +19,41 @@ type Props = {
   genInput?: GenInput
   /** True when the logged-in user is a primary contributor. Controls whether the artwork editor shows. */
   isPrimary?: boolean
+  /** Notify parent layout when the certificate art editor becomes visible. */
+  onArtEditorOpen?: () => void
+  /** Notify parent layout when the certificate art editor is hidden. */
+  onArtEditorClose?: () => void
 }
 
-export function CreditForm({ projectId, contributors, onDone, genInput, isPrimary }: Props) {
+/* ─── Shared styling atoms ───────────────────────────────────────────── */
+
+const sectionLabel =
+  'font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-ghost)]'
+
+const inputClass =
+  'w-full border border-[var(--border)] bg-transparent px-3 py-2 font-mono text-[12px] text-[var(--text-primary)] outline-none transition focus:border-[var(--text-primary)]'
+
+const outlinedBtn =
+  'cursor-target font-mono text-[12px] uppercase tracking-[0.22em] transition border border-[var(--text-primary)] bg-transparent text-[var(--text-primary)] px-4 py-2 hover:bg-[var(--text-primary)] hover:text-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-40'
+
+const PANEL_SHELL: CSSProperties = {
+  height: 'min(820px, calc(100vh - 160px))',
+  minHeight: '560px',
+}
+
+export function CreditForm({
+  projectId,
+  contributors,
+  onDone,
+  genInput,
+  isPrimary,
+  onArtEditorOpen,
+  onArtEditorClose,
+}: Props) {
   const [weights, setWeights] = useState<Record<string, string>>({})
   const [medium, setMedium] = useState('')
   const [offChain, setOffChain] = useState('')
+  const [offChainOpen, setOffChainOpen] = useState(false)
   const [dispute, setDispute] = useState(false)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -42,6 +70,14 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
       .catch(() => { /* no existing credit */ })
     return () => { cancelled = true }
   }, [projectId])
+
+  const editorOpen = Boolean(existingNft && isPrimary && genInput)
+
+  useEffect(() => {
+    if (editorOpen) onArtEditorOpen?.()
+    else onArtEditorClose?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorOpen])
 
   function setWeight(alias: string, val: string) {
     setWeights((prev) => ({ ...prev, [alias]: val }))
@@ -76,7 +112,6 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
       }
       await api('/credits', { method: 'POST', body })
       setResult('Credit initiated.')
-      // Refetch so CertificateArtEditor mounts immediately (useEffect only keyed on projectId).
       try {
         const b = await api<NftBundle>('/credits/project/' + encodeURIComponent(projectId))
         setExistingNft(b)
@@ -111,110 +146,187 @@ export function CreditForm({ projectId, contributors, onDone, genInput, isPrimar
   }
 
   return (
-    <div className="border border-white/25 bg-zinc-900/55 p-4 space-y-4">
-      <h3 className="text-small font-heading uppercase tracking-[0.18em]">Credit Split / End Project</h3>
-
-      {existingNft && (
-        <div className="space-y-3">
-          <div className="border border-black bg-grey-100 p-3 space-y-2">
-            <p className="text-small font-mono">Existing credit found. Certificate: {existingNft.nft._id}</p>
-            <Link
-              to={`/nfts/${encodeURIComponent(existingNft.nft._id)}`}
-              className="text-small font-mono underline underline-offset-4"
-            >
-              View provenance certificate
-            </Link>
-            <form onSubmit={onSign} className="space-y-2 pt-2">
-              <label className="flex items-center gap-2 font-mono text-small">
-                <input type="checkbox" checked={signAccepted} onChange={(e) => setSignAccepted(e.target.checked)} />
-                I accept this credit split
+    <div className="flex w-full flex-col gap-4">
+      <div
+        className="flex w-full flex-col overflow-hidden border border-[var(--border)] bg-zinc-900/45"
+        style={PANEL_SHELL}
+      >
+        {/* ─── Region 1 — header (no existing) / sign card (existing) ─── */}
+        {existingNft ? (
+          <form
+            onSubmit={onSign}
+            className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--border)]"
+            style={{ padding: '16px 24px', maxHeight: 200 }}
+          >
+            <div className="min-w-0">
+              <p className={`${sectionLabel} mb-1`}>Provenance certificate</p>
+              <p className="m-0 break-all font-mono text-[12px] text-[var(--text-primary)]">
+                {existingNft.nft._id}{' '}
+                <Link
+                  to={`/nfts/${encodeURIComponent(existingNft.nft._id)}`}
+                  className="ml-1 underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--text-primary)]"
+                >
+                  view →
+                </Link>
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex cursor-target items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                <input
+                  type="checkbox"
+                  checked={signAccepted}
+                  onChange={(e) => setSignAccepted(e.target.checked)}
+                  className="accent-current"
+                />
+                I accept this split
               </label>
-              <Button type="submit" variant="primary" loading={signBusy}>Sign</Button>
-            </form>
+              <button type="submit" disabled={signBusy} className={outlinedBtn}>
+                {signBusy ? '…' : 'Sign'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div
+            className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)]"
+            style={{ padding: '12px 24px', maxHeight: 48 }}
+          >
+            <p className={`${sectionLabel} m-0`}>Credit split</p>
+            <p className="m-0 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--text-ghost)]">
+              {contributors.length} contributors · leave blank for equal split
+            </p>
           </div>
+        )}
 
-          {isPrimary && genInput ? (
-            <CertificateArtEditor
-              nftId={existingNft.nft._id}
-              input={genInput}
-              onSaved={onDone}
-            />
-          ) : null}
-        </div>
-      )}
+        {/* ─── Body: table (left) + design column (right) ─── */}
+        <form
+          onSubmit={onSubmit}
+          className="flex min-h-0 flex-1 overflow-hidden"
+        >
+          {/* Left — ALIAS / ROLE / WEIGHT table + off-chain */}
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <table className="w-full border-collapse font-mono text-[11px]">
+                <thead className="sticky top-0 bg-zinc-900/80 backdrop-blur">
+                  <tr className="text-left uppercase tracking-[0.14em] text-[var(--text-ghost)]">
+                    <th className="px-4 py-2 font-normal">Alias</th>
+                    <th className="px-4 py-2 font-normal">Role</th>
+                    <th className="px-4 py-2 text-right font-normal">Weight</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contributors.map((c) => (
+                    <tr key={c.alias} className="border-t border-[var(--border)]">
+                      <td className="px-4 py-2 text-[var(--text-primary)]">{c.alias}</td>
+                      <td className="px-4 py-2 text-[var(--text-muted)]">{c.role || '—'}</td>
+                      <td className="px-4 py-2 text-right">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          max={1}
+                          placeholder="equal"
+                          value={weights[c.alias] ?? ''}
+                          onChange={(e) => setWeight(c.alias, e.target.value)}
+                          className="w-[60px] border border-[var(--border)] bg-transparent px-2 py-1 text-right font-mono text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--text-primary)]"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-      <form onSubmit={onSubmit} className="space-y-3 text-small">
-        <table className="w-full text-small font-mono">
-          <thead>
-            <tr className="text-left text-white uppercase tracking-[0.18em]">
-              <th className="pb-1">Alias</th>
-              <th className="pb-1">Role</th>
-              <th className="pb-1">Weight</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contributors.map((c) => (
-              <tr key={c.alias} className="border-t border-grey-200">
-                <td className="py-1">{c.alias}</td>
-                <td className="py-1">{c.role || ''}</td>
-                <td className="py-1">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    max={1}
-                    placeholder="equal"
-                    value={weights[c.alias] ?? ''}
-                    onChange={(e) => setWeight(c.alias, e.target.value)}
-                    className="w-20 border border-white/25 bg-zinc-900/55 px-2 py-1 font-mono text-small"
+              {/* OFF-CHAIN CONTRIBUTORS — inside scrollable area */}
+              <div
+                className="border-t border-[var(--border)]"
+                style={{ padding: '12px 16px' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOffChainOpen((v) => !v)}
+                  className={`${sectionLabel} cursor-target hover:text-[var(--text-primary)]`}
+                >
+                  Off-chain contributors {offChainOpen ? '▾' : '▸'}
+                </button>
+                {offChainOpen ? (
+                  <textarea
+                    value={offChain}
+                    onChange={(e) => setOffChain(e.target.value)}
+                    placeholder='[{"name":"x","portfolio":"","role":""}]'
+                    rows={3}
+                    className={`${inputClass} mt-2 resize-none`}
+                    style={{ maxHeight: 80 }}
                   />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="text-small text-white">Leave weights blank for equal split. Weights must sum to 1.0 if specified.</p>
-
-        <div>
-          <label className="block font-mono uppercase tracking-[0.18em] text-white mb-1">Medium (optional)</label>
-          <input
-            value={medium}
-            onChange={(e) => setMedium(e.target.value)}
-            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
-          />
-        </div>
-
-        <details className="text-small">
-          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-white">Off-chain contributors</summary>
-          <textarea
-            value={offChain}
-            onChange={(e) => setOffChain(e.target.value)}
-            placeholder='[{"name":"x","portfolio":"","role":""}]'
-            rows={3}
-            className="mt-2 w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
-          />
-        </details>
-
-        <label className="flex items-center gap-2 font-mono text-small">
-          <input type="checkbox" checked={dispute} onChange={(e) => setDispute(e.target.checked)} />
-          Flag as disputed
-        </label>
-
-        {error && <p className="border border-black bg-grey-100 px-3 py-2 font-mono" role="alert">{error}</p>}
-        {result ? (
-          <div className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono space-y-2">
-            <p>{result}</p>
-            <Link
-              to={`/governance?category=dispute&type=credit_dispute&targetType=project&targetId=${encodeURIComponent(projectId)}`}
-              className="underline underline-offset-4"
-            >
-              Raise dispute flag for this project
-            </Link>
+                ) : null}
+              </div>
+            </div>
           </div>
-        ) : null}
 
-        <Button type="submit" variant="primary" loading={busy}>Initiate Credit</Button>
-      </form>
+          {/* Right — design, dispute, initiate */}
+          <aside
+            className="flex shrink-0 flex-col gap-3 overflow-hidden border-l border-[var(--border)]"
+            style={{ width: 280, padding: 16 }}
+          >
+            <div>
+              <p className={`${sectionLabel} mb-2`}>Medium (optional)</p>
+              <input
+                value={medium}
+                onChange={(e) => setMedium(e.target.value)}
+                className={inputClass}
+                placeholder="e.g. mixed media"
+              />
+            </div>
+
+            <label className="flex cursor-target items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              <input
+                type="checkbox"
+                checked={dispute}
+                onChange={(e) => setDispute(e.target.checked)}
+                className="accent-current"
+              />
+              Flag as disputed
+            </label>
+
+            {error ? (
+              <p
+                className="m-0 font-mono text-[10.5px] text-[var(--accent-red,#ef4444)]"
+                role="alert"
+              >
+                {error}
+              </p>
+            ) : null}
+            {result ? (
+              <div className="flex flex-col gap-1 font-mono text-[10.5px] text-[var(--text-muted)]">
+                <p className="m-0 uppercase tracking-[0.14em]">{result}</p>
+                <Link
+                  to={`/governance?category=dispute&type=credit_dispute&targetType=project&targetId=${encodeURIComponent(projectId)}`}
+                  className="underline decoration-[var(--border)] underline-offset-2 hover:text-[var(--text-primary)]"
+                >
+                  Raise dispute flag
+                </Link>
+              </div>
+            ) : null}
+
+            <div className="mt-auto">
+              <button
+                type="submit"
+                disabled={busy}
+                className={`${outlinedBtn} w-full`}
+              >
+                {busy ? '…' : existingNft ? 'Re-initiate credit' : 'Initiate credit'}
+              </button>
+            </div>
+          </aside>
+        </form>
+      </div>
+
+      {/* ─── Embedded artwork editor (primaries only) ─── */}
+      {isPrimary && genInput && existingNft ? (
+        <CertificateArtEditor
+          nftId={existingNft.nft._id}
+          input={genInput}
+          onSaved={onDone}
+        />
+      ) : null}
     </div>
   )
 }

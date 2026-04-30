@@ -169,16 +169,20 @@
     background-color: transparent;
   }
 
+  html[data-theme='light'] *,
   html.light-mode * {
-    scrollbar-color: #c0bfb8 transparent;
+    scrollbar-color: #c8c6c0 transparent;
   }
 
+  html[data-theme='light'] *::-webkit-scrollbar-thumb,
   html.light-mode *::-webkit-scrollbar-thumb {
-    background: #c0bfb8;
+    background: #c8c6c0;
+    border-radius: 2px;
   }
 
+  html[data-theme='light'] *::-webkit-scrollbar-thumb:hover,
   html.light-mode *::-webkit-scrollbar-thumb:hover {
-    background: #a8a7a0;
+    background: #aaaaaa;
   }
 }
 

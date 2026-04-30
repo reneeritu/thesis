@@ -22,9 +22,10 @@ html.light-mode {
   --accent-tag-bg: transparent;
   --accent-tag-border: #6a6a64;
   --accent-tag-text: #111110;
+  --border: #c8c6c0;
 
-  --scrollbar-line: #c5c4bc;
-  --scrollbar-firefox-thumb: rgba(58, 58, 54, 0.45);
+  --scrollbar-line: #c8c6c0;
+  --scrollbar-firefox-thumb: rgba(58, 58, 54, 0.38);
 }
 
 html[data-theme='light'] body,
@@ -66,13 +67,119 @@ html.light-mode nav a:hover {
   color: var(--text-secondary) !important;
 }
 
-/* Navbar shell */
+/* Navbar shell — #111110 beats blend / animation leakage onto chrome */
 html[data-theme='light'] header,
-html.light-mode header {
-  background-color: var(--bg-secondary);
-  border-bottom-color: var(--border-default) !important;
-  border-bottom-width: 1px;
-  color: var(--text-primary);
+html.light-mode header,
+html[data-theme='light'] .etch-app-header,
+html.light-mode .etch-app-header {
+  background-color: #ebe9e3;
+  border-bottom: 1px solid #d4d2cc !important;
+  color: #111110 !important;
+}
+
+html[data-theme='light'] header nav,
+html.light-mode header nav,
+html[data-theme='light'] .etch-app-header nav,
+html.light-mode .etch-app-header nav {
+  color: #111110 !important;
+}
+
+html[data-theme='light'] .etch-app-header svg,
+html.light-mode .etch-app-header svg,
+html[data-theme='light'] .etch-app-header button,
+html.light-mode .etch-app-header button,
+html[data-theme='light'] .etch-app-header a,
+html.light-mode .etch-app-header a,
+html[data-theme='light'] .etch-app-header span,
+html.light-mode .etch-app-header span {
+  color: #111110;
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+/* Header nav — readable ink; subtle hover (override global contour invert) */
+html[data-theme='light'] header .etch-nav-icon-btn,
+html.light-mode header .etch-nav-icon-btn {
+  color: var(--text-primary) !important;
+  background-color: transparent !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] header .etch-nav-icon-btn:hover,
+html.light-mode header .etch-nav-icon-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  color: var(--text-primary) !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] header .glassmorphic-light.contour-border-neutral,
+html.light-mode header .glassmorphic-light.contour-border-neutral {
+  border-color: var(--border) !important;
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] header .glassmorphic-light.contour-border-neutral:hover,
+html.light-mode header .glassmorphic-light.contour-border-neutral:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme='light'] header .etch-brand-wordmark,
+html.light-mode header .etch-brand-wordmark {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] header .etch-brand-wordmark:hover,
+html.light-mode header .etch-brand-wordmark:hover {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] header .etch-header-site-nav-toggle,
+html.light-mode header .etch-header-site-nav-toggle {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] header .etch-header-site-nav-toggle:hover,
+html.light-mode header .etch-header-site-nav-toggle:hover {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .etch-shell-display-controls.floating-glass-panel,
+html.light-mode .etch-shell-display-controls.floating-glass-panel {
+  background-color: #e3e1db !important;
+  border-color: #c8c6c0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .etch-shell-theme-toggle,
+html.light-mode .etch-shell-theme-toggle {
+  border: 1px solid #c8c6c0 !important;
+  background-color: #e3e1db !important;
+}
+
+html[data-theme='light'] .etch-shell-theme-toggle:hover,
+html.light-mode .etch-shell-theme-toggle:hover {
+  background-color: #dcdad4 !important;
+}
+
+html[data-theme='light'] .etch-shell-theme-toggle .etch-shell-toggle-thumb,
+html.light-mode .etch-shell-theme-toggle .etch-shell-toggle-thumb {
+  background-color: #111110 !important;
+  color: #f0f0ee !important;
+}
+
+html[data-theme='light'] .etch-shell-hints-toggle,
+html.light-mode .etch-shell-hints-toggle {
+  border: 1px solid #c8c6c0 !important;
+  background-color: #e3e1db !important;
+}
+
+html[data-theme='light'] .etch-shell-hints-toggle:hover,
+html.light-mode .etch-shell-hints-toggle:hover {
+  background-color: #dcdad4 !important;
 }
 
 html[data-theme='light'] header .etch-float-caps,
@@ -186,25 +293,45 @@ html.light-mode .etch-stat-num {
 /* Form controls — mirror dark structure */
 html[data-theme='light'] .etch-control,
 html.light-mode .etch-control {
-  border-color: var(--border-default) !important;
-  background-color: var(--bg-primary) !important;
+  border: 1px solid #c8c6c0 !important;
+  background-color: #f5f3ed !important;
   color: var(--text-primary) !important;
 }
 
 html[data-theme='light'] .etch-control::placeholder,
 html.light-mode .etch-control::placeholder {
-  color: var(--text-placeholder) !important;
+  color: var(--text-ghost) !important;
 }
 
 html[data-theme='light'] .etch-control:focus,
 html.light-mode .etch-control:focus {
-  border-color: var(--border-focus) !important;
+  border-color: #555550 !important;
+  background-color: #f8f6f0 !important;
+  outline: none !important;
 }
 
 html[data-theme='light'] select option,
 html.light-mode select option {
-  background-color: var(--bg-primary);
+  background-color: #ebe9e3;
   color: var(--text-primary);
+}
+
+html[data-theme='light'] select.etch-select,
+html.light-mode select.etch-select {
+  background-color: #ebe9e3 !important;
+  border-color: #c8c6c0 !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] select.etch-select:focus,
+html.light-mode select.etch-select:focus {
+  border-color: var(--text-primary) !important;
+  outline: none !important;
+}
+
+html[data-theme='light'] .etch-select-chevron,
+html.light-mode .etch-select-chevron {
+  color: var(--text-muted) !important;
 }
 
 /* Outlined / contour buttons — strong hairline + invert hover */
@@ -925,25 +1052,308 @@ html.light-mode .focus-visible\:outline-yellow-400\/50:focus-visible {
   outline-color: color-mix(in srgb, var(--border-focus) 80%, transparent) !important;
 }
 
-/* Theme control pill — neutral rails (avoid orange / pure white): use attribute hooks */
-html[data-theme='light'] button[aria-label='Switch to dark theme'],
-html.light-mode button[aria-label='Switch to dark theme'] {
-  border-color: var(--border-strong) !important;
-  background-color: var(--bg-primary) !important;
+/* ── Light JSON / chain raw blocks ── */
+html[data-theme='light'] .etch-json-pre,
+html.light-mode .etch-json-pre {
+  background-color: #e3e1db !important;
+  border: 1px solid #c8c6c0 !important;
+  border-radius: 2px;
+  color: var(--text-primary) !important;
 }
 
-html[data-theme='light'] button[aria-label='Switch to dark theme'] span,
-html.light-mode button[aria-label='Switch to dark theme'] span {
-  background-color: var(--text-primary) !important;
+html[data-theme='light'] .etch-json-key,
+html.light-mode .etch-json-key {
+  color: var(--text-secondary) !important;
 }
 
-html[data-theme='light'] button[aria-label='Toggle inline hints'],
-html.light-mode button[aria-label='Toggle inline hints'] {
-  border-color: var(--border-strong) !important;
-  background-color: var(--bg-primary) !important;
+html[data-theme='light'] .etch-json-string,
+html.light-mode .etch-json-string {
+  color: #2d6a4f !important;
 }
 
-html[data-theme='light'] button[aria-label='Toggle inline hints'] span,
-html.light-mode button[aria-label='Toggle inline hints'] span {
-  background-color: var(--text-primary) !important;
+html[data-theme='light'] .etch-json-number,
+html.light-mode .etch-json-number {
+  color: #744210 !important;
+}
+
+html[data-theme='light'] .etch-json-punct,
+html.light-mode .etch-json-punct {
+  color: var(--text-muted) !important;
+}
+
+/* Project chain column — paper terminal */
+html[data-theme='light'] .project-chain-timeline details.border.bg-zinc-900\/50,
+html.light-mode .project-chain-timeline details.border.bg-zinc-900\/50 {
+  background-color: #f5f3ed !important;
+  border-color: #d4d2cc !important;
+}
+
+html[data-theme='light'] .project-chain-timeline summary .chain-record-alias,
+html.light-mode .project-chain-timeline summary .chain-record-alias {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] .project-chain-timeline summary .chain-record-ts,
+html.light-mode .project-chain-timeline summary .chain-record-ts {
+  color: var(--text-ghost) !important;
+}
+
+html[data-theme='light'] .project-chain-timeline .project-chain-entry-body,
+html.light-mode .project-chain-timeline .project-chain-entry-body {
+  border-top-color: #e8e6e0 !important;
+  background-color: transparent !important;
+}
+
+html[data-theme='light'] .project-chain-timeline details summary:hover,
+html.light-mode .project-chain-timeline details summary:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+html[data-theme='light'] .project-chain-timeline .border-dashed.border-white\/15,
+html.light-mode .project-chain-timeline .border-dashed.border-white\/15 {
+  border-color: #d4d2cc !important;
+  background-color: rgba(245, 243, 237, 0.65) !important;
+}
+
+html[data-theme='light'] .project-chain-timeline .border-dashed .text-white\/55,
+html.light-mode .project-chain-timeline .border-dashed .text-white\/55 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .project-chain-timeline .border-dashed .text-white\/42,
+html.light-mode .project-chain-timeline .border-dashed .text-white\/42 {
+  color: var(--text-muted) !important;
+}
+
+/* Governance status chips — paper badges */
+html[data-theme='light'] .etch-governance-status[data-tone='open'],
+html.light-mode .etch-governance-status[data-tone='open'] {
+  background-color: rgba(74, 222, 128, 0.15) !important;
+  color: #15803d !important;
+  border: 1px solid rgba(74, 222, 128, 0.3) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .etch-governance-status[data-tone='danger'],
+html.light-mode .etch-governance-status[data-tone='danger'] {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #b91c1c !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .etch-governance-status[data-tone='peer'],
+html.light-mode .etch-governance-status[data-tone='peer'] {
+  background-color: rgba(45, 212, 191, 0.12) !important;
+  color: #0f766e !important;
+  border: 1px solid rgba(45, 212, 191, 0.28) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .etch-governance-status[data-tone='muted'],
+html.light-mode .etch-governance-status[data-tone='muted'] {
+  background-color: #ebe9e3 !important;
+  color: var(--text-muted) !important;
+  border: 1px solid #d4d2cc !important;
+}
+
+/* Hub tall cards — thumbnail strip */
+html[data-theme='light'] a.hub-tall-card,
+html.light-mode a.hub-tall-card {
+  border-color: #d4d2cc !important;
+  background-color: rgba(245, 243, 237, 0.85) !important;
+}
+
+html[data-theme='light'] a.hub-tall-card:hover,
+html.light-mode a.hub-tall-card:hover {
+  border-color: #aaaaaa !important;
+}
+
+html[data-theme='light'] a.hub-tall-card .text-white\/88,
+html.light-mode a.hub-tall-card .text-white\/88 {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] a.hub-tall-card .bg-black\/28,
+html.light-mode a.hub-tall-card .bg-black\/28 {
+  background-color: transparent !important;
+}
+
+/* Project detail — inherit paper ink */
+html[data-theme='light'] .project-detail-page,
+html.light-mode .project-detail-page {
+  color: var(--text-primary);
+}
+
+html[data-theme='light'] .project-detail-page .text-white\/88,
+html.light-mode .project-detail-page .text-white\/88,
+html[data-theme='light'] .project-detail-page .text-white\/85,
+html.light-mode .project-detail-page .text-white\/85 {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] .project-detail-page .text-white\/72,
+html.light-mode .project-detail-page .text-white\/72,
+html[data-theme='light'] .project-detail-page .text-white\/65,
+html.light-mode .project-detail-page .text-white\/65 {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] .project-detail-page .text-white\/55,
+html.light-mode .project-detail-page .text-white\/55,
+html[data-theme='light'] .project-detail-page .text-white\/45,
+html.light-mode .project-detail-page .text-white\/45,
+html[data-theme='light'] .project-detail-page .text-white\/42,
+html.light-mode .project-detail-page .text-white\/42,
+html[data-theme='light'] .project-detail-page .text-white\/38,
+html.light-mode .project-detail-page .text-white\/38,
+html[data-theme='light'] .project-detail-page .text-white\/35,
+html.light-mode .project-detail-page .text-white\/35 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .project-contributors-list > li:hover,
+html.light-mode .project-contributors-list > li:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+html[data-theme='light'] .project-contributors-list > li:not(:first-child),
+html.light-mode .project-contributors-list > li:not(:first-child) {
+  border-top-color: #e8e6e0 !important;
+}
+
+html[data-theme='light'] .contributor-role-badge:not(.contributor-role-badge--accent),
+html.light-mode .contributor-role-badge:not(.contributor-role-badge--accent) {
+  background-color: transparent !important;
+  border-color: #d4d2cc !important;
+  color: var(--text-ghost) !important;
+}
+
+html[data-theme='light'] .contributor-role-badge--accent,
+html.light-mode .contributor-role-badge--accent {
+  background-color: rgba(167, 139, 250, 0.12) !important;
+  color: #5b21b6 !important;
+  border: 1px solid rgba(167, 139, 250, 0.2) !important;
+}
+
+html[data-theme='light'] button.project-compact-action.border-white\/18,
+html.light-mode button.project-compact-action.border-white\/18 {
+  border-color: #c8c6c0 !important;
+  background-color: #ebe9e3 !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] button.project-compact-action.border-white\/18:hover,
+html.light-mode button.project-compact-action.border-white\/18:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* TraceForm / LiveCapture — toolbar chips */
+html[data-theme='light'] .trace-toolbar-chip,
+html.light-mode .trace-toolbar-chip,
+html[data-theme='light'] .live-capture-mode-btn,
+html.light-mode .live-capture-mode-btn {
+  background-color: #e3e1db !important;
+  border: 1px solid #c8c6c0 !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .trace-toolbar-chip[data-active='true'],
+html.light-mode .trace-toolbar-chip[data-active='true'],
+html[data-theme='light'] .live-capture-mode-btn[data-active='true'],
+html.light-mode .live-capture-mode-btn[data-active='true'] {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: var(--text-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .trace-toolbar-chip:hover,
+html.light-mode .trace-toolbar-chip:hover,
+html[data-theme='light'] .live-capture-mode-btn:hover,
+html.light-mode .live-capture-mode-btn:hover {
+  background-color: #dcdad4 !important;
+}
+
+/* Layout debug — grid toggle chip */
+html[data-theme='light'] .layout-debug-grid-chip,
+html.light-mode .layout-debug-grid-chip {
+  background-color: #e3e1db !important;
+  border: 1px solid #c8c6c0 !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .layout-debug-grid-chip:hover,
+html.light-mode .layout-debug-grid-chip:hover {
+  background-color: #dcdad4 !important;
+}
+
+/*
+ * Landing (/) — isolate FaultyTerminal stack; keep pre blend local if present.
+ * (Isolation is duplicated on `.landing-page-root` for clarity.)
+ */
+.landing-page-root {
+  isolation: isolate;
+}
+
+.landing-page-root .faulty-terminal-container pre {
+  mix-blend-mode: difference;
+}
+
+/* Target cursor — light: no difference-blend halo / inversion */
+html[data-theme='light'] .target-cursor-wrapper,
+html.light-mode .target-cursor-wrapper {
+  mix-blend-mode: normal !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .target-cursor-wrapper .target-cursor-dot,
+html.light-mode .target-cursor-wrapper .target-cursor-dot,
+html[data-theme='light'] .target-cursor-wrapper [class*='cursor-dot'],
+html.light-mode .target-cursor-wrapper [class*='cursor-dot'],
+html[data-theme='light'] .target-cursor-wrapper [class*='cursor-inner'],
+html.light-mode .target-cursor-wrapper [class*='cursor-inner'] {
+  mix-blend-mode: normal !important;
+  box-shadow: none !important;
+  filter: none !important;
+  background: #111110 !important;
+  opacity: 0.8 !important;
+}
+
+html[data-theme='light'] .target-cursor-wrapper .target-cursor-ring,
+html.light-mode .target-cursor-wrapper .target-cursor-ring,
+html[data-theme='light'] .target-cursor-wrapper [class*='cursor-ring'],
+html.light-mode .target-cursor-wrapper [class*='cursor-ring'],
+html[data-theme='light'] .target-cursor-wrapper [class*='cursor-outer'],
+html.light-mode .target-cursor-wrapper [class*='cursor-outer'],
+html[data-theme='light'] .target-cursor-wrapper [class*='cursor-aura'],
+html.light-mode .target-cursor-wrapper [class*='cursor-aura'],
+html[data-theme='light'] .target-cursor-wrapper [class*='cursor-glow'],
+html.light-mode .target-cursor-wrapper [class*='cursor-glow'] {
+  mix-blend-mode: normal !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  border-color: rgba(17, 17, 16, 0.35) !important;
+}
+
+html[data-theme='light'] .target-cursor-wrapper--light .target-cursor-idle-disk--light,
+html.light-mode .target-cursor-wrapper--light .target-cursor-idle-disk--light {
+  fill: #111110 !important;
+  opacity: 0.8 !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .target-cursor-wrapper--light .target-cursor-pulse,
+html.light-mode .target-cursor-wrapper--light .target-cursor-pulse {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .target-cursor-wrapper--light .target-cursor-corner-snap,
+html.light-mode .target-cursor-wrapper--light .target-cursor-corner-snap {
+  mix-blend-mode: normal !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
 }
