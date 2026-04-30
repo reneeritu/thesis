@@ -1,12 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 
-const helveticaStack = [
-  'Helvetica Neue',
-  'Helvetica',
-  'Arial',
-  'system-ui',
-  '-apple-system',
-  'sans-serif',
+const monoStack = [
+  'JetBrains Mono',
+  'ui-monospace',
+  'SFMono-Regular',
+  'Menlo',
+  'monospace',
 ];
 
 module.exports = {
@@ -31,22 +30,22 @@ module.exports = {
         },
       },
       fontFamily: {
-        /** Headings — same stack as sans (system Helvetica, no webfont). */
-        heading: helveticaStack,
-        /** Primary UI + body (pair with `font-mono` for technical chrome). */
-        sans: helveticaStack,
-        mono: [
-          'JetBrains Mono',
-          'ui-monospace',
-          'SFMono-Regular',
-          'Menlo',
-          'monospace',
-        ],
+        /** All UI uses one monospace stack (see :root --text-* in index.css). */
+        sans: monoStack,
+        heading: monoStack,
+        mono: monoStack,
       },
       fontSize: {
-        /** Minimum UI size: 14px (replaces Tailwind default xs 12px). */
-        xs: ['14px', { lineHeight: '1.4' }],
-        /* Caps match the fixed scale; fluid down to readable mobile minimums */
+        /** Fixed scale from CSS variables — do not use arbitrary text-[Npx] for rhythm. */
+        xs: ['var(--text-xs)', { lineHeight: '1.45' }],
+        sm: ['var(--text-sm)', { lineHeight: '1.45' }],
+        base: ['var(--text-base)', { lineHeight: '1.5' }],
+        md: ['var(--text-md)', { lineHeight: '1.45' }],
+        lg: ['var(--text-lg)', { lineHeight: '1.4' }],
+        xl: ['var(--text-xl)', { lineHeight: '1.35' }],
+        '2xl': ['var(--text-2xl)', { lineHeight: '1.3' }],
+        body: ['var(--text-base)', { lineHeight: '1.5' }],
+        small: ['var(--text-sm)', { lineHeight: '1.45' }],
         h1: [
           'clamp(2rem, 9vw, 4rem)',
           { lineHeight: '1.05', letterSpacing: '-0.04em' },
@@ -59,8 +58,6 @@ module.exports = {
           'clamp(1.125rem, 3vw, 1.5rem)',
           { lineHeight: '1.2', letterSpacing: '-0.02em' },
         ],
-        body: ['16px', { lineHeight: '1.5' }],
-        small: ['14px', { lineHeight: '1.4' }],
       },
       spacing: {
         1: '8px',
@@ -78,4 +75,3 @@ module.exports = {
   },
   plugins: [],
 };
-

@@ -118,6 +118,8 @@ router.patch(
   async (req: AuthRequest, res: Response) => {
     const updates: Record<string, unknown> = {};
     if (req.body.interests !== undefined) updates.interests = req.body.interests;
+    if (req.body.tools !== undefined) updates.tools = req.body.tools;
+    if (req.body.mediums !== undefined) updates.mediums = req.body.mediums;
     if (req.body.portfolioUrl !== undefined) updates.portfolioUrl = req.body.portfolioUrl;
     if (req.body.keywords !== undefined) updates.keywords = req.body.keywords;
     if (req.body.profileStatement !== undefined)
@@ -297,6 +299,8 @@ router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
     _id: String(node._id),
     alias: node.alias,
     interests: node.interests,
+    tools: node.tools,
+    mediums: node.mediums,
     portfolioUrl: node.portfolioUrl,
     keywords: node.keywords,
     profileStatement,

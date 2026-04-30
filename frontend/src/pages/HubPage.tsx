@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { CrystalRadar3DLazy } from '../components/CrystalRadar3DLazy'
@@ -14,18 +14,26 @@ import {
   colourForActivity,
   type ReputationCategory,
 } from '../lib/reputationColours'
-
-/** Uniform radar geometry — hub crystal stays abstract (no score semantics in shape) */
-const CRYSTAL_DISPLAY_CATEGORIES: Record<ReputationCategory, number> = {
-  craft: 220,
-  research: 220,
-  collaboration: 220,
-  pedagogy: 220,
-  consistency: 220,
-  community: 220,
-}
+import { mixBlack } from '../lib/colorMix'
 
 const CATEGORY_ORDER = Object.keys(CATEGORY_COLOURS) as ReputationCategory[]
+
+function pickReputationCategories(
+  raw: unknown,
+): Partial<Record<ReputationCategory, number>> {
+  if (!raw || typeof raw !== 'object') return {}
+  const o = raw as Record<string, unknown>
+  const out: Partial<Record<ReputationCategory, number>> = {}
+  for (const k of CATEGORY_ORDER) {
+    const v = Number(o[k])
+    if (Number.isFinite(v)) out[k] = Math.max(0, Math.min(1000, v))
+  }
+  return out
+}
+
+/** Hub right column: compact outlined actions, 1px #333, mono caps */
+const hubOutlineAction =
+  'etch-outlined-press inline-flex shrink-0 items-center justify-center border border-[#333333] bg-black/25 px-2.5 py-1 font-mono text-xs uppercase tracking-[0.12em] text-white/88 transition hover:border-white/40 hover:bg-white/[0.05] hover:text-white'
 
 function chipColourForTag(tag: string): string {
   let h = 2166136261
@@ -34,6 +42,35 @@ function chipColourForTag(tag: string): string {
     h = Math.imul(h, 16777619)
   }
   return CATEGORY_COLOURS[CATEGORY_ORDER[Math.abs(h) % CATEGORY_ORDER.length]!]!
+}
+
+function interestChipStyle(
+  col: string,
+  surface: 'light' | 'dark',
+  variant: 'toggle' | 'pill',
+  selected?: boolean,
+): CSSProperties {
+  if (surface === 'light') {
+    const ring = mixBlack(col, 0.3)
+    return {
+      backgroundColor: 'transparent',
+      color: '#1a1a18',
+      boxShadow:
+        variant === 'pill' || selected ? `inset 0 0 0 1px ${ring}` : 'none',
+    }
+  }
+  if (variant === 'toggle') {
+    return {
+      backgroundColor: `${col}22`,
+      color: col,
+      boxShadow: selected ? `inset 0 0 0 1px ${col}55` : 'none',
+    }
+  }
+  return {
+    backgroundColor: `${col}22`,
+    color: col,
+    boxShadow: `inset 0 0 0 1px ${col}44`,
+  }
 }
 
 type TraceCard = {
@@ -83,12 +120,19 @@ type HubProfile = {
   spacesWithNames?: SpaceWithName[]
   completedProjects?: CompletedProject[]
   trustees?: string[]
+  reputationCategories?: Partial<Record<ReputationCategory, number>>
+  /** Present only when viewing your own node (GET /nodes/:alias with session). */
+  reputationScore?: number
+}
+
+type RecentReputationResponse = {
+  categories?: Partial<Record<ReputationCategory, number>>
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-2 mt-1 flex min-w-0 items-center gap-2">
-      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.22em] text-white/38">{children}</span>
+      <span className="shrink-0 font-mono text-xs uppercase tracking-[0.22em] text-white/38">{children}</span>
       <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
     </div>
   )
@@ -118,10 +162,10 @@ function HubTallCard({
 
   const shell =
     variant === 'completed'
-      ? 'border border-amber-400/40 ring-1 ring-amber-400/20'
+      ? 'etch-card-hover-border border border-amber-400/40 ring-1 ring-amber-400/20 hover:border-amber-400/55'
       : variant === 'archive'
-        ? 'border border-white/10 opacity-[0.82] saturate-[0.72]'
-        : 'border border-white/12'
+        ? 'etch-card-hover-border border border-white/10 opacity-[0.82] saturate-[0.72] hover:border-white/20'
+        : 'etch-card-hover-border border border-white/12 hover:border-white/26'
 
   return (
     <Link
@@ -147,9 +191,9 @@ function HubTallCard({
         ) : null}
       </div>
       <div className="flex min-h-0 flex-[3] flex-col justify-center gap-0.5 px-2 py-1.5">
-        <span className="line-clamp-2 font-mono text-[9px] uppercase tracking-[0.16em] text-white/88">{title}</span>
+        <span className="line-clamp-2 font-mono text-xs uppercase tracking-[0.16em] text-white/88">{title}</span>
         {subtitle ? (
-          <span className="line-clamp-2 text-[9px] leading-tight text-white/42">{subtitle}</span>
+          <span className="line-clamp-2 text-xs leading-tight text-white/42">{subtitle}</span>
         ) : null}
       </div>
     </Link>
@@ -160,10 +204,10 @@ function ViewAllTall({ href }: { href: string }) {
   return (
     <Link
       to={href}
-      className="flex h-[208px] w-[118px] shrink-0 flex-col items-center justify-center gap-1 rounded-sm border border-white/16 bg-black/18 font-mono text-[9px] uppercase tracking-[0.18em] text-white/58 transition hover:border-white/38 hover:text-white/88"
+      className="flex h-[208px] w-[118px] shrink-0 flex-col items-center justify-center gap-1 rounded-sm border border-white/16 bg-black/18 font-mono text-xs uppercase tracking-[0.18em] text-white/58 transition hover:border-white/38 hover:text-white/88"
     >
       View all
-      <span aria-hidden className="text-[11px]">
+      <span aria-hidden className="text-base">
         →
       </span>
     </Link>
@@ -189,6 +233,11 @@ export default function HubPage() {
   const [traces, setTraces] = useState<TraceCard[]>([])
   const [projects, setProjects] = useState<ProjectCard[]>([])
   const [archives, setArchives] = useState<ArchivePreview[]>([])
+  const [recentCrystalCategories, setRecentCrystalCategories] = useState<
+    Partial<Record<ReputationCategory, number>> | undefined
+  >(undefined)
+  const [hashCopied, setHashCopied] = useState(false)
+  const [pulseInterest, setPulseInterest] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const [statement, setStatement] = useState('')
@@ -214,13 +263,21 @@ export default function HubPage() {
   const load = useCallback(async () => {
     try {
       const a = getAlias()
-      const [me, projList, traceList, archList] = await Promise.all([
+      const [me, projList, traceList, archList, recentRep] = await Promise.all([
         api<HubProfile>('/nodes/' + encodeURIComponent(a)),
         api<ProjectCard[]>('/projects/by-node/' + encodeURIComponent(a)).catch(() => []),
         api<TraceCard[]>('/nodes/me/traces?limit=8').catch(() => []),
         api<ArchivePreview[]>('/nodes/me/archives-preview').catch(() => []),
+        api<RecentReputationResponse>(
+          '/nodes/' + encodeURIComponent(a) + '/reputation/recent?days=90',
+        ).catch(() => null),
       ])
       setProfile(me)
+      setRecentCrystalCategories(
+        recentRep?.categories != null
+          ? pickReputationCategories(recentRep.categories)
+          : undefined,
+      )
       setProjects(projList)
       setTraces(traceList)
       setArchives(archList)
@@ -313,7 +370,11 @@ export default function HubPage() {
     setInterestSel((prev) => {
       const next = new Set(prev)
       if (next.has(tag)) next.delete(tag)
-      else next.add(tag)
+      else {
+        next.add(tag)
+        setPulseInterest(tag)
+        window.setTimeout(() => setPulseInterest(null), 380)
+      }
       return next
     })
   }
@@ -341,6 +402,8 @@ export default function HubPage() {
     if (!id) return
     try {
       await navigator.clipboard.writeText(id)
+      setHashCopied(true)
+      window.setTimeout(() => setHashCopied(false), 1500)
     } catch {
       /* ignore */
     }
@@ -353,6 +416,11 @@ export default function HubPage() {
 
   const lastTrace = traces[0]
 
+  const hubCrystalCategories = useMemo(
+    () => pickReputationCategories(profile?.reputationCategories),
+    [profile?.reputationCategories],
+  )
+
   const title = profile?.alias?.trim() ? profile.alias : 'Home'
 
   return (
@@ -360,7 +428,7 @@ export default function HubPage() {
       <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden font-mono text-white">
         {savedFlash ? (
           <p
-            className="pointer-events-none absolute right-3 top-2 z-10 font-mono text-[9px] uppercase tracking-[0.14em] text-emerald-400/85 transition-opacity"
+            className="pointer-events-none absolute right-3 top-2 z-10 font-mono text-xs uppercase tracking-[0.14em] text-emerald-400/85 transition-opacity"
             role="status"
           >
             Saved
@@ -379,16 +447,22 @@ export default function HubPage() {
             <section className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto overflow-x-hidden lg:border-r lg:border-white/10 lg:pr-2">
               <div className="relative min-h-[42vh] shrink-0 lg:min-h-0 lg:flex-[1_1_65%] lg:basis-[65%]">
                 <CrystalRadar3DLazy
-                  categories={CRYSTAL_DISPLAY_CATEGORIES}
+                  categories={hubCrystalCategories}
+                  recentCategories={recentCrystalCategories}
+                  aggregateReputationScore={
+                    profile.reputationScore != null && Number.isFinite(profile.reputationScore)
+                      ? profile.reputationScore
+                      : null
+                  }
                   className="h-full w-full"
                   hideLegendPanels
                   theme={theme}
                 />
               </div>
 
-              <p className="shrink-0 text-[15px] font-normal leading-snug text-white/52">{profile.alias}</p>
+              <p className="shrink-0 text-md font-normal leading-snug text-white/52">{profile.alias}</p>
 
-              <p className="shrink-0 text-[10px] leading-relaxed text-white/38">
+              <p className="shrink-0 text-xs leading-relaxed text-white/38">
                 {lastTrace ? (
                   <>
                     Last logged: {activityLabel(lastTrace.activityType)} · {formatTimeAgo(lastTrace.timestamp)}
@@ -398,10 +472,11 @@ export default function HubPage() {
                 )}
               </p>
 
-              <SectionLabel>Proof of work</SectionLabel>
-              <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-gutter:stable]">
+              <div className="proof-of-work-strip space-y-2">
+                <SectionLabel>Proof of work</SectionLabel>
+                <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-gutter:stable]">
                 {traces.length === 0 ? (
-                  <p className="text-[11px] text-white/40">No traces yet.</p>
+                  <p className="text-base text-white/40">No traces yet.</p>
                 ) : (
                   traces.map((t) => (
                     <div
@@ -410,13 +485,17 @@ export default function HubPage() {
                       role="group"
                     >
                       <span
-                        className="truncate text-[10px] uppercase tracking-[0.12em]"
-                        style={{ color: colourForActivity(t.activityType) }}
+                        className="truncate text-xs uppercase tracking-[0.12em]"
+                        style={
+                          theme === 'light'
+                            ? { color: 'var(--text-primary, #1a1a18)' }
+                            : { color: colourForActivity(t.activityType) }
+                        }
                       >
                         {activityLabel(t.activityType)}
                       </span>
-                      <span className="truncate font-mono text-[10px] text-white/82">{t.projectTitle}</span>
-                      <span className="text-[9px] text-white/38">
+                      <span className="truncate font-mono text-xs text-white/82">{t.projectTitle}</span>
+                      <span className="text-xs text-white/38">
                         {new Date(t.timestamp).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
@@ -426,6 +505,7 @@ export default function HubPage() {
                     </div>
                   ))
                 )}
+                </div>
               </div>
             </section>
 
@@ -434,7 +514,7 @@ export default function HubPage() {
               className={`relative flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto overflow-x-hidden border-white/10 lg:border-x lg:px-3 ${isOwnProfile ? '[&_textarea]:cursor-text' : ''}`}
             >
               {profile._id ? (
-                <div className="flex items-center gap-2 pt-0.5 font-mono text-[9px] tracking-[0.06em] text-white/38">
+                <div className="flex items-center gap-2 pt-0.5 font-mono text-xs tracking-[0.06em] text-white/38">
                   <span className="min-w-0 flex-1 truncate" title={profile._id}>
                     {profile._id.slice(0, 14)}…{profile._id.slice(-10)}
                   </span>
@@ -444,10 +524,16 @@ export default function HubPage() {
                     className="shrink-0 rounded border border-transparent p-0.5 text-white/45 transition hover:border-white/18 hover:text-white/75"
                     aria-label="Copy node hash"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
+                    {hashCopied ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <rect x="9" y="9" width="13" height="13" rx="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               ) : null}
@@ -510,12 +596,13 @@ export default function HubPage() {
                           key={tag}
                           type="button"
                           onClick={() => toggleInterest(tag)}
-                          className="cursor-pointer rounded-full px-2.5 py-0.5 text-[11px] tracking-wide transition hover:brightness-110"
-                          style={{
-                            backgroundColor: `${col}22`,
-                            color: col,
-                            boxShadow: on ? `inset 0 0 0 1px ${col}55` : 'none',
-                          }}
+                          className={`cursor-pointer rounded-full px-2.5 py-0.5 text-base tracking-wide transition hover:brightness-110 ${pulseInterest === tag ? 'etch-interest-pulse' : ''}`}
+                          style={interestChipStyle(
+                            col,
+                            theme === 'light' ? 'light' : 'dark',
+                            'toggle',
+                            on,
+                          )}
                         >
                           {tag}
                         </button>
@@ -530,12 +617,12 @@ export default function HubPage() {
                             key={tag}
                             type="button"
                             onClick={() => removeInterest(tag)}
-                            className="cursor-pointer rounded-full px-2.5 py-0.5 text-[11px] tracking-wide transition hover:brightness-110"
-                            style={{
-                              backgroundColor: `${col}22`,
-                              color: col,
-                              boxShadow: `inset 0 0 0 1px ${col}55`,
-                            }}
+                            className="cursor-pointer rounded-full px-2.5 py-0.5 text-base tracking-wide transition hover:brightness-110"
+                            style={interestChipStyle(
+                              col,
+                              theme === 'light' ? 'light' : 'dark',
+                              'pill',
+                            )}
                           >
                             {tag}
                           </button>
@@ -561,13 +648,13 @@ export default function HubPage() {
                           else setInterestInputOpen(false)
                         }}
                         placeholder="tag"
-                        className="min-w-[5rem] max-w-[180px] bg-transparent text-[11px] text-white/75 outline-none placeholder:text-white/35"
+                        className="min-w-[5rem] max-w-[180px] bg-transparent text-base text-white/75 outline-none placeholder:text-white/35"
                       />
                     ) : (
                       <button
                         type="button"
                         onClick={() => setInterestInputOpen(true)}
-                        className="text-[14px] font-light leading-none text-white/45 transition hover:text-white/78"
+                        className="text-base font-light leading-none text-white/45 transition hover:text-white/78"
                         aria-label="Add interest"
                       >
                         +
@@ -581,12 +668,12 @@ export default function HubPage() {
                       return (
                         <span
                           key={tag}
-                          className="rounded-full px-2.5 py-0.5 text-[11px] tracking-wide"
-                          style={{
-                            backgroundColor: `${col}22`,
-                            color: col,
-                            boxShadow: `inset 0 0 0 1px ${col}44`,
-                          }}
+                          className="rounded-full px-2.5 py-0.5 text-base tracking-wide"
+                          style={interestChipStyle(
+                            col,
+                            theme === 'light' ? 'light' : 'dark',
+                            'pill',
+                          )}
                         >
                           {tag}
                         </span>
@@ -634,7 +721,7 @@ export default function HubPage() {
                       {extraLinks.length < 12 ? (
                         <button
                           type="button"
-                          className="self-start text-[14px] font-light text-white/42 hover:text-white/78"
+                          className="self-start text-base font-light text-white/42 hover:text-white/78"
                           onClick={() => setExtraLinks([...extraLinks, ''])}
                           aria-label="Add link"
                         >
@@ -672,53 +759,58 @@ export default function HubPage() {
 
               <div className="mt-auto pb-2 pt-2">
                 <SectionLabel>Trustees</SectionLabel>
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[10px] text-white/52">
+                <div className="flex flex-wrap items-baseline gap-x-1 gap-y-1 font-mono text-xs leading-relaxed text-white/50">
                   {(profile.trustees ?? []).length ? (
                     profile.trustees!.map((t) => <span key={t}>{t}</span>)
+                  ) : isOwnProfile ? (
+                    <>
+                      <span className="text-white/45">no trustees set.</span>
+                      <span className="text-white/28" aria-hidden>
+                        {' '}
+                        —{' '}
+                      </span>
+                      <button
+                        type="button"
+                        className="bg-transparent p-0 font-mono text-xs text-[#666666] underline-offset-2 hover:text-white/75 hover:underline"
+                        title="Enter 3–5 trustee aliases (comma-separated)"
+                        onClick={() => {
+                          const raw = window.prompt(
+                            'Trustee aliases (comma-separated). Recovery requires 3–5 active nodes.',
+                            (profile.trustees ?? []).join(', '),
+                          )
+                          if (raw == null) return
+                          const list = raw
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                          if (list.length < 3 || list.length > 5) {
+                            window.alert('Please enter between 3 and 5 trustee aliases.')
+                            return
+                          }
+                          void (async () => {
+                            try {
+                              await api<{ trustees: string[] }>('/nodes/me/trustees', {
+                                method: 'PUT',
+                                body: { trustees: list },
+                              })
+                              await load()
+                            } catch (e) {
+                              setError(e instanceof Error ? e.message : 'Trustees update failed')
+                            }
+                          })()
+                        }}
+                      >
+                        add trustee
+                      </button>
+                    </>
                   ) : (
                     <span className="text-white/32">—</span>
                   )}
-                  {isOwnProfile ? (
-                    <button
-                      type="button"
-                      className="text-[13px] font-light text-white/42 hover:text-white/78"
-                      title="Enter 3–5 trustee aliases (comma-separated)"
-                      aria-label="Set trustees"
-                      onClick={() => {
-                        const raw = window.prompt(
-                          'Trustee aliases (comma-separated). Recovery requires 3–5 active nodes.',
-                          (profile.trustees ?? []).join(', '),
-                        )
-                        if (raw == null) return
-                        const list = raw
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                        if (list.length < 3 || list.length > 5) {
-                          window.alert('Please enter between 3 and 5 trustee aliases.')
-                          return
-                        }
-                        void (async () => {
-                          try {
-                            await api<{ trustees: string[] }>('/nodes/me/trustees', {
-                              method: 'PUT',
-                              body: { trustees: list },
-                            })
-                            await load()
-                          } catch (e) {
-                            setError(e instanceof Error ? e.message : 'Trustees update failed')
-                          }
-                        })()
-                      }}
-                    >
-                      +
-                    </button>
-                  ) : null}
                 </div>
               </div>
 
               {saving ? (
-                <span className="pointer-events-none absolute bottom-2 right-3 font-mono text-[9px] text-white/35">Saving…</span>
+                <span className="pointer-events-none absolute bottom-2 right-3 font-mono text-xs text-white/35">Saving…</span>
               ) : null}
             </section>
 
@@ -728,7 +820,7 @@ export default function HubPage() {
                 <SectionLabel>Spaces you&apos;re a part of</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {spaces.length === 0 ? (
-                    <Link to="/spaces/new" className="text-[11px] text-white/48 underline decoration-white/22">
+                    <Link to="/spaces/new" className={hubOutlineAction}>
                       Create a space
                     </Link>
                   ) : (
@@ -754,7 +846,7 @@ export default function HubPage() {
                 <SectionLabel>Active projects</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {activeProjects.length === 0 ? (
-                    <Link to="/projects/new" className="text-[11px] text-white/48 underline decoration-white/22">
+                    <Link to="/projects/new" className={hubOutlineAction}>
                       Start a project
                     </Link>
                   ) : (
@@ -781,7 +873,7 @@ export default function HubPage() {
                 <SectionLabel>Completed projects / NFTs</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {completedTwo.length === 0 ? (
-                    <span className="text-[11px] text-white/38">—</span>
+                    <span className="text-base text-white/38">—</span>
                   ) : (
                     <>
                       {completedTwo.map((c) => (
@@ -804,8 +896,8 @@ export default function HubPage() {
                 <SectionLabel>Archives</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {archives.length === 0 ? (
-                    <Link to="/archive/new" className="text-[11px] text-white/48 underline decoration-white/22">
-                      Document archive
+                    <Link to="/archive/new" className={hubOutlineAction}>
+                      + archive past work
                     </Link>
                   ) : (
                     <>

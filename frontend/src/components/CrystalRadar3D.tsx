@@ -2609,6 +2609,7 @@ export function CrystalRadar3D({
       {/* Large square viewport; overflow visible on parents so layout never clips the art.
           Camera is pulled back so gyro rings + mandala stay fully in frame. */}
       <div
+        data-crystal-viewport=""
         className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] shrink-0 overflow-visible bg-transparent sm:max-w-[44rem]"
         data-target-cursor-exclude=""
         onPointerDown={() => {
@@ -2767,7 +2768,7 @@ export function CrystalRadar3D({
                   Aggregate score:{' '}
                   <strong className="tabular-nums">{Math.round(aggregateReputationScore)}</strong> / 1000
                 </p>
-                <p className={`mt-1 text-small font-sans font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
+                <p className={`mt-1 text-small font-mono font-normal normal-case leading-relaxed tracking-normal ${mutedText}`}>
                   The aggregate is derived from the six category buckets (sum, then clamped to the system cap).
                   Activity awards add points into a specific category; the headline score updates from those buckets.
                 </p>

@@ -1,249 +1,842 @@
 /*
- * Light theme — `html[data-theme="light"]` only. Default (no attribute) = existing dark UI.
- * Broad utility overrides keep Tailwind classnames unchanged across pages.
+ * Light theme — `html[data-theme="light"]` or `html.light-mode`.
+ * Token overrides + Tailwind utility remaps so components stay unchanged.
  */
 
-html[data-theme='light'] {
+html[data-theme='light'],
+html.light-mode {
   color-scheme: light;
+
+  --bg-primary: #f0efe9;
+  --bg-secondary: #e8e7e0;
+  --bg-tertiary: #dddcd5;
+  --border-default: #c5c4bc;
+  --border-focus: #6a6a64;
+  --border-strong: #3a3a36;
+  --text-primary: #111110;
+  --text-secondary: #3a3a36;
+  --text-muted: #6a6a64;
+  --text-placeholder: #9a9a93;
+  --accent-tag-bg: transparent;
+  --accent-tag-border: #6a6a64;
+  --accent-tag-text: #111110;
+
+  --scrollbar-line: #c5c4bc;
+  --scrollbar-firefox-thumb: rgba(58, 58, 54, 0.45);
 }
 
-html[data-theme='light'] body {
-  color: rgba(0, 0, 0, 0.92);
-  background-color: #f0ecf8;
-  background-image: linear-gradient(168deg, #faf8ff 0%, #f2eef9 42%, #e9e4f2 100%);
+html[data-theme='light'] body,
+html.light-mode body {
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  background-image: linear-gradient(
+    168deg,
+    #faf9f6 0%,
+    var(--bg-primary) 42%,
+    #ebeae4 100%
+  );
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
 
-html[data-theme='light'] body::before {
-  opacity: 0.1;
+html[data-theme='light'] body::before,
+html.light-mode body::before {
+  opacity: 0.07;
   mix-blend-mode: multiply;
 }
 
-html[data-theme='light'] body::after {
-  opacity: 0.025;
+html[data-theme='light'] body::after,
+html.light-mode body::after {
+  opacity: 0.02;
 }
 
-html[data-theme='light'] header {
-  border-color: rgba(0, 0, 0, 0.08);
+/* Links — no decorative underlines (colour comes from utilities / context) */
+html[data-theme='light'] a,
+html.light-mode a {
+  text-decoration: none !important;
+  text-underline-offset: unset !important;
 }
 
-html[data-theme='light'] .grid-overlay {
+html[data-theme='light'] main a:hover,
+html.light-mode main a:hover,
+html[data-theme='light'] nav a:hover,
+html.light-mode nav a:hover {
+  color: var(--text-secondary) !important;
+}
+
+/* Navbar shell */
+html[data-theme='light'] header,
+html.light-mode header {
+  background-color: var(--bg-secondary);
+  border-bottom-color: var(--border-default) !important;
+  border-bottom-width: 1px;
+  color: var(--text-primary);
+}
+
+html[data-theme='light'] header .etch-float-caps,
+html.light-mode header .etch-float-caps,
+html[data-theme='light'] header .etch-page-header,
+html.light-mode header .etch-page-header {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .grid-overlay,
+html.light-mode .grid-overlay {
   background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.032) 1px, transparent 1px);
 }
 
-/* Floating chrome */
-html[data-theme='light'] .floating-glass-panel {
-  background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.1);
+/* Floating chrome — borders only */
+html[data-theme='light'] .floating-glass-panel,
+html.light-mode .floating-glass-panel {
+  background-color: var(--bg-secondary) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none !important;
+  border: 1px solid var(--border-default);
 }
 
-html[data-theme='light'] .floating-glass-scrim {
-  background-color: rgba(24, 18, 38, 0.22);
+html[data-theme='light'] .floating-glass-scrim,
+html.light-mode .floating-glass-scrim {
+  background-color: rgba(42, 40, 36, 0.22);
 }
 
-html[data-theme='light'] .etch-float-caps {
-  color: rgb(0 0 0);
+html[data-theme='light'] .etch-float-caps,
+html.light-mode .etch-float-caps {
+  color: var(--text-primary) !important;
 }
 
-html[data-theme='light'] .etch-float-prose {
-  color: rgb(0 0 0);
+html[data-theme='light'] .etch-float-prose,
+html.light-mode .etch-float-prose {
+  color: var(--text-primary) !important;
 }
 
-html[data-theme='light'] .etch-float-menu-item {
-  color: rgb(0 0 0);
-  border-color: rgba(0, 0, 0, 0.08);
+html[data-theme='light'] .etch-float-menu-item,
+html.light-mode .etch-float-menu-item {
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
 }
 
-/* Atmosphere — wash toward paper-violet */
-html[data-theme='light'] .app-atmosphere__base {
-  background-color: #f3f0fa;
-  background-image: linear-gradient(165deg, #faf8ff 0%, #f0ecf9 40%, #e6e0f4 100%);
+html[data-theme='light'] .etch-float-menu-item:hover,
+html.light-mode .etch-float-menu-item:hover {
+  background-color: rgba(26, 26, 24, 0.06) !important;
+  color: var(--text-secondary) !important;
 }
 
-html[data-theme='light'] .app-atmosphere__benday-layer {
-  opacity: 0.38;
+html[data-theme='light'] .etch-field-label,
+html.light-mode .etch-field-label {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] .etch-field-group-title,
+html.light-mode .etch-field-group-title {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme='light'] .etch-field-help,
+html.light-mode .etch-field-help {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .etch-muted,
+html.light-mode .etch-muted {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .etch-section-rule,
+html.light-mode .etch-section-rule {
+  color: var(--text-muted);
+  border-color: var(--border-default);
+}
+
+html[data-theme='light'] .etch-card-title,
+html.light-mode .etch-card-title {
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+html[data-theme='light'] .etch-page-header,
+html.light-mode .etch-page-header {
+  color: var(--text-primary);
+}
+
+html[data-theme='light'] .etch-region-title,
+html.light-mode .etch-region-title {
+  color: var(--text-secondary);
+}
+
+html[data-theme='light'] .etch-meta,
+html.light-mode .etch-meta {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .etch-mono-dim,
+html.light-mode .etch-mono-dim {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .etch-stat-num,
+html.light-mode .etch-stat-num {
+  color: var(--text-muted);
+}
+
+/* Form controls — mirror dark structure */
+html[data-theme='light'] .etch-control,
+html.light-mode .etch-control {
+  border-color: var(--border-default) !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .etch-control::placeholder,
+html.light-mode .etch-control::placeholder {
+  color: var(--text-placeholder) !important;
+}
+
+html[data-theme='light'] .etch-control:focus,
+html.light-mode .etch-control:focus {
+  border-color: var(--border-focus) !important;
+}
+
+html[data-theme='light'] select option,
+html.light-mode select option {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Outlined / contour buttons — strong hairline + invert hover */
+html[data-theme='light'] .glassmorphic-light.contour-border-neutral,
+html.light-mode .glassmorphic-light.contour-border-neutral,
+html[data-theme='light'] .contour-wireframe,
+html.light-mode .contour-wireframe {
+  border-color: var(--border-strong) !important;
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .glassmorphic-light.contour-border-neutral:hover,
+html.light-mode .glassmorphic-light.contour-border-neutral:hover {
+  background-color: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .hover\:border-white\/45:hover,
+html.light-mode .hover\:border-white\/45:hover {
+  border-color: var(--border-strong) !important;
+}
+
+html[data-theme='light'] .hover\:bg-white\/\[0\.06\]:hover,
+html.light-mode .hover\:bg-white\/\[0\.06\]:hover,
+html[data-theme='light'] .hover\:bg-white\/\[0\.05\]:hover,
+html.light-mode .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgba(26, 26, 24, 0.06) !important;
+}
+
+/* Kill decorative shadows site-wide in light */
+html[data-theme='light'] .shadow-sm,
+html.light-mode .shadow-sm,
+html[data-theme='light'] .shadow-lg,
+html.light-mode .shadow-lg,
+html[data-theme='light'] .shadow-\[inset_0_0_0_1px_rgba\(251\,191\,36\,0\.12\)\],
+html.light-mode .shadow-\[inset_0_0_0_1px_rgba\(251\,191\,36\,0\.12\)\] {
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .hover\:shadow-lg:hover,
+html.light-mode .hover\:shadow-lg:hover,
+html[data-theme='light'] .hover\:-translate-y-0\.5:hover,
+html.light-mode .hover\:-translate-y-0\.5:hover {
+  box-shadow: none !important;
+}
+
+/* App atmosphere — warm paper inversion */
+html[data-theme='light'] .app-atmosphere__base,
+html.light-mode .app-atmosphere__base {
+  background-color: var(--bg-primary);
+  background-image: linear-gradient(
+    165deg,
+    #faf9f6 0%,
+    var(--bg-primary) 38%,
+    #e8e7e1 100%
+  );
+}
+
+html[data-theme='light'] .app-atmosphere__benday-layer,
+html.light-mode .app-atmosphere__benday-layer {
+  opacity: 0.28;
   mix-blend-mode: multiply;
 }
 
-html[data-theme='light'] .app-atmosphere__screen-layer {
-  opacity: 0.22;
+html[data-theme='light'] .app-atmosphere__screen-layer,
+html.light-mode .app-atmosphere__screen-layer {
+  opacity: 0.16;
   mix-blend-mode: multiply;
 }
 
-html[data-theme='light'] .app-atmosphere__screen-slip {
-  opacity: 0.22;
+html[data-theme='light'] .app-atmosphere__screen-slip,
+html.light-mode .app-atmosphere__screen-slip {
+  opacity: 0.16;
 }
 
-/* Dashboard crystal row radial wash — lighter footprint so DotField + paper stay airy */
-html[data-theme='light'] .dashboard-crystal-row::before {
-  opacity: 0.26;
+html[data-theme='light'] .dashboard-crystal-row::before,
+html.light-mode .dashboard-crystal-row::before {
+  opacity: 0.2;
 }
 
-/* Common Tailwind ink on light shell — map “white” utilities → black (same opacity steps) */
-html[data-theme='light'] .text-white {
-  color: rgb(0 0 0) !important;
+/* 3D crystal viewport (see data-crystal-viewport on CrystalRadar3D) */
+html[data-theme='light'] [data-crystal-viewport],
+html.light-mode [data-crystal-viewport] {
+  background-color: var(--bg-primary) !important;
 }
 
-html[data-theme='light'] .text-white\/95 {
-  color: rgb(0 0 0 / 0.95) !important;
-}
-html[data-theme='light'] .text-white\/90 {
-  color: rgb(0 0 0 / 0.9) !important;
-}
-html[data-theme='light'] .text-white\/85 {
-  color: rgb(0 0 0 / 0.85) !important;
-}
-html[data-theme='light'] .text-white\/80 {
-  color: rgb(0 0 0 / 0.8) !important;
-}
-html[data-theme='light'] .text-white\/75 {
-  color: rgb(0 0 0 / 0.75) !important;
-}
-html[data-theme='light'] .text-white\/70 {
-  color: rgb(0 0 0 / 0.7) !important;
-}
-html[data-theme='light'] .text-white\/65 {
-  color: rgb(0 0 0 / 0.65) !important;
-}
-html[data-theme='light'] .text-white\/60 {
-  color: rgb(0 0 0 / 0.6) !important;
-}
-html[data-theme='light'] .text-white\/55 {
-  color: rgb(0 0 0 / 0.55) !important;
-}
-html[data-theme='light'] .text-white\/50 {
-  color: rgb(0 0 0 / 0.5) !important;
-}
-html[data-theme='light'] .text-white\/45 {
-  color: rgb(0 0 0 / 0.45) !important;
-}
-html[data-theme='light'] .text-white\/40 {
-  color: rgb(0 0 0 / 0.4) !important;
-}
-html[data-theme='light'] .text-white\/35 {
-  color: rgb(0 0 0 / 0.35) !important;
-}
-html[data-theme='light'] .text-white\/25 {
-  color: rgb(0 0 0 / 0.25) !important;
-}
-html[data-theme='light'] .text-white\/20 {
-  color: rgb(0 0 0 / 0.2) !important;
+/* Proof-of-work strip on hub */
+html[data-theme='light'] .proof-of-work-strip,
+html.light-mode .proof-of-work-strip {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-default);
+  background-color: var(--bg-tertiary);
 }
 
-html[data-theme='light'] .hover\:text-white:hover {
-  color: rgb(0 0 0) !important;
+/* Discover — filter column */
+html[data-theme='light'] aside[data-discover-sidebar],
+html.light-mode aside[data-discover-sidebar] {
+  background-color: var(--bg-secondary);
+  border-radius: 2px;
+  padding: 0.75rem 1rem 1rem;
+  align-self: flex-start;
 }
 
-html[data-theme='light'] .group:hover .group-hover\:text-white {
-  color: rgb(0 0 0) !important;
-}
-html[data-theme='light'] .group:hover .group-hover\:text-white\/85 {
-  color: rgb(0 0 0 / 0.85) !important;
-}
-html[data-theme='light'] .group:hover .group-hover\:text-white\/80 {
-  color: rgb(0 0 0 / 0.8) !important;
-}
-html[data-theme='light'] .group:hover .group-hover\:text-white\/70 {
-  color: rgb(0 0 0 / 0.7) !important;
-}
-html[data-theme='light'] .group:hover .group-hover\:text-white\/60 {
-  color: rgb(0 0 0 / 0.6) !important;
+html[data-theme='light'] .discover-type-toggle.bg-black.text-yellow-400,
+html.light-mode .discover-type-toggle.bg-black.text-yellow-400 {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
-html[data-theme='light'] .placeholder\:text-white\/40::placeholder {
-  color: rgb(0 0 0 / 0.4) !important;
+html[data-theme='light'] .discover-type-toggle.bg-white\/5,
+html.light-mode .discover-type-toggle.bg-white\/5 {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+
+html[data-theme='light'] [data-discover-sidebar] .text-yellow-300\/95,
+html.light-mode [data-discover-sidebar] .text-yellow-300\/95 {
+  color: var(--text-primary) !important;
+}
+
+/* Hash / monospace code — subtle surface */
+html[data-theme='light'] code,
+html.light-mode code,
+html[data-theme='light'] kbd,
+html.light-mode kbd {
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* Governance flag cards + generic dark panels */
+html[data-theme='light'] .rounded-sm.border.border-white\/\[0\.08\].bg-black\/30,
+html.light-mode .rounded-sm.border.border-white\/\[0\.08\].bg-black\/30 {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-teal-400\/35.bg-teal-400\/10.text-teal-100\/88,
+html.light-mode .border-teal-400\/35.bg-teal-400\/10.text-teal-100\/88 {
+  background-color: var(--bg-tertiary) !important;
+  border-color: color-mix(in srgb, #0f766e 70%, #000) !important;
+  color: #0f766e !important;
+}
+
+html[data-theme='light'] .border-amber-400\/40.bg-amber-400\/10.text-amber-100\/90,
+html.light-mode .border-amber-400\/40.bg-amber-400\/10.text-amber-100\/90 {
+  background-color: var(--bg-tertiary) !important;
+  border-color: color-mix(in srgb, #b45309 75%, #000) !important;
+  color: #92400e !important;
+}
+
+html[data-theme='light'] .border-white\/14.bg-white\/\[0\.04\].text-white\/50,
+html.light-mode .border-white\/14.bg-white\/\[0\.04\].text-white\/50 {
+  background-color: transparent !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Project detail — provenance certificate */
+html[data-theme='light'] .border-amber-400\/55.bg-amber-400\/\[0\.06\],
+html.light-mode .border-amber-400\/55.bg-amber-400\/\[0\.06\] {
+  background-color: var(--bg-secondary) !important;
+  border-color: #b8960c !important;
+}
+
+html[data-theme='light'] .text-amber-200\/95,
+html.light-mode .text-amber-200\/95 {
+  color: color-mix(in srgb, #b8960c 85%, var(--text-primary)) !important;
+}
+
+/* Relation chips — outline only on light; flatten pastel fills */
+html[data-theme='light'] .border-fuchsia-400\/40.bg-fuchsia-400\/10,
+html.light-mode .border-fuchsia-400\/40.bg-fuchsia-400\/10 {
+  background-color: transparent !important;
+  border-color: color-mix(in srgb, #c026d3 70%, #000) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .border-sky-400\/40.bg-sky-400\/10,
+html.light-mode .border-sky-400\/40.bg-sky-400\/10 {
+  background-color: transparent !important;
+  border-color: color-mix(in srgb, #0284c7 70%, #000) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .border-amber-400\/45.bg-amber-400\/12,
+html.light-mode .border-amber-400\/45.bg-amber-400\/12 {
+  background-color: transparent !important;
+  border-color: color-mix(in srgb, #d97706 72%, #000) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .border-rose-400\/35.bg-rose-400\/10,
+html.light-mode .border-rose-400\/35.bg-rose-400\/10 {
+  background-color: transparent !important;
+  border-color: color-mix(in srgb, #e11d48 72%, #000) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .border-emerald-400\/40.bg-emerald-400\/10,
+html.light-mode .border-emerald-400\/40.bg-emerald-400\/10 {
+  background-color: transparent !important;
+  border-color: color-mix(in srgb, #059669 72%, #000) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .border-violet-400\/40.bg-violet-400\/10,
+html.light-mode .border-violet-400\/40.bg-violet-400\/10 {
+  background-color: transparent !important;
+  border-color: color-mix(in srgb, #7c3aed 72%, #000) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .border-white\/20.bg-white\/\[0\.06\].text-white\/75,
+html.light-mode .border-white\/20.bg-white\/\[0\.06\].text-white\/75 {
+  background-color: transparent !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Archive — fieldsets & upload dropzone */
+html[data-theme='light'] .border-\[\#2a2a2a\],
+html.light-mode .border-\[\#2a2a2a\] {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-dashed.border-\[\#333\],
+html.light-mode .border-dashed.border-\[\#333\] {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-dashed.border-\[\#333\]:hover,
+html.light-mode .border-dashed.border-\[\#333\]:hover {
+  border-color: var(--border-focus) !important;
+}
+
+/* Registration seed phrase grid */
+html[data-theme='light'] .border-\[\#2a2a2a\].bg-zinc-900\/55,
+html.light-mode .border-\[\#2a2a2a\].bg-zinc-900\/55 {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .text-\[\#555555\],
+html.light-mode .text-\[\#555555\] {
+  color: var(--text-muted) !important;
+}
+
+/* Common Tailwind ink — map white utilities → semantic neutrals */
+html[data-theme='light'] .text-white,
+html.light-mode .text-white {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .text-white\/95,
+html.light-mode .text-white\/95 {
+  color: color-mix(in srgb, var(--text-primary) 95%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/92,
+html.light-mode .text-white\/92 {
+  color: color-mix(in srgb, var(--text-primary) 92%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/90,
+html.light-mode .text-white\/90 {
+  color: color-mix(in srgb, var(--text-primary) 90%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/88,
+html.light-mode .text-white\/88 {
+  color: color-mix(in srgb, var(--text-primary) 88%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/85,
+html.light-mode .text-white\/85 {
+  color: color-mix(in srgb, var(--text-primary) 85%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/82,
+html.light-mode .text-white\/82 {
+  color: color-mix(in srgb, var(--text-primary) 82%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/80,
+html.light-mode .text-white\/80 {
+  color: color-mix(in srgb, var(--text-primary) 80%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/78,
+html.light-mode .text-white\/78 {
+  color: color-mix(in srgb, var(--text-primary) 78%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/75,
+html.light-mode .text-white\/75 {
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/70,
+html.light-mode .text-white\/70 {
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/65,
+html.light-mode .text-white\/65 {
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/60,
+html.light-mode .text-white\/60 {
+  color: color-mix(in srgb, var(--text-secondary) 78%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/58,
+html.light-mode .text-white\/58 {
+  color: color-mix(in srgb, var(--text-secondary) 76%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/55,
+html.light-mode .text-white\/55 {
+  color: color-mix(in srgb, var(--text-secondary) 75%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/52,
+html.light-mode .text-white\/52 {
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/50,
+html.light-mode .text-white\/50 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/45,
+html.light-mode .text-white\/45 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/42,
+html.light-mode .text-white\/42 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/40,
+html.light-mode .text-white\/40 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/38,
+html.light-mode .text-white\/38 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/35,
+html.light-mode .text-white\/35 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/32,
+html.light-mode .text-white\/32 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/30,
+html.light-mode .text-white\/30 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-white\/25,
+html.light-mode .text-white\/25 {
+  color: color-mix(in srgb, var(--text-muted) 80%, transparent) !important;
+}
+
+html[data-theme='light'] .text-white\/20,
+html.light-mode .text-white\/20 {
+  color: color-mix(in srgb, var(--text-muted) 65%, transparent) !important;
+}
+
+html[data-theme='light'] .placeholder\:text-white\/40::placeholder,
+html.light-mode .placeholder\:text-white\/40::placeholder,
+html[data-theme='light'] .placeholder\:text-white\/35::placeholder,
+html.light-mode .placeholder\:text-white\/35::placeholder {
+  color: var(--text-placeholder) !important;
+}
+
+html[data-theme='light'] .hover\:text-white:hover,
+html.light-mode .hover\:text-white:hover {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .group:hover .group-hover\:text-white,
+html.light-mode .group:hover .group-hover\:text-white {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] .group:hover .group-hover\:text-white\/85,
+html.light-mode .group:hover .group-hover\:text-white\/85 {
+  color: color-mix(in srgb, var(--text-primary) 85%, transparent) !important;
+}
+
+html[data-theme='light'] .group:hover .group-hover\:text-white\/80,
+html.light-mode .group:hover .group-hover\:text-white\/80 {
+  color: color-mix(in srgb, var(--text-primary) 80%, transparent) !important;
+}
+
+html[data-theme='light'] .group:hover .group-hover\:text-white\/70,
+html.light-mode .group:hover .group-hover\:text-white\/70 {
+  color: color-mix(in srgb, var(--text-primary) 70%, transparent) !important;
+}
+
+html[data-theme='light'] .group:hover .group-hover\:text-white\/60,
+html.light-mode .group:hover .group-hover\:text-white\/60 {
+  color: color-mix(in srgb, var(--text-primary) 60%, transparent) !important;
 }
 
 /* Panels that read as dark glass in default theme */
-html[data-theme='light'] .bg-zinc-900\/55 {
-  background-color: rgba(255, 255, 255, 0.78) !important;
+html[data-theme='light'] .bg-zinc-900\/55,
+html.light-mode .bg-zinc-900\/55,
+html[data-theme='light'] .bg-zinc-900\/50,
+html.light-mode .bg-zinc-900\/50,
+html[data-theme='light'] .bg-zinc-900\/80,
+html.light-mode .bg-zinc-900\/80 {
+  background-color: var(--bg-primary) !important;
 }
 
-html[data-theme='light'] .bg-zinc-950\/20 {
-  background-color: rgba(255, 255, 255, 0.55) !important;
+html[data-theme='light'] .bg-zinc-950\/20,
+html.light-mode .bg-zinc-950\/20 {
+  background-color: color-mix(in srgb, var(--bg-secondary) 88%, white) !important;
 }
 
-html[data-theme='light'] .bg-zinc-950\/35 {
-  background-color: rgba(255, 255, 255, 0.65) !important;
+html[data-theme='light'] .bg-zinc-950\/35,
+html.light-mode .bg-zinc-950\/35 {
+  background-color: color-mix(in srgb, var(--bg-secondary) 92%, white) !important;
 }
 
-html[data-theme='light'] .bg-zinc-950\/90 {
-  background-color: rgba(255, 255, 255, 0.92) !important;
+html[data-theme='light'] .bg-zinc-950\/80,
+html.light-mode .bg-zinc-950\/80,
+html[data-theme='light'] .bg-zinc-950\/90,
+html.light-mode .bg-zinc-950\/90 {
+  background-color: var(--bg-secondary) !important;
 }
 
-html[data-theme='light'] .bg-zinc-800\/60 {
-  background-color: rgba(244, 244, 246, 0.95) !important;
+html[data-theme='light'] .bg-zinc-800\/60,
+html.light-mode .bg-zinc-800\/60 {
+  background-color: var(--bg-secondary) !important;
 }
 
-html[data-theme='light'] .bg-zinc-800\/80 {
-  background-color: rgba(228, 228, 231, 0.95) !important;
+html[data-theme='light'] .bg-zinc-800\/80,
+html.light-mode .bg-zinc-800\/80 {
+  background-color: var(--bg-tertiary) !important;
 }
 
-html[data-theme='light'] .bg-zinc-700\/35 {
-  background-color: rgba(244, 244, 246, 0.85) !important;
+html[data-theme='light'] .bg-zinc-700\/35,
+html.light-mode .bg-zinc-700\/35 {
+  background-color: var(--bg-secondary) !important;
 }
 
-/* Hairline borders on light */
-html[data-theme='light'] .border-white\/10 {
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-html[data-theme='light'] .border-white\/15 {
-  border-color: rgba(0, 0, 0, 0.1) !important;
-}
-html[data-theme='light'] .border-white\/20 {
-  border-color: rgba(0, 0, 0, 0.12) !important;
-}
-html[data-theme='light'] .border-white\/25 {
-  border-color: rgba(0, 0, 0, 0.14) !important;
-}
-html[data-theme='light'] .border-white\/30 {
-  border-color: rgba(0, 0, 0, 0.16) !important;
+html[data-theme='light'] .bg-neutral-950\/60,
+html.light-mode .bg-neutral-950\/60 {
+  background-color: var(--bg-tertiary) !important;
 }
 
-html[data-theme='light'] .divide-grey-100 {
-  border-color: rgba(0, 0, 0, 0.08);
+html[data-theme='light'] .bg-black\/82,
+html.light-mode .bg-black\/82,
+html[data-theme='light'] .bg-black\/35,
+html.light-mode .bg-black\/35,
+html[data-theme='light'] .bg-black\/30,
+html.light-mode .bg-black\/30,
+html[data-theme='light'] .bg-black\/25,
+html.light-mode .bg-black\/25,
+html[data-theme='light'] .bg-black\/22,
+html.light-mode .bg-black\/22,
+html[data-theme='light'] .bg-black\/20,
+html.light-mode .bg-black\/20,
+html[data-theme='light'] .bg-black\/18,
+html.light-mode .bg-black\/18 {
+  background-color: var(--bg-secondary) !important;
 }
 
-html[data-theme='light'] .border-grey-200 {
-  border-color: rgba(0, 0, 0, 0.12);
+/* Hairline borders */
+html[data-theme='light'] .border-white\/10,
+html.light-mode .border-white\/10 {
+  border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .border-grey-300 {
-  border-color: rgba(0, 0, 0, 0.16);
+html[data-theme='light'] .border-white\/12,
+html.light-mode .border-white\/12 {
+  border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .border-grey-400 {
-  border-color: rgba(0, 0, 0, 0.22);
+html[data-theme='light'] .border-white\/14,
+html.light-mode .border-white\/14 {
+  border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .border-grey-200\/30 {
-  border-color: rgba(0, 0, 0, 0.1) !important;
+html[data-theme='light'] .border-white\/15,
+html.light-mode .border-white\/15 {
+  border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .border-black {
-  border-color: #0a0a0a;
+html[data-theme='light'] .border-white\/16,
+html.light-mode .border-white\/16 {
+  border-color: var(--border-default) !important;
 }
 
-/* Light tints for alert / emphasis panels */
-html[data-theme='light'] .bg-grey-50 {
-  background-color: #f4f4f6;
+html[data-theme='light'] .border-white\/18,
+html.light-mode .border-white\/18 {
+  border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .bg-grey-100 {
-  background-color: #ececf0;
+html[data-theme='light'] .border-white\/20,
+html.light-mode .border-white\/20 {
+  border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .bg-yellow-50 {
-  background-color: #fffbeb;
+html[data-theme='light'] .border-white\/22,
+html.light-mode .border-white\/22 {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-white\/25,
+html.light-mode .border-white\/25 {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-white\/30,
+html.light-mode .border-white\/30 {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-white\/\[0\.07\],
+html.light-mode .border-white\/\[0\.07\] {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-white\/\[0\.08\],
+html.light-mode .border-white\/\[0\.08\] {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .divide-grey-100,
+html.light-mode .divide-grey-100 {
+  border-color: var(--border-default);
+}
+
+html[data-theme='light'] .border-grey-200,
+html.light-mode .border-grey-200 {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-grey-300,
+html.light-mode .border-grey-300 {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-grey-400,
+html.light-mode .border-grey-400 {
+  border-color: var(--border-strong) !important;
+}
+
+html[data-theme='light'] .border-grey-200\/30,
+html.light-mode .border-grey-200\/30 {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-black,
+html.light-mode .border-black {
+  border-color: var(--border-strong) !important;
+}
+
+html[data-theme='light'] .border-\[\#444\],
+html.light-mode .border-\[\#444\],
+html[data-theme='light'] .border-\[\#444444\],
+html.light-mode .border-\[\#444444\] {
+  border-color: var(--border-strong) !important;
+}
+
+html[data-theme='light'] .border-\[\#555\],
+html.light-mode .border-\[\#555\],
+html[data-theme='light'] .border-\[\#555555\],
+html.light-mode .border-\[\#555555\] {
+  border-color: var(--border-default) !important;
+}
+
+html[data-theme='light'] .border-\[\#333\],
+html.light-mode .border-\[\#333\],
+html[data-theme='light'] .border-\[\#333333\],
+html.light-mode .border-\[\#333333\] {
+  border-color: var(--border-strong) !important;
+}
+
+html[data-theme='light'] .bg-grey-50,
+html.light-mode .bg-grey-50 {
+  background-color: var(--bg-primary) !important;
+}
+
+html[data-theme='light'] .bg-grey-100,
+html.light-mode .bg-grey-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html[data-theme='light'] .bg-yellow-50,
+html.light-mode .bg-yellow-50 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html[data-theme='light'] .hover\:border-white:hover,
+html.light-mode .hover\:border-white:hover,
+html[data-theme='light'] .hover\:border-white\/45:hover,
+html.light-mode .hover\:border-white\/45:hover {
+  border-color: var(--border-strong) !important;
+}
+
+html[data-theme='light'] .hover\:bg-white:hover,
+html.light-mode .hover\:bg-white:hover {
+  background-color: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+}
+
+html[data-theme='light'] .hover\:text-\[\#000\]:hover,
+html.light-mode .hover\:text-\[\#000\]:hover {
+  color: var(--bg-primary) !important;
 }
 
 /*
  * Dark shell — grey-50 / grey-100 are light paper. Body ink defaults to white,
- * so without this, alerts and forms read as white-on-paper. Force black ink on
- * these surfaces (including mistaken text-white on the same node or inside).
+ * so without this, alerts and forms read as white-on-paper.
  */
 html:not([data-theme='light']) .bg-grey-100,
 html:not([data-theme='light']) .bg-grey-50 {
@@ -257,21 +850,11 @@ html:not([data-theme='light']) .bg-grey-50 .text-white {
   color: rgba(0, 0, 0, 0.92) !important;
 }
 
-/*
- * Yellow utilities → neon lavender/fuchsia (dark) / deep violet (light).
- * Hover remaps stay saturated — same hex targets as static accents.
- */
+/* Dark — yellow utilities → neon lavender (unchanged) */
 html:not([data-theme='light']) .text-yellow-400 {
   color: #e879f9 !important;
 }
 
-html[data-theme='light'] .text-yellow-400 {
-  color: #7c3aed !important;
-}
-
-/*
- * Hover accents — Tailwind yellow-400 hover remaps per theme (neon purple family).
- */
 html:not([data-theme='light']) .hover\:text-yellow-400:hover {
   color: #f0abfc !important;
 }
@@ -292,22 +875,66 @@ html:not([data-theme='light']) .etch-float-menu-item:hover {
   color: #f0abfc !important;
 }
 
-html[data-theme='light'] .hover\:text-yellow-400:hover {
-  color: #6d28d9 !important;
+/* Light — semantic hover: no purple; nav + accent chips use neutrals */
+html[data-theme='light'] .text-yellow-400,
+html.light-mode .text-yellow-400 {
+  color: var(--text-secondary) !important;
 }
 
-html[data-theme='light'] .hover\:bg-yellow-400:hover {
-  background-color: #8b5cf6 !important;
+html[data-theme='light'] .text-yellow-200,
+html.light-mode .text-yellow-200,
+html[data-theme='light'] .text-yellow-300,
+html.light-mode .text-yellow-300 {
+  color: var(--text-secondary) !important;
 }
 
-html[data-theme='light'] .hover\:bg-yellow-400\/5:hover {
-  background-color: rgba(109, 40, 217, 0.18) !important;
+html[data-theme='light'] .hover\:text-yellow-400:hover,
+html.light-mode .hover\:text-yellow-400:hover,
+html[data-theme='light'] .hover\:text-yellow-200:hover,
+html.light-mode .hover\:text-yellow-200:hover {
+  color: var(--text-secondary) !important;
 }
 
-html[data-theme='light'] .focus-visible\:outline-yellow-400\/50:focus-visible {
-  outline-color: rgba(109, 40, 217, 0.55) !important;
+html[data-theme='light'] .hover\:text-yellow-300\/95:hover,
+html.light-mode .hover\:text-yellow-300\/95:hover {
+  color: var(--text-primary) !important;
 }
 
-html[data-theme='light'] .etch-float-menu-item:hover {
-  color: #6d28d9 !important;
+html[data-theme='light'] .hover\:bg-yellow-400:hover,
+html.light-mode .hover\:bg-yellow-400:hover {
+  background-color: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+}
+
+html[data-theme='light'] .hover\:bg-yellow-400\/5:hover,
+html.light-mode .hover\:bg-yellow-400\/5:hover {
+  background-color: rgba(26, 26, 24, 0.06) !important;
+}
+
+html[data-theme='light'] .focus-visible\:outline-yellow-400\/50:focus-visible,
+html.light-mode .focus-visible\:outline-yellow-400\/50:focus-visible {
+  outline-color: color-mix(in srgb, var(--border-focus) 80%, transparent) !important;
+}
+
+/* Theme control pill — neutral rails (avoid orange / pure white): use attribute hooks */
+html[data-theme='light'] button[aria-label='Switch to dark theme'],
+html.light-mode button[aria-label='Switch to dark theme'] {
+  border-color: var(--border-strong) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+html[data-theme='light'] button[aria-label='Switch to dark theme'] span,
+html.light-mode button[aria-label='Switch to dark theme'] span {
+  background-color: var(--text-primary) !important;
+}
+
+html[data-theme='light'] button[aria-label='Toggle inline hints'],
+html.light-mode button[aria-label='Toggle inline hints'] {
+  border-color: var(--border-strong) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+html[data-theme='light'] button[aria-label='Toggle inline hints'] span,
+html.light-mode button[aria-label='Toggle inline hints'] span {
+  background-color: var(--text-primary) !important;
 }

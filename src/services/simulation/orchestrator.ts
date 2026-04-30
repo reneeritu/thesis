@@ -10,7 +10,8 @@ import { getArcHandler } from './arcs';
 import { ArcContext } from './arcs/types';
 import { recomputeCounters } from './snapshot';
 
-const TICK_DELAY_MS = 250; // visible pacing for the demo
+/** Pause between scripted beats so the UI can catch up and readers can follow. */
+const TICK_DELAY_MS = 900;
 
 export type SeedFn = (state: RunState) => Promise<void>;
 

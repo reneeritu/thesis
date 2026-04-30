@@ -31,6 +31,8 @@ type Props = {
   events: SimEvent[]
   selection: Selection
   onSelect: (s: Selection) => void
+  /** Ghost mode: desaturated, low-opacity nodes for Act 1 */
+  ghostMode?: boolean
 }
 
 function fibonacciSphere(i: number, n: number, radius = 6) {
@@ -151,12 +153,14 @@ function SimScene({
   events,
   selection,
   onSelect,
+  ghostMode,
 }: {
   layout: Layout
   spaceIds: string[]
   events: SimEvent[]
   selection: Selection
   onSelect: Props['onSelect']
+  ghostMode?: boolean
 }) {
   const pulseAt = useRef<Map<string, number>>(new Map())
   const nodeGroups = useRef<Map<string, THREE.Group>>(new Map())
@@ -223,10 +227,16 @@ function SimScene({
     }
   })
 
+  const ghostOpacity = ghostMode ? 0.28 : 1
+  const spaceColor = ghostMode ? '#4a5568' : '#4fd1c5'
+  const spaceEmissive = ghostMode ? '#1a202c' : '#0d9488'
+  const nodeColor = ghostMode ? '#a0a0a0' : '#fef08a'
+  const nodeEmissive = ghostMode ? '#333333' : '#facc15'
+
   return (
     <>
-      <ambientLight intensity={0.35} />
-      <pointLight position={[10, 10, 10]} intensity={0.8} />
+      <ambientLight intensity={ghostMode ? 0.15 : 0.35} />
+      <pointLight position={[10, 10, 10]} intensity={ghostMode ? 0.3 : 0.8} />
       <DynamicEdges spacePos={spacePos} nodeGroups={nodeGroups} edges={edges} />
       {layout.spaces.map((sp) => {
         const id = String(sp._id)
@@ -248,9 +258,11 @@ function SimScene({
               >
                 <sphereGeometry args={[0.6, 24, 24]} />
                 <meshStandardMaterial
-                  color="#4fd1c5"
-                  emissive="#0d9488"
-                  emissiveIntensity={sel ? 1.2 : 0.55}
+                  color={spaceColor}
+                  emissive={spaceEmissive}
+                  emissiveIntensity={ghostMode ? 0.1 : sel ? 1.2 : 0.55}
+                  transparent={ghostMode}
+                  opacity={ghostOpacity}
                   toneMapped={false}
                 />
               </mesh>
@@ -289,9 +301,11 @@ function SimScene({
                 e.stopPropagation()
                 onSelect({ kind: 'node', alias: n.alias })
               }}
-              color="#fef08a"
-              emissive="#facc15"
-              emissiveIntensity={sel ? 1.4 : 0.9}
+              color={nodeColor}
+              emissive={nodeEmissive}
+              emissiveIntensity={ghostMode ? 0.05 : sel ? 1.4 : 0.9}
+              transparent={ghostMode}
+              opacity={ghostOpacity}
             />
           </group>
         )
@@ -352,6 +366,8 @@ function PulsingSphere({
   color,
   emissive,
   emissiveIntensity,
+  transparent,
+  opacity,
 }: {
   radius: number
   pulseKey: string
@@ -361,6 +377,8 @@ function PulsingSphere({
   color: string
   emissive: string
   emissiveIntensity: number
+  transparent?: boolean
+  opacity?: number
 }) {
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {
@@ -377,6 +395,8 @@ function PulsingSphere({
         color={color}
         emissive={emissive}
         emissiveIntensity={emissiveIntensity}
+        transparent={transparent}
+        opacity={opacity ?? 1}
         toneMapped={false}
       />
     </mesh>
@@ -408,6 +428,7 @@ export default function MacroNetworkView({
   events,
   selection,
   onSelect,
+  ghostMode = false,
 }: Props) {
   const [layout, setLayout] = useState<Layout | null>(null)
   const [loading, setLoading] = useState(false)
@@ -482,6 +503,7 @@ export default function MacroNetworkView({
               events={events}
               selection={selection}
               onSelect={onSelect}
+              ghostMode={ghostMode}
             />
           )}
         </Suspense>

@@ -73,7 +73,7 @@ export function ReferenceForm({ projectId, onDone }: Props) {
               value={otherExplanation}
               onChange={(e) => setOtherExplanation(e.target.value)}
               required
-              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
             />
           </div>
         )}
@@ -122,7 +122,7 @@ export function ReferenceForm({ projectId, onDone }: Props) {
               onChange={(e) => setCitation(e.target.value)}
               required
               rows={3}
-              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
             />
           </div>
         )}

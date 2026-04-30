@@ -28,6 +28,20 @@
     --scrollbar-gutter: 12px;
     --scrollbar-line: #555556;
     --scrollbar-firefox-thumb: rgba(130, 130, 140, 0.5);
+
+    /* Mono stack — hints tooltips and shared monospace surfaces */
+    --font-mono:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+      monospace;
+
+    /* Etch typography scale — use via Tailwind text-xs … text-2xl or .etch-* component classes */
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-base: 14px;
+    --text-md: 15px;
+    --text-lg: 16px;
+    --text-xl: 18px;
+    --text-2xl: 22px;
   }
 
   html {
@@ -44,7 +58,7 @@
 
   body {
     @apply m-0 h-full min-h-0 max-h-full min-w-[80vw] max-w-[100vw] w-full overflow-x-visible overflow-y-hidden;
-    @apply bg-grey-50 text-body leading-snug font-sans;
+    @apply bg-grey-50 text-base leading-snug font-mono;
     color: rgba(255, 255, 255, 0.92);
     /* Only change from paper: desaturated blue–violet black (all other body chrome unchanged) */
     background-color: #0a0712;
@@ -113,49 +127,28 @@
     @apply flex h-full min-h-0 min-w-[80vw] max-h-full max-w-[100vw] w-full flex-col overflow-x-visible;
   }
 
-  /* Wireframe scrollbars — hollow outlined thumb + 1px center-line track (see ::-webkit-scrollbar-track:* orientation). */
+  /* Thin scrollbars — 4px thumb, transparent track (see html.light-mode for light thumb). */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-firefox-thumb) transparent;
+    scrollbar-color: #2a2a2a transparent;
   }
 
   *::-webkit-scrollbar {
-    width: var(--scrollbar-gutter);
-    height: var(--scrollbar-gutter);
+    width: 4px;
+    height: 4px;
   }
 
   *::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-
-  *::-webkit-scrollbar-track:vertical {
-    background-image: linear-gradient(
-      90deg,
-      transparent 0,
-      transparent calc(50% - 0.5px),
-      var(--scrollbar-line) calc(50% - 0.5px),
-      var(--scrollbar-line) calc(50% + 0.5px),
-      transparent calc(50% + 0.5px),
-      transparent 100%
-    );
-  }
-
-  *::-webkit-scrollbar-track:horizontal {
-    background-image: linear-gradient(
-      180deg,
-      transparent 0,
-      transparent calc(50% - 0.5px),
-      var(--scrollbar-line) calc(50% - 0.5px),
-      var(--scrollbar-line) calc(50% + 0.5px),
-      transparent calc(50% + 0.5px),
-      transparent 100%
-    );
+    background: transparent;
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: transparent;
-    border-radius: 9999px;
-    box-shadow: inset 0 0 0 1px var(--scrollbar-line);
+    background: #2a2a2a;
+    border-radius: 2px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #444444;
   }
 
   *::-webkit-scrollbar-button {
@@ -167,10 +160,23 @@
   *::-webkit-scrollbar-corner {
     background-color: transparent;
   }
+
+  html.light-mode * {
+    scrollbar-color: #c0bfb8 transparent;
+  }
+
+  html.light-mode *::-webkit-scrollbar-thumb {
+    background: #c0bfb8;
+  }
+
+  html.light-mode *::-webkit-scrollbar-thumb:hover {
+    background: #a8a7a0;
+  }
 }
 
+/* Custom TargetCursor draws loading state; avoid OS wait cursor (box/hourglass). */
 body.is-loading {
-  cursor: wait;
+  cursor: none;
 }
 
 body.is-done {
@@ -183,7 +189,7 @@ h3,
 h4,
 h5,
 h6 {
-  @apply font-heading;
+  @apply font-mono;
   color: inherit;
 }
 
@@ -264,15 +270,100 @@ a {
    * Floating menus / drawers: minimum 14px rhythm. Caps + mono for chrome; sans + sentence case for prose.
    */
   .etch-float-caps {
-    @apply font-mono text-small uppercase tracking-[0.14em] text-white;
+    @apply font-mono font-medium uppercase tracking-[0.14em] text-white;
+    font-size: var(--text-md);
   }
 
   .etch-float-prose {
-    @apply font-sans text-small font-normal normal-case leading-relaxed tracking-normal text-white;
+    @apply font-mono font-normal normal-case leading-relaxed tracking-normal text-white;
+    font-size: var(--text-base);
   }
 
   .etch-float-menu-item {
-    @apply block border-b border-grey-100/20 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] text-white last:border-b-0 hover:bg-white/10 hover:text-yellow-400;
+    @apply block border-b border-grey-100/20 px-3 py-2 font-mono font-medium uppercase tracking-[0.14em] text-white last:border-b-0 hover:bg-white/10 hover:text-yellow-400;
+    font-size: var(--text-md);
+  }
+
+  /* ─── Etch semantic type (prefer these over raw text-[Npx] in TSX) ─── */
+  .etch-field-label {
+    @apply mb-1.5 block font-mono font-medium uppercase tracking-[0.18em] text-white/45;
+    font-size: var(--text-md);
+  }
+
+  .etch-field-group-title {
+    @apply m-0 mb-2 font-mono font-medium uppercase tracking-[0.18em] text-white/45;
+    font-size: var(--text-md);
+  }
+
+  .etch-field-help {
+    @apply mt-1 font-mono font-normal leading-snug text-[#444];
+    font-size: var(--text-base);
+  }
+
+  .etch-muted {
+    @apply font-mono font-normal leading-relaxed text-[#555];
+    font-size: var(--text-xs);
+  }
+
+  .etch-section-rule {
+    @apply shrink-0 font-mono font-medium uppercase tracking-[0.14em];
+    font-size: var(--text-sm);
+    color: #555;
+  }
+
+  .etch-card-title {
+    @apply font-mono font-medium uppercase tracking-[0.14em];
+    font-size: var(--text-lg);
+    color: #aaa;
+  }
+
+  .etch-page-header {
+    @apply font-mono font-semibold uppercase tracking-[0.22em] text-white;
+    font-size: var(--text-xl);
+  }
+
+  .etch-region-title {
+    @apply font-mono font-medium uppercase tracking-[0.2em] text-white/75;
+    font-size: var(--text-lg);
+  }
+
+  .etch-chip {
+    @apply font-mono font-normal uppercase tracking-[0.12em];
+    font-size: var(--text-xs);
+  }
+
+  .etch-meta {
+    @apply font-mono font-normal text-white/45;
+    font-size: var(--text-sm);
+  }
+
+  .etch-mono-dim {
+    @apply font-mono font-normal text-[#666];
+    font-size: var(--text-sm);
+  }
+
+  .etch-stat-num {
+    @apply font-mono font-normal tabular-nums;
+    font-size: var(--text-xs);
+    color: #555;
+  }
+
+  .etch-control {
+    @apply w-full rounded-sm border border-[#2a2a2a] bg-[#0a0a0f] px-3 py-2.5 leading-snug outline-none transition font-mono font-normal;
+    font-size: var(--text-base);
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .etch-control::placeholder {
+    color: rgba(255, 255, 255, 0.28);
+  }
+
+  .etch-control:focus {
+    border-color: #555;
+  }
+
+  .etch-select {
+    @apply etch-control appearance-none cursor-pointer pr-9;
   }
 
   /*

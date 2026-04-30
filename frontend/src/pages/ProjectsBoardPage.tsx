@@ -96,62 +96,33 @@ export default function ProjectsBoardPage() {
 
   const { ongoing, finished, archive } = partitionProjectRows(rows)
 
-  const shellBtn =
-    'border border-solid px-3 py-1 font-mono text-small uppercase tracking-[0.18em] transition hover:bg-white/[0.06]'
-  const shellBtnStyle = {
-    backgroundColor: 'transparent',
-    borderColor: '#e8e8e8',
-    color: '#e8e8e8',
-  } as const
-
-  const columnHeaderStyle = {
-    letterSpacing: '3px',
-    borderBottom: '1px solid #1e2030',
-    paddingBottom: 8,
-  } as const
+  const shellBtnOutline =
+    'etch-outlined-press border border-[#444444] bg-transparent px-3 py-1 font-mono text-small uppercase tracking-[0.18em] text-white/88 transition hover:border-white/45 hover:bg-white/[0.06] hover:text-white'
 
   function Column({
     title,
     items,
-    archiveColumn,
+    emptyText,
   }: {
     title: string
     items: ProjectRow[]
-    archiveColumn?: boolean
+    emptyText: string
   }) {
     return (
       <div className="space-y-2">
-        <h2
-          className="text-small font-heading uppercase text-white"
-          style={columnHeaderStyle}
-        >
+        <h2 className="border-b border-[#333333] pb-2 font-mono text-small uppercase tracking-[0.14em] text-[#555555]">
           {title}
         </h2>
         {items.length === 0 ? (
-          archiveColumn ? (
-            <div
-              className="min-h-[8rem] font-mono text-small"
-              style={{
-                border: '1px dashed #1e2030',
-                padding: 20,
-                color: '#333',
-              }}
-            >
-              No archived projects yet.
-            </div>
-          ) : (
-            <p className="min-h-[8rem] border border-dashed border-white/20 px-3 py-3 text-small text-white">
-              None.
-            </p>
-          )
+          <p className="m-0 font-mono text-small leading-relaxed text-[#555555]">{emptyText}</p>
         ) : (
-          <div className="min-h-[8rem] space-y-2">
+          <div className="min-h-0 space-y-2">
             {items.map((item) =>
               item.project ? (
                 <Link
                   key={item.project._id}
                   to={`/projects/${encodeURIComponent(item.project._id)}`}
-                  className="group flex flex-col overflow-hidden rounded-sm border border-white/25 bg-zinc-900/55 text-small transition hover:bg-black hover:border-white/35"
+                  className="etch-card-hover-border group flex flex-col overflow-hidden rounded-sm border border-white/25 bg-zinc-900/55 text-small transition hover:border-white/38 hover:bg-black"
                 >
                   <div className="relative h-[140px] w-full shrink-0 overflow-hidden bg-neutral-950/60">
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
@@ -206,25 +177,29 @@ export default function ProjectsBoardPage() {
         ) : null}
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="m-0 text-small text-white">Your projects across all spaces.</p>
+          <p className="m-0 text-base text-white/90">Your projects across all spaces.</p>
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/projects/search"
-              className={shellBtn}
-              style={shellBtnStyle}
-            >
+            <Link to="/projects/search" className={shellBtnOutline}>
               Search
             </Link>
-            <Link to="/projects/new" className={shellBtn} style={shellBtnStyle}>
+            <Link to="/projects/new" className={shellBtnOutline}>
               + New project
             </Link>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Column title="Ongoing / Active" items={ongoing} />
-          <Column title="Finished / Credited" items={finished} />
-          <Column title="Archive" items={archive} archiveColumn />
+          <Column
+            title="Ongoing / Active"
+            items={ongoing}
+            emptyText="no active projects. start one from a space."
+          />
+          <Column
+            title="Finished / Credited"
+            items={finished}
+            emptyText="no completed projects yet."
+          />
+          <Column title="Archive" items={archive} emptyText="no archived work." />
         </div>
       </div>
     </AppShell>

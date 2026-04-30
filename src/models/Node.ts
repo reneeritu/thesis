@@ -19,6 +19,8 @@ export interface IChainNode extends Document {
   tokenVersion: number;
   trustees: string[];
   interests: string[];
+  tools: string[];
+  mediums: string[];
   portfolioUrl: string;
   keywords: string[];
   /** Short public prose — drives hub “personal statement”. */
@@ -73,6 +75,8 @@ const chainNodeSchema = new Schema<IChainNode>(
       },
     },
     interests: { type: [String], default: [] },
+    tools: { type: [String], default: [] },
+    mediums: { type: [String], default: [] },
     portfolioUrl: { type: String, default: '' },
     keywords: { type: [String], default: [] },
     profileStatement: { type: String, default: '' },

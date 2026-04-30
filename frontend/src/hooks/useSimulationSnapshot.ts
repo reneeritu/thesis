@@ -28,7 +28,8 @@ export function useSimulationSnapshot(simRunId: string | null) {
         if (cancelled.current) return
         setSnapshot(s)
         setError(null)
-        const interval = s.status === 'running' || s.status === 'seeding' ? 1000 : 3000
+        const interval =
+          s.status === 'running' || s.status === 'seeding' ? 320 : 3000
         timer = setTimeout(tick, interval)
       } catch (e) {
         if (cancelled.current) return

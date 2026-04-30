@@ -47,7 +47,7 @@ export function ForkForm({ projectId, onDone }: Props) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
           />
         </div>
 
@@ -58,7 +58,7 @@ export function ForkForm({ projectId, onDone }: Props) {
             onChange={(e) => setForkReason(e.target.value)}
             required
             rows={3}
-            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
           />
         </div>
 

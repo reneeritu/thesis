@@ -30,8 +30,8 @@ export function Button({
       disabled={disabled || loading}
       className={[
         'font-mono text-small uppercase tracking-[0.2em] px-4 py-2 sm:px-6 transition',
-        'active:scale-[0.98]',
-        loading ? 'cursor-wait opacity-80' : '',
+        'active:scale-[0.97]',
+        loading ? 'cursor-wait opacity-90' : '',
         variantClass[variant],
         className,
       ]
@@ -39,7 +39,13 @@ export function Button({
         .join(' ')}
       {...rest}
     >
-      {children}
+      {loading ? (
+        <span className="inline-flex min-w-[1.25em] items-center justify-center" aria-busy="true">
+          <span className="etch-loading-caret">_</span>
+        </span>
+      ) : (
+        children
+      )}
     </button>
   )
 }

@@ -123,16 +123,16 @@ function MediaThumbCard({ m }: { m: MediaItem }) {
         {isImage ? (
           <img src={src} alt="" className="h-full w-full object-cover opacity-95 transition group-hover:opacity-100" loading="lazy" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
+          <div className="flex h-full w-full items-center justify-center font-mono text-xs uppercase tracking-[0.14em] text-white/35">
             {m.mimeType.split('/')[0] || 'file'}
           </div>
         )}
       </div>
       <div className="min-w-0 border-t border-white/10 px-2 py-2">
-        <p className="m-0 truncate font-mono text-[11px] text-white/82" title={m.originalName}>
+        <p className="m-0 truncate font-mono text-base text-white/82" title={m.originalName}>
           {m.originalName}
         </p>
-        <p className="m-0 mt-0.5 font-mono text-[10px] text-white/38">{dateStr}</p>
+        <p className="m-0 mt-0.5 font-mono text-xs text-white/38">{dateStr}</p>
       </div>
     </a>
   )
@@ -351,7 +351,7 @@ export default function ProjectDetailPage() {
     <button
       type="button"
       onClick={() => toggle(form)}
-      className={`shrink-0 rounded-sm border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition ${
+      className={`shrink-0 rounded-sm border px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] transition ${
         activeForm === form
           ? 'border-yellow-400 bg-yellow-400/20 text-yellow-200'
           : primary
@@ -382,7 +382,7 @@ export default function ProjectDetailPage() {
     <AppShell title={project?.title || 'Project'} scrollMain>
       <div className="font-mono text-white">
         {error && (
-          <p className="mb-4 border border-white/15 bg-black/40 px-3 py-2 text-[12px]" role="alert">
+          <p className="mb-4 border border-white/15 bg-black/40 px-3 py-2 text-xs" role="alert">
             {error}
           </p>
         )}
@@ -405,7 +405,7 @@ export default function ProjectDetailPage() {
                 <h1 className="m-0 max-w-[90vw] font-mono text-[clamp(1.35rem,3vw,2rem)] font-semibold uppercase tracking-[0.08em] leading-tight text-white">
                   {project.title}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-base uppercase tracking-[0.12em]">
                   <span className="inline-flex items-center rounded-sm border border-yellow-400/50 bg-yellow-400/10 px-2 py-0.5 text-yellow-200/95">
                     {project.status}
                   </span>
@@ -417,7 +417,7 @@ export default function ProjectDetailPage() {
                       type="button"
                       onClick={() => void exportProject()}
                       disabled={exportBusy}
-                      className="text-[10px] tracking-[0.14em] text-white/38 underline decoration-white/18 underline-offset-2 transition hover:text-white/65 disabled:opacity-60"
+                      className="text-xs tracking-[0.14em] text-white/38 underline decoration-white/18 underline-offset-2 transition hover:text-white/65 disabled:opacity-60"
                       title="Download project export JSON"
                     >
                       {exportBusy ? 'Exporting…' : 'Export JSON'}
@@ -427,7 +427,7 @@ export default function ProjectDetailPage() {
                 <p className="m-0">
                   <Link
                     to={`/spaces/${encodeURIComponent(project.spaceId)}`}
-                    className="font-mono text-[12px] text-white/45 transition hover:text-white/72"
+                    className="font-mono text-xs text-white/45 transition hover:text-white/72"
                   >
                     {spaceName ?? 'Space'}
                   </Link>
@@ -436,9 +436,9 @@ export default function ProjectDetailPage() {
 
               {isActive && !amListed && isPublic ? (
                 <section className="rounded-sm border border-white/12 bg-black/25 px-4 py-4 space-y-3">
-                  <p className="m-0 text-[10px] uppercase tracking-[0.2em] text-white/45">Collaborate</p>
+                  <p className="m-0 text-xs uppercase tracking-[0.2em] text-white/45">Collaborate</p>
                   {!isLoggedIn ? (
-                    <p className="m-0 text-[12px] text-white/65">
+                    <p className="m-0 text-xs text-white/65">
                       <Link to="/login" className="text-yellow-400/90 underline underline-offset-2">
                         Log in
                       </Link>{' '}
@@ -451,18 +451,18 @@ export default function ProjectDetailPage() {
                           value={joinReqNote}
                           onChange={(e) => setJoinReqNote(e.target.value)}
                           placeholder="short note (optional)"
-                          className="min-w-[200px] flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2 text-[12px] outline-none placeholder:text-white/30 focus:border-white/28"
+                          className="min-w-[200px] flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2 text-xs outline-none placeholder:text-white/30 focus:border-white/28"
                         />
                         <button
                           type="button"
                           disabled={joinReqBusy}
                           onClick={() => void sendJoinRequest()}
-                          className="rounded-sm border border-yellow-400/90 bg-yellow-400 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
+                          className="rounded-sm border border-yellow-400/90 bg-yellow-400 px-4 py-2 text-base uppercase tracking-[0.14em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
                         >
                           {joinReqBusy ? 'Sending…' : 'Request to collaborate'}
                         </button>
                       </div>
-                      {joinReqMsg ? <p className="m-0 text-[12px] text-white/65">{joinReqMsg}</p> : null}
+                      {joinReqMsg ? <p className="m-0 text-xs text-white/65">{joinReqMsg}</p> : null}
                     </>
                   )}
                 </section>
@@ -470,7 +470,7 @@ export default function ProjectDetailPage() {
 
               {myPendingInvite && (
                 <section className="rounded-sm border border-amber-400/35 bg-amber-400/8 px-4 py-4 space-y-3">
-                  <p className="m-0 text-[11px] uppercase tracking-[0.16em] text-amber-100/95">
+                  <p className="m-0 text-base uppercase tracking-[0.16em] text-amber-100/95">
                     You&apos;ve been invited as a contributor
                   </p>
                   <div className="flex gap-2">
@@ -478,7 +478,7 @@ export default function ProjectDetailPage() {
                       type="button"
                       disabled={respondBusy}
                       onClick={() => void respondContributor(true)}
-                      className="rounded-sm border border-yellow-400 bg-yellow-400 px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
+                      className="rounded-sm border border-yellow-400 bg-yellow-400 px-4 py-1.5 text-base uppercase tracking-[0.14em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
                     >
                       Accept
                     </button>
@@ -486,7 +486,7 @@ export default function ProjectDetailPage() {
                       type="button"
                       disabled={respondBusy}
                       onClick={() => void respondContributor(false)}
-                      className="rounded-sm border border-white/18 px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white/65 transition hover:border-white/35 disabled:opacity-60"
+                      className="rounded-sm border border-white/18 px-4 py-1.5 text-base uppercase tracking-[0.14em] text-white/65 transition hover:border-white/35 disabled:opacity-60"
                     >
                       Decline
                     </button>
@@ -498,14 +498,14 @@ export default function ProjectDetailPage() {
               <section className="space-y-2">
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/38">Contributors</span>
+                    <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/38">Contributors</span>
                     <span className="h-px min-w-[2rem] flex-1 bg-white/12" aria-hidden />
                   </div>
                   {isActive && isLoggedIn && amPrimary ? (
                     <button
                       type="button"
                       onClick={() => setInviteOpen((v) => !v)}
-                      className="shrink-0 rounded-sm border border-white/18 bg-black/35 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/65 transition hover:border-white/38 hover:text-white/88"
+                      className="shrink-0 rounded-sm border border-white/18 bg-black/35 px-3 py-1.5 font-mono text-xs uppercase tracking-[0.18em] text-white/65 transition hover:border-white/38 hover:text-white/88"
                     >
                       + Invite
                     </button>
@@ -519,25 +519,25 @@ export default function ProjectDetailPage() {
                         value={inviteAlias}
                         onChange={(e) => setInviteAlias(e.target.value)}
                         placeholder="alias"
-                        className="min-w-[140px] flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2 text-[12px] outline-none placeholder:text-white/30"
+                        className="min-w-[140px] flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2 text-xs outline-none placeholder:text-white/30"
                       />
                       <input
                         value={inviteRole}
                         onChange={(e) => setInviteRole(e.target.value)}
                         placeholder="role (optional)"
-                        className="min-w-[120px] flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2 text-[12px] outline-none placeholder:text-white/30"
+                        className="min-w-[120px] flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2 text-xs outline-none placeholder:text-white/30"
                       />
                       <button
                         type="button"
                         disabled={inviteBusy || !inviteAlias.trim()}
                         onClick={() => void sendInvite()}
-                        className="rounded-sm border border-yellow-400/80 bg-yellow-400 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
+                        className="rounded-sm border border-yellow-400/80 bg-yellow-400 px-4 py-2 text-base uppercase tracking-[0.14em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
                       >
                         {inviteBusy ? 'Sending…' : 'Send'}
                       </button>
                     </div>
-                    {inviteMsg ? <p className="m-0 text-[12px] text-white/65">{inviteMsg}</p> : null}
-                    <p className="m-0 text-[11px] text-white/42">
+                    {inviteMsg ? <p className="m-0 text-xs text-white/65">{inviteMsg}</p> : null}
+                    <p className="m-0 text-base text-white/42">
                       They&apos;ll get a notification to accept or decline. Your node:{' '}
                       <Link to={`/nodes/${encodeURIComponent(meAlias)}`} className="text-white/55 underline decoration-white/22">
                         /nodes/{meAlias}
@@ -559,21 +559,21 @@ export default function ProjectDetailPage() {
                         <div className="flex min-w-0 flex-1 items-center gap-x-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           <Link
                             to={`/nodes/${encodeURIComponent(c.alias)}`}
-                            className="shrink-0 font-mono text-[13px] lowercase tracking-normal text-white/88 hover:text-white"
+                            className="shrink-0 font-mono text-sm lowercase tracking-normal text-white/88 hover:text-white"
                           >
                             {c.alias.toLowerCase()}
                           </Link>
-                          <span className="shrink-0 rounded-sm border border-white/14 bg-white/[0.04] px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">
+                          <span className="shrink-0 rounded-sm border border-white/14 bg-white/[0.04] px-1.5 py-px font-mono text-xs uppercase tracking-[0.12em] text-white/55">
                             {contributorRoleLabel(c)}
                           </span>
                           {c.isPrimary ? (
-                            <span className="shrink-0 rounded-sm border border-yellow-400/45 bg-yellow-400/10 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.12em] text-yellow-200/90">
+                            <span className="shrink-0 rounded-sm border border-yellow-400/45 bg-yellow-400/10 px-1.5 py-px font-mono text-xs uppercase tracking-[0.12em] text-yellow-200/90">
                               Primary
                             </span>
                           ) : null}
                           {c.accepted === null ? (
                             <span
-                              className="shrink-0 rounded-sm border border-white/16 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-white/45"
+                              className="shrink-0 rounded-sm border border-white/16 px-1.5 py-px font-mono text-xs uppercase tracking-[0.1em] text-white/45"
                               title="Waiting on response"
                             >
                               Pending
@@ -584,17 +584,17 @@ export default function ProjectDetailPage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-[12px] text-white/42">No contributors listed.</p>
+                  <p className="text-xs text-white/42">No contributors listed.</p>
                 )}
               </section>
 
               {contextText ? (
                 <section className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/38">About</span>
+                    <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/38">About</span>
                     <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
                   </div>
-                  <p className="m-0 max-w-[62ch] text-[14px] leading-relaxed text-white/72">{contextText}</p>
+                  <p className="m-0 max-w-[62ch] text-base leading-relaxed text-white/72">{contextText}</p>
                 </section>
               ) : null}
 
@@ -638,11 +638,11 @@ export default function ProjectDetailPage() {
               {/* Proof & media */}
               <section className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/38">Proof &amp; media</span>
+                  <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/38">Proof &amp; media</span>
                   <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
                 </div>
                 {mediaItems.length === 0 ? (
-                  <p className="m-0 text-[12px] text-white/35">No media attached yet.</p>
+                  <p className="m-0 text-xs text-white/35">No media attached yet.</p>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {mediaItems.map((m) => (
@@ -651,7 +651,7 @@ export default function ProjectDetailPage() {
                   </div>
                 )}
                 {mediaItems.length > 0 ? (
-                  <details className="rounded-sm border border-white/10 bg-black/20 px-3 py-2 text-[11px] text-white/45">
+                  <details className="rounded-sm border border-white/10 bg-black/20 px-3 py-2 text-base text-white/45">
                     <summary className="cursor-pointer font-mono uppercase tracking-[0.14em] text-white/55">
                       Verification details
                     </summary>
@@ -667,7 +667,7 @@ export default function ProjectDetailPage() {
                             hash={m.hash}
                             originalName={m.originalName}
                           />
-                          <p className="mt-2 font-mono text-[10px] text-white/38">
+                          <p className="mt-2 font-mono text-xs text-white/38">
                             SHA-256 · <span className="break-all text-white/55">{m.hash}</span>
                           </p>
                         </li>
@@ -680,11 +680,11 @@ export default function ProjectDetailPage() {
               {/* References (logged contracts) */}
               <section className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/38">References</span>
+                  <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/38">References</span>
                   <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
                 </div>
                 {referencesList.length === 0 ? (
-                  <p className="m-0 text-[12px] text-white/35">No references declared.</p>
+                  <p className="m-0 text-xs text-white/35">No references declared.</p>
                 ) : (
                   <ul className="m-0 list-none divide-y divide-white/10 p-0">
                     {referencesList.map((r) => (
@@ -698,17 +698,17 @@ export default function ProjectDetailPage() {
               {pivotsList.length > 0 ? (
                 <section className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/38">Pivot points</span>
+                    <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/38">Pivot points</span>
                     <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
                   </div>
                   <ul className="m-0 list-none space-y-2 border-l border-amber-400/25 pl-3 p-0">
                     {pivotsList.map((pv) => (
                       <li key={pv._id} className="space-y-1">
-                        <p className="m-0 font-mono text-[11px] text-white/55">
+                        <p className="m-0 font-mono text-base text-white/55">
                           {pv.createdAt ? new Date(pv.createdAt).toLocaleString() : '—'} ·{' '}
                           <span className="font-mono lowercase text-white/78">{String(pv.nodeAlias ?? '—').toLowerCase()}</span>
                         </p>
-                        <p className="m-0 text-[13px] leading-relaxed text-white/72">{pv.reason ?? '—'}</p>
+                        <p className="m-0 text-sm leading-relaxed text-white/72">{pv.reason ?? '—'}</p>
                       </li>
                     ))}
                   </ul>
@@ -724,12 +724,12 @@ export default function ProjectDetailPage() {
                     <ProvenanceChainLockIcon className="shrink-0 text-amber-400/90" />
                     <h2
                       id="provenance-cert-heading"
-                      className="m-0 font-mono text-[10px] uppercase tracking-[0.28em] text-amber-100/95"
+                      className="m-0 font-mono text-xs uppercase tracking-[0.28em] text-amber-100/95"
                     >
                       PROVENANCE CERTIFICATE
                     </h2>
                   </div>
-                  <p className="mt-4 mb-0 font-mono text-[11px] leading-relaxed text-white/65">
+                  <p className="mt-4 mb-0 font-mono text-base leading-relaxed text-white/65">
                     <span className="text-white/38">Minted</span>{' '}
                     {creditBundle?.nft?.createdAt
                       ? new Date(creditBundle.nft.createdAt).toLocaleString(undefined, {
@@ -745,7 +745,7 @@ export default function ProjectDetailPage() {
                   </p>
 
                   {contributors.filter((c) => c.accepted !== false).length === 0 ? (
-                    <p className="mt-4 mb-0 border-t border-amber-400/15 pt-4 font-mono text-[12px] text-white/42">
+                    <p className="mt-4 mb-0 border-t border-amber-400/15 pt-4 font-mono text-xs text-white/42">
                       No contributors on record.
                     </p>
                   ) : (
@@ -763,7 +763,7 @@ export default function ProjectDetailPage() {
                           return (
                             <li
                               key={c.alias}
-                              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-amber-400/[0.07] py-2 font-mono text-[12px] last:border-b-0"
+                              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-amber-400/[0.07] py-2 font-mono text-xs last:border-b-0"
                             >
                               <span className="lowercase text-white/88">{c.alias.toLowerCase()}</span>
                               <span className="text-right text-white/48">
@@ -783,9 +783,9 @@ export default function ProjectDetailPage() {
                     </ul>
                   )}
 
-                  <p className="mt-5 border-t border-amber-400/15 pt-4 font-mono text-[9px] uppercase tracking-[0.22em] text-white/32">
+                  <p className="mt-5 border-t border-amber-400/15 pt-4 font-mono text-xs uppercase tracking-[0.22em] text-white/32">
                     CHAIN RECORD VERIFIED
-                    <span className="mt-2 block break-all font-mono text-[10px] normal-case tracking-[0.04em] text-white/38">
+                    <span className="mt-2 block break-all font-mono text-xs normal-case tracking-[0.04em] text-white/38">
                       {project._id}
                     </span>
                   </p>
@@ -796,12 +796,12 @@ export default function ProjectDetailPage() {
                         type="button"
                         onClick={() => void exportProject()}
                         disabled={exportBusy}
-                        className="cursor-pointer border-0 bg-transparent p-0 font-mono text-[11px] uppercase tracking-[0.22em] text-amber-200/90 underline decoration-amber-400/40 underline-offset-[5px] transition hover:text-amber-50 hover:decoration-amber-300/60 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="cursor-pointer border-0 bg-transparent p-0 font-mono text-base uppercase tracking-[0.22em] text-amber-200/90 underline decoration-amber-400/40 underline-offset-[5px] transition hover:text-amber-50 hover:decoration-amber-300/60 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {exportBusy ? 'Exporting…' : 'Export'}
                       </button>
                     ) : (
-                      <p className="m-0 font-mono text-[10px] leading-relaxed text-white/38">
+                      <p className="m-0 font-mono text-xs leading-relaxed text-white/38">
                         Sign in as a contributor to export the chain JSON.
                       </p>
                     )}
@@ -814,7 +814,7 @@ export default function ProjectDetailPage() {
             <aside className="min-w-0 space-y-8 lg:sticky lg:top-4 lg:self-start">
               <div>
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-white/45">Chain record</span>
+                  <span className="font-mono text-xs uppercase tracking-[0.28em] text-white/45">Chain record</span>
                   <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
                 </div>
                 <ProjectTimeline entries={timeline} projectId={id} variant="chainRecord" />
@@ -822,10 +822,10 @@ export default function ProjectDetailPage() {
 
               {project.status === 'completed' && creditBundle?.nft ? (
                 <section className="rounded-sm border border-amber-400/55 bg-amber-400/[0.06] p-5 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.12)]">
-                  <h3 className="m-0 font-mono text-[11px] uppercase tracking-[0.28em] text-amber-200/95">
+                  <h3 className="m-0 font-mono text-base uppercase tracking-[0.28em] text-amber-200/95">
                     Provenance certificate
                   </h3>
-                  <p className="mt-3 mb-0 font-mono text-[11px] text-white/55">
+                  <p className="mt-3 mb-0 font-mono text-base text-white/55">
                     Minted{' '}
                     {creditBundle.nft.createdAt
                       ? new Date(creditBundle.nft.createdAt).toLocaleString()
@@ -836,7 +836,7 @@ export default function ProjectDetailPage() {
                       {creditBundle.nft.contributors.map((cw) => {
                         const pct = cw.weight <= 1 ? cw.weight * 100 : cw.weight
                         return (
-                          <li key={cw.alias} className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-[12px]">
+                          <li key={cw.alias} className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-xs">
                             <span className="text-white/85">{cw.alias}</span>
                             <span className="text-white/45">
                               {pct.toFixed(1)}% · {cw.role}
@@ -848,7 +848,7 @@ export default function ProjectDetailPage() {
                   ) : null}
                   <Link
                     to={`/nfts/${encodeURIComponent(creditBundle.nft._id)}`}
-                    className="mt-5 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-amber-200/85 underline decoration-amber-400/35 underline-offset-4 transition hover:text-amber-100"
+                    className="mt-5 inline-block font-mono text-xs uppercase tracking-[0.18em] text-amber-200/85 underline decoration-amber-400/35 underline-offset-4 transition hover:text-amber-100"
                   >
                     View on chain →
                   </Link>
@@ -857,7 +857,7 @@ export default function ProjectDetailPage() {
             </aside>
           </div>
         ) : !error ? (
-          <p className="text-[13px] text-white/55">Loading…</p>
+          <p className="text-sm text-white/55">Loading…</p>
         ) : null}
       </div>
     </AppShell>
@@ -921,12 +921,12 @@ function ReferenceDeclaredRow({ refRow }: { refRow: RefRow }) {
   return (
     <li className="py-3 first:pt-0">
       <div className="flex flex-wrap items-center gap-2 gap-y-2">
-        <span className={`rounded-sm border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${tagClass}`}>
+        <span className={`rounded-sm border px-2 py-0.5 font-mono text-xs uppercase tracking-[0.12em] ${tagClass}`}>
           {relLabel(rt)}
         </span>
       </div>
-      <p className="m-0 mt-1.5 text-[13px] leading-relaxed text-white/78">{referenceTarget(refRow)}</p>
-      <p className="m-0 mt-1.5 font-mono text-[10px] text-white/38">
+      <p className="m-0 mt-1.5 text-sm leading-relaxed text-white/78">{referenceTarget(refRow)}</p>
+      <p className="m-0 mt-1.5 font-mono text-xs text-white/38">
         Declared by <span className="font-mono lowercase text-white/55">{String(refRow.nodeAlias ?? '—').toLowerCase()}</span>{' '}
         · {when}
       </p>

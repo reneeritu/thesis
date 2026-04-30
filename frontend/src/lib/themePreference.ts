@@ -20,13 +20,15 @@ export function persistTheme(mode: ThemeMode): void {
   }
 }
 
-/** Apply theme to `<html>`: dark = no attribute (default CSS), light = `data-theme="light"`. */
+/** Apply theme to `<html>`: dark = no attribute (default CSS), light = `data-theme="light"` + `.light-mode`. */
 export function applyThemeToDocument(mode: ThemeMode): void {
   if (mode === 'light') {
     document.documentElement.setAttribute('data-theme', 'light')
+    document.documentElement.classList.add('light-mode')
     document.documentElement.style.colorScheme = 'light'
   } else {
     document.documentElement.removeAttribute('data-theme')
+    document.documentElement.classList.remove('light-mode')
     document.documentElement.style.colorScheme = 'dark'
   }
 }

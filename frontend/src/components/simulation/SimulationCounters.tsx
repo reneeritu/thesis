@@ -20,22 +20,25 @@ const ITEMS: { key: keyof SimCountersType; label: string }[] = [
 
 type Props = {
   counters?: SimCountersType | null
+  /** Ghost mode: hide values, show greyed placeholder dashes */
+  ghostMode?: boolean
 }
 
-export function SimulationCounters({ counters }: Props) {
+export function SimulationCounters({ counters, ghostMode = false }: Props) {
   const c = counters ?? ZERO
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" style={{ opacity: ghostMode ? 0.35 : 1 }}>
       {ITEMS.map(({ key, label }) => (
         <div
           key={key}
-          className="rounded border border-white/10 bg-black/40 px-2 py-2 text-center"
+          className="rounded border bg-black/40 px-2 py-2 text-center"
+          style={{ borderColor: ghostMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.10)' }}
         >
-          <div className="font-mono text-2xl font-semibold tabular-nums text-white/90">
-            {c[key].toLocaleString()}
+          <div className="font-mono text-2xl font-semibold tabular-nums" style={{ color: ghostMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.90)' }}>
+            {ghostMode ? '—' : c[key].toLocaleString()}
           </div>
-          <div className="mt-0.5 font-mono text-small uppercase tracking-[0.14em] text-white/45">
+          <div className="mt-0.5 font-mono text-small uppercase tracking-[0.14em]" style={{ color: ghostMode ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.45)' }}>
             {label}
           </div>
         </div>

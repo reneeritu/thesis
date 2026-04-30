@@ -27,6 +27,7 @@ import discoverRoutes from './routes/discover';
 import endorsementRoutes from './routes/endorsements';
 import simRoutes from './routes/sim';
 import conversationRoutes from './routes/conversations';
+import adminRoutes from './routes/admin';
 
 // TODO: All list endpoints (e.g. /traces/project/:id, /vetos/project/:id,
 // /references/project/:id, /forks/parent/:id, etc.) currently return every
@@ -95,6 +96,7 @@ app.use('/conversations', conversationRoutes);
 
 app.use('/notifications', notificationRoutes);
 app.use('/sim', simRoutes);
+app.use('/api/admin', adminRoutes);
 
 // React SPA (frontend/dist) at root
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');

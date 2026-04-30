@@ -79,7 +79,7 @@ function flagLink(targetType: 'trace' | 'project', targetId: string): string {
 }
 
 const SUBTLE_FOOTER =
-  'font-mono text-[10px] text-white/38 underline decoration-white/15 underline-offset-2 hover:text-white/55'
+  'font-mono text-xs text-white/38 underline decoration-white/15 underline-offset-2 hover:text-white/55'
 
 type TraceCardProps = {
   data: Record<string, unknown>
@@ -119,7 +119,7 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy, compactCh
         </div>
       ) : null}
       {!compactChainRecord ? (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-small font-sans">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-small font-mono">
           <span className="text-white">Activity</span>
           <span className="flex items-center gap-2 font-mono uppercase tracking-[0.12em]">
             <span
@@ -136,11 +136,11 @@ function TraceCard({ data, endorsements, onEndorse, onUnendorse, busy, compactCh
           </span>
         </div>
       ) : activityCategory ? (
-        <p className="m-0 font-mono text-[10px] uppercase tracking-[0.14em] text-white/42">
+        <p className="m-0 font-mono text-xs uppercase tracking-[0.14em] text-white/42">
           {CATEGORY_LABELS[activityCategory]}
         </p>
       ) : null}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-small font-sans">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-small font-mono">
         {data.description ? (
           <>
             <span className="text-white">Description</span>
@@ -450,13 +450,13 @@ export function ProjectTimeline({ entries, projectId, variant = 'default' }: Pro
           chainRecord ? 'border-white/15 bg-black/20' : 'border-grey-300'
         }`}
       >
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/55">Nothing logged yet</p>
+        <p className="font-mono text-xs uppercase tracking-[0.22em] text-white/55">Nothing logged yet</p>
         {!chainRecord ? (
           <p className="text-small text-white">
             Use &quot;Log Work&quot; to record activity on this project. Each entry is permanently added to the chain.
           </p>
         ) : (
-          <p className="text-[12px] text-white/42">Traces and contracts will appear here.</p>
+          <p className="text-xs text-white/42">Traces and contracts will appear here.</p>
         )}
       </div>
     )
@@ -482,7 +482,7 @@ export function ProjectTimeline({ entries, projectId, variant = 'default' }: Pro
             <summary className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
               {item.kind === 'trace' && chainRecord ? (
                 <span
-                  className="inline-block rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]"
+                  className="inline-block rounded border px-2 py-0.5 font-mono text-xs uppercase tracking-[0.14em]"
                   style={{
                     borderColor: actColour,
                     color: actColour,
@@ -498,17 +498,17 @@ export function ProjectTimeline({ entries, projectId, variant = 'default' }: Pro
                   {KIND_LABEL[item.kind]}
                 </span>
               )}
-              <span className="font-mono text-[11px] text-white/85">{String(item.data.nodeAlias || '')}</span>
-              <span className="font-mono text-[10px] text-white/42 ml-auto">
+              <span className="font-mono text-base text-white/85">{String(item.data.nodeAlias || '')}</span>
+              <span className="font-mono text-xs text-white/42 ml-auto">
                 {fmtDate(item.timestamp)}
               </span>
               {item.kind === 'trace' && (item.data.mediaId || item.data.mediaHash) ? (
-                <span className="inline-block rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] border border-yellow-400/50 bg-yellow-400/15 text-yellow-100/90">
+                <span className="inline-block rounded px-1.5 py-0.5 font-mono text-xs uppercase tracking-[0.12em] border border-yellow-400/50 bg-yellow-400/15 text-yellow-100/90">
                   proof
                 </span>
               ) : null}
               {item.kind === 'trace' && itemEndorsements.length > 0 ? (
-                <span className="inline-block rounded border border-white/18 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white/55">
+                <span className="inline-block rounded border border-white/18 px-1.5 py-0.5 font-mono text-xs uppercase tracking-[0.12em] text-white/55">
                   +{itemEndorsements.length}
                 </span>
               ) : null}

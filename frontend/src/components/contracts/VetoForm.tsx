@@ -86,7 +86,7 @@ export function VetoForm({ projectId, traces, onDone }: Props) {
             onChange={(e) => setReason(e.target.value)}
             required
             rows={3}
-            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
           />
         </div>
 

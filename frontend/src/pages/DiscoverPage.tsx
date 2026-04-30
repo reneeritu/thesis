@@ -146,12 +146,12 @@ function DiscoverBrowseCard({
       </div>
       <div className="flex flex-col gap-1 bg-black/82 px-3 py-2 font-mono">
         <div>
-          <h3 className="m-0 line-clamp-2 font-mono text-[13px] font-bold uppercase tracking-[0.1em] leading-snug text-white/92">
+          <h3 className="m-0 line-clamp-2 font-mono text-sm font-bold uppercase tracking-[0.1em] leading-snug text-white/92">
             {title}
           </h3>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/38">{kindLabel}</p>
+          <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-white/38">{kindLabel}</p>
         </div>
-        <div className="border-t border-white/10 pt-1.5 font-mono text-[11px] leading-snug text-white/52">{footer}</div>
+        <div className="border-t border-white/10 pt-1.5 font-mono text-base leading-snug text-white/52">{footer}</div>
       </div>
     </Link>
   )
@@ -174,7 +174,7 @@ function DiscoverEmptyState() {
       <p className="font-mono text-small uppercase tracking-[0.18em] text-white/55">
         Nothing matching these filters
       </p>
-      <p className="mt-3 max-w-md font-mono text-[11px] leading-relaxed text-white/35">
+      <p className="mt-3 max-w-md font-mono text-base leading-relaxed text-white/35">
         try broadening your search, or check back as more work gets documented
       </p>
     </div>
@@ -367,9 +367,9 @@ export default function DiscoverPage() {
       ? merged.length === 0
       : currentSingleFeed.items.length === 0)
 
-  const sectionLabel = 'mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-white/45'
+  const sectionLabel = 'mb-2 font-mono text-xs uppercase tracking-[0.22em] text-white/45'
   const toggleBtn = (active: boolean) =>
-    `rounded-sm px-2 py-1 font-mono text-small uppercase tracking-[0.16em] transition ${
+    `discover-type-toggle rounded-sm px-2 py-1 font-mono text-small uppercase tracking-[0.16em] transition ${
       active ? 'bg-black text-yellow-400' : 'bg-white/5 text-white/80 hover:bg-white/10 hover:text-yellow-200'
     }`
   const filterChip = (checked: boolean) =>
@@ -389,7 +389,7 @@ export default function DiscoverPage() {
   return (
     <AppShell title="Discover">
       <div className="flex w-full min-w-0 flex-col gap-8 lg:flex-row lg:gap-10">
-        <aside className="w-full shrink-0 space-y-8 lg:w-[280px]">
+        <aside data-discover-sidebar className="w-full shrink-0 space-y-8 lg:w-[280px]">
           <div>
             <label htmlFor="discover-search" className={sectionLabel}>
               Search
@@ -423,7 +423,7 @@ export default function DiscoverPage() {
 
           <div>
             <p className={sectionLabel}>Activity type</p>
-            <p className="mb-2 font-mono text-[11px] leading-snug text-white/35">
+            <p className="mb-2 font-mono text-base leading-snug text-white/35">
               Narrows projects that have traces with these activity types.
             </p>
             <div className="flex flex-col gap-1">
@@ -488,7 +488,7 @@ export default function DiscoverPage() {
               <p className="font-mono text-small uppercase tracking-[0.14em] text-white/78">
                 Showing {loadedCount} of {totalCount} — sorted by recent chain activity
               </p>
-              <p className="mt-1 max-w-2xl font-mono text-[11px] leading-relaxed text-white/38">
+              <p className="mt-1 max-w-2xl font-mono text-base leading-relaxed text-white/38">
                 no algorithmic ranking · sorted by when work was last documented
               </p>
             </header>

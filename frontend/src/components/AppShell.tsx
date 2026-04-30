@@ -16,10 +16,12 @@ type Props = {
   title?: string
   /** When false, the shell main column does not scroll; children must clip internally (e.g. dashboard). */
   scrollMain?: boolean
+  /** When false, omit the 12-col grid line overlay on the main content wrapper (e.g. login). */
+  gridOverlay?: boolean
 }
 
 const navBtn =
-  'glassmorphic-light contour-border-neutral px-2 py-1 text-small sm:px-2.5 sm:py-1 hover:text-yellow-400 transition-etch [touch-action:manipulation]'
+  'glassmorphic-light contour-border-neutral px-2 py-1 font-mono text-md font-medium sm:px-2.5 sm:py-1 hover:text-yellow-400 transition-etch [touch-action:manipulation]'
 
 const siteNavMenuItems: StaggeredMenuItem[] = [
   { label: 'Home', ariaLabel: 'Go to home hub', link: '/dashboard' },
@@ -37,9 +39,10 @@ const siteNavMenuItems: StaggeredMenuItem[] = [
   },
 ]
 
-/** Neon lavender / deep violet — matches theme-modes yellow→accent overrides */
+/** Dark: neon lavender open accent — light: neutral secondary (see theme-modes.css) */
 const ACCENT_NAV_OPEN_DARK = '#e879f9'
-const ACCENT_NAV_OPEN_LIGHT = '#7c3aed'
+/** Open-state accent — aligned with light theme secondary ink */
+const ACCENT_NAV_OPEN_LIGHT = '#4a4a46'
 
 function AuthSiteNavDropdown({
   label,
@@ -68,7 +71,7 @@ function AuthSiteNavDropdown({
         toggleLabels={{ closed: label, open: '' }}
         toggleClassName={`${navBtn} pr-5 font-semibold [touch-action:manipulation]`}
         accentColor={accentOpen}
-        menuButtonColor="rgba(255,255,255,0.9)"
+        menuButtonColor={theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(26,26,24,0.92)'}
         openMenuButtonColor={accentOpen}
         panelClassName="shadow-none"
       />
@@ -146,7 +149,7 @@ function HintsTogglePill() {
   )
 }
 
-export function AppShell({ children, title, scrollMain = true }: Props) {
+export function AppShell({ children, title, scrollMain = true, gridOverlay = true }: Props) {
   const token = getToken()
   const layoutDebug = useLayoutDebug()
 
@@ -259,7 +262,7 @@ export function AppShell({ children, title, scrollMain = true }: Props) {
         data-layout-name={layoutDebug ? 'Main (scroll + flex-1, height below header only)' : undefined}
       >
         <div
-          className={`grid min-h-0 w-full flex-1 grid-cols-12 content-start gap-x-2 gap-y-4 self-stretch py-3 px-2 sm:gap-x-3 sm:py-5 sm:px-3 md:px-4 grid-overlay ${layoutDebugZoneClass(4, layoutDebug)}`.trim()}
+          className={`grid min-h-0 w-full flex-1 grid-cols-12 content-start gap-x-2 gap-y-4 self-stretch py-3 px-2 sm:gap-x-3 sm:py-5 sm:px-3 md:px-4 ${gridOverlay ? 'grid-overlay' : ''} ${layoutDebugZoneClass(4, layoutDebug)}`.trim()}
           data-layout-n={layoutDebug ? '4' : undefined}
           data-layout-name={layoutDebug ? '12-col grid + padding' : undefined}
         >

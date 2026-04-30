@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
-import { Button } from '../components/Button'
 import { DefTerm } from '../components/DefTerm'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
@@ -18,10 +17,14 @@ type Step = 1 | 2 | 3 | 4 | 5
 
 const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
-  'w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
+  'etch-field-input w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-mono focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 
 const MIN_TRUSTEES = 3
 const MAX_TRUSTEES = 5
+
+/** Outlined monospace CTA — dark fill, 1px white border, hover inverts. */
+const outlineBtn =
+  'etch-outlined-press inline-flex justify-center border border-white bg-[#0a0a0a] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:bg-white hover:text-[#0a0a0a] disabled:pointer-events-none disabled:opacity-40'
 
 function Progress({ step }: { step: Step }) {
   const items = [
@@ -32,12 +35,36 @@ function Progress({ step }: { step: Step }) {
     { n: 5, label: 'Done' },
   ] as const
   return (
-    <div className="grid w-full grid-cols-2 gap-x-3 gap-y-2 border-b border-white/10 pb-3 text-small font-mono uppercase tracking-[0.18em] text-white sm:grid-cols-5">
-      {items.map(({ n, label }) => (
-        <span key={n} className={step === n ? 'text-white border-b-2 border-black pb-0.5' : 'text-white/65'}>
-          {n}. {label}
-        </span>
-      ))}
+    <div className="w-full space-y-2 border-b border-white/10 pb-3">
+      <div className="flex w-full gap-1.5">
+        {items.map(({ n }) => {
+          const fill =
+            step > n ? '100%' : step === n ? '72%' : '0%'
+          return (
+            <div
+              key={n}
+              className="h-0.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.07]"
+              aria-hidden
+            >
+              <div
+                className="h-full rounded-full bg-white/50 transition-[width] duration-500 ease-out"
+                style={{ width: fill }}
+              />
+            </div>
+          )
+        })}
+      </div>
+      <div className="grid w-full grid-cols-2 gap-x-3 gap-y-2 text-small font-mono uppercase tracking-[0.18em] sm:grid-cols-5">
+        {items.map(({ n, label }) => {
+          const tone = step === n ? 'text-white' : n < step ? 'text-[#555555]' : 'text-[#333333]'
+          const mark = step === n ? 'border-b border-white pb-0.5' : ''
+          return (
+            <span key={n} className={`${tone} ${mark}`.trim()}>
+              {n}. {label}
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -57,6 +84,8 @@ export default function RegisterPage() {
   const [trustees, setTrustees] = useState<string[]>([''])
   const [trusteeBusy, setTrusteeBusy] = useState(false)
   const [trusteeMsg, setTrusteeMsg] = useState<string | null>(null)
+  const [step1Busy, setStep1Busy] = useState(false)
+  const [pulseInterest, setPulseInterest] = useState<string | null>(null)
 
   async function onStep1(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -68,6 +97,7 @@ export default function RegisterPage() {
       setError('Alias: use lowercase a–z, 0–9, underscore, hyphen only.')
       return
     }
+    setStep1Busy(true)
     try {
       const data = await api<RegisterResponse>('/auth/register', {
         method: 'POST',
@@ -79,6 +109,8 @@ export default function RegisterPage() {
       setStep(2)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
+    } finally {
+      setStep1Busy(false)
     }
   }
 
@@ -92,8 +124,13 @@ export default function RegisterPage() {
   function toggleInterest(tag: string) {
     setInterestSel((prev) => {
       const next = new Set(prev)
-      if (next.has(tag)) next.delete(tag)
-      else next.add(tag)
+      if (next.has(tag)) {
+        next.delete(tag)
+      } else {
+        next.add(tag)
+        setPulseInterest(tag)
+        window.setTimeout(() => setPulseInterest(null), 380)
+      }
       return next
     })
   }
@@ -181,68 +218,80 @@ export default function RegisterPage() {
   return (
     <AppShell title="Register">
       <div className="grid w-full grid-cols-12 gap-x-3 gap-y-6">
-        <div className="col-span-12 w-full max-w-2xl space-y-6">
+        <div className="col-span-12 w-full max-w-5xl space-y-6">
           <Progress step={step} />
 
           {step === 1 ? (
-            <form onSubmit={onStep1} className="space-y-4 max-w-md">
-              {error ? (
-                <p
-                  className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white"
-                  role="alert"
-                >
-                  {error}
+            <div className="grid gap-8 border-t border-white/10 pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,40%)] lg:items-start lg:gap-10">
+              <form onSubmit={onStep1} className="max-w-md space-y-4">
+                {error ? (
+                  <p
+                    className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white"
+                    role="alert"
+                  >
+                    {error}
+                  </p>
+                ) : null}
+                <p className="text-base text-white">
+                  Your alias is permanent on the chain. No email or phone — only this name and your seed.
                 </p>
-              ) : null}
-              <p className="text-body text-white">
-                Your alias is permanent on the chain. No email or phone — only this name and your seed.
-              </p>
-              <div>
-                <label htmlFor="reg-alias" className={fieldLabel}>
-                  Alias (3–30 chars)
-                </label>
-                <input
-                  id="reg-alias"
-                  name="alias"
-                  required
-                  minLength={3}
-                  maxLength={30}
-                  pattern="[a-z0-9_-]{3,30}"
-                  title="Lowercase letters, numbers, hyphen, underscore"
-                  autoComplete="username"
-                  className={fieldInput}
-                />
-              </div>
-              <div>
-                <label htmlFor="reg-password" className={fieldLabel}>
-                  Password (min 8 characters)
-                </label>
-                <input
-                  id="reg-password"
-                  name="password"
-                  type="password"
-                  minLength={8}
-                  required
-                  autoComplete="new-password"
-                  className={fieldInput}
-                />
-              </div>
-              <Button type="submit" variant="primary">
-                Create node
-              </Button>
-              <p className="text-small text-white">
-                Already have an account?{' '}
-                <Link to="/login" className="underline underline-offset-4 hover:text-white">
-                  Login
-                </Link>
-              </p>
-            </form>
+                <div>
+                  <label htmlFor="reg-alias" className={fieldLabel}>
+                    Alias (3–30 chars)
+                  </label>
+                  <input
+                    id="reg-alias"
+                    name="alias"
+                    required
+                    minLength={3}
+                    maxLength={30}
+                    pattern="[a-z0-9_-]{3,30}"
+                    title="Lowercase letters, numbers, hyphen, underscore"
+                    autoComplete="username"
+                    className={fieldInput}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="reg-password" className={fieldLabel}>
+                    Password (min 8 characters)
+                  </label>
+                  <input
+                    id="reg-password"
+                    name="password"
+                    type="password"
+                    minLength={8}
+                    required
+                    autoComplete="new-password"
+                    className={fieldInput}
+                  />
+                </div>
+                <button type="submit" className={`${outlineBtn} w-full`} disabled={step1Busy}>
+                  {step1Busy ? (
+                    <span className="inline-flex min-w-[1.25em] justify-center" aria-busy>
+                      <span className="etch-loading-caret">_</span>
+                    </span>
+                  ) : (
+                    'Create node'
+                  )}
+                </button>
+                <p className="text-small text-white">
+                  Already have an account?{' '}
+                  <Link to="/login" className="underline underline-offset-4 hover:text-white">
+                    Login
+                  </Link>
+                </p>
+              </form>
+              <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[#555555] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                Your alias is permanent. It will appear on every trace, credit, and provenance record you are
+                ever part of. It cannot be changed.
+              </aside>
+            </div>
           ) : null}
 
           {step === 2 ? (
             <div className="space-y-4 border-t border-white/10 pt-6">
               <div
-                className="border-l-4 border-yellow-400 bg-grey-100 px-4 py-3 text-body font-mono"
+                className="border border-[#555555] border-l-[3px] border-l-[#5a4a00] bg-zinc-950/80 px-4 py-3 text-base font-mono normal-case leading-relaxed text-white"
                 role="status"
               >
                 Write these words down in order. This is the only time they are shown. There is no account
@@ -252,197 +301,255 @@ export default function RegisterPage() {
                 {seedWords.map((w, i) => (
                   <div
                     key={i}
-                    className="border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small"
+                    className="border border-[#2a2a2a] bg-zinc-900/55 px-3 py-2 font-mono text-small"
                   >
-                    <span className="text-white">{i + 1}.</span> {w}
+                    <span className="text-[#555555]">{i + 1}.</span>{' '}
+                    <span className="text-white">{w}</span>
                   </div>
                 ))}
               </div>
               <form onSubmit={onStep2} className="space-y-4">
-                <label className="flex cursor-pointer items-start gap-3 text-body">
+                <label className="flex cursor-pointer items-start gap-3 text-base text-white">
                   <input
                     type="checkbox"
                     checked={seedAck}
                     onChange={(e) => setSeedAck(e.target.checked)}
-                    className="mt-1 h-4 w-4 border-black"
+                    className="peer sr-only"
                     required
                   />
+                  <span
+                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-[#555555] bg-[#0a0a0a] peer-checked:border-white peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#0a0a0a]"
+                    aria-hidden
+                  >
+                    {seedAck ? (
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
+                        <path
+                          d="M2 6.5L5 9.5L10 3"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="square"
+                        />
+                      </svg>
+                    ) : null}
+                  </span>
                   <span>I have written down all words in order.</span>
                 </label>
-                <Button type="submit" variant="primary" disabled={!seedAck}>
+                <button type="submit" className={`${outlineBtn} max-w-md`} disabled={!seedAck}>
                   Continue
-                </Button>
+                </button>
               </form>
             </div>
           ) : null}
 
           {step === 3 ? (
-            <div className="max-w-xl space-y-4 border-t border-white/10 pt-6">
-              <h2 className="text-h3 font-heading">Pick your interests</h2>
-              <p className="text-body text-white">
-                Choose at least {MIN_PROFILE_INTERESTS} tags so peers can find you. Add custom tags if you
-                like.
-              </p>
-              {interestMsg ? (
-                <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">
-                  {interestMsg}
-                </p>
-              ) : null}
-              <form onSubmit={onSaveInterests} className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {INTEREST_PRESETS.map((tag) => {
-                    const on = interestSel.has(tag)
-                    return (
+            <div className="border-t border-white/10 pt-6">
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,40%)] lg:items-start lg:gap-10">
+                <div className="max-w-xl space-y-4">
+                  <h2 className="font-mono text-h3 uppercase tracking-[0.14em] text-white">
+                    Pick your interests
+                  </h2>
+                  <p className="text-base text-white">
+                    Choose at least {MIN_PROFILE_INTERESTS} tags so peers can find you. Add custom tags if you
+                    like.
+                  </p>
+                  {interestMsg ? (
+                    <p className="border border-black bg-grey-100 px-3 py-2 text-small font-mono" role="alert">
+                      {interestMsg}
+                    </p>
+                  ) : null}
+                  <form onSubmit={onSaveInterests} className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {INTEREST_PRESETS.map((tag) => {
+                        const on = interestSel.has(tag)
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleInterest(tag)}
+                            className={`border px-2 py-1 font-mono text-base uppercase tracking-[0.12em] transition ${
+                              pulseInterest === tag ? 'etch-interest-pulse ' : ''
+                            } ${
+                              on
+                                ? 'border-white bg-white text-[#0a0a0a]'
+                                : 'border-white bg-[#0a0a0a] text-white hover:border-white/80'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[...interestSel]
+                        .filter((t) => !(INTEREST_PRESETS as readonly string[]).includes(t))
+                        .map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center gap-1 border border-white bg-white px-2 py-0.5 font-mono text-base uppercase tracking-[0.12em] text-[#0a0a0a]"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              className="text-[#0a0a0a]/60 hover:text-[#0a0a0a]"
+                              onClick={() => toggleInterest(tag)}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        value={customInterest}
+                        onChange={(e) => setCustomInterest(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addCustomInterest()
+                          }
+                        }}
+                        placeholder="Custom tag + Enter"
+                        className="min-w-[12rem] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small text-white"
+                      />
                       <button
-                        key={tag}
                         type="button"
-                        onClick={() => toggleInterest(tag)}
-                        className={`border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
-                          on ? 'border-white bg-white/15 text-white' : 'border-white/25 text-white/75 hover:border-white/50'
-                        }`}
+                        onClick={addCustomInterest}
+                        className="border border-white/25 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
                       >
-                        {tag}
+                        Add
                       </button>
-                    )
-                  })}
+                    </div>
+                    <p className="font-mono text-small text-white/65">
+                      Selected: {interestSel.size} (need ≥ {MIN_PROFILE_INTERESTS})
+                    </p>
+                    <button type="submit" className={`${outlineBtn} max-w-md`} disabled={interestBusy}>
+                      {interestBusy ? (
+                        <span className="inline-flex min-w-[1.25em] justify-center" aria-busy>
+                          <span className="etch-loading-caret">_</span>
+                        </span>
+                      ) : (
+                        'Continue'
+                      )}
+                    </button>
+                  </form>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {[...interestSel]
-                    .filter((t) => !(INTEREST_PRESETS as readonly string[]).includes(t))
-                    .map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-1 border border-[#e879f9]/60 bg-[#e879f9]/10 px-2 py-0.5 font-mono text-[11px] text-white"
-                      >
-                        {tag}
-                        <button type="button" className="text-white/70 hover:text-white" onClick={() => toggleInterest(tag)}>
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    value={customInterest}
-                    onChange={(e) => setCustomInterest(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addCustomInterest()
-                      }
-                    }}
-                    placeholder="Custom tag + Enter"
-                    className="min-w-[12rem] flex-1 border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomInterest}
-                    className="border border-white/25 px-3 py-2 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
-                  >
-                    Add
-                  </button>
-                </div>
-                <p className="text-small text-white/65">
-                  Selected: {interestSel.size} (need ≥ {MIN_PROFILE_INTERESTS})
-                </p>
-                <Button type="submit" variant="primary" loading={interestBusy}>
-                  Continue
-                </Button>
-              </form>
+                <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[#555555] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                  Interests help peers find you on the discover page. They are not permanent — you can change
+                  them later.
+                </aside>
+              </div>
             </div>
           ) : null}
 
           {step === 4 ? (
-            <div className="max-w-xl space-y-4 border-t border-white/10 pt-6">
-              <div className="space-y-2">
-                <h2 className="text-h3 font-heading">Pick your trustees (optional)</h2>
-                <p className="text-body text-white">
-                  <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who can help
-                  you recover this account if you lose your seed phrase. A majority of them must agree before any
-                  recovery happens. Pick people who know you.
-                </p>
-                <p className="text-small text-white">
-                  You can skip this now and set it up from your settings later — but without trustees, losing your
-                  seed phrase means losing the account.
-                </p>
-              </div>
+            <div className="border-t border-white/10 pt-6">
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,40%)] lg:items-start lg:gap-10">
+                <div className="max-w-xl space-y-4">
+                  <div className="space-y-2">
+                    <h2 className="font-mono text-h3 uppercase tracking-[0.14em] text-white">
+                      Pick your trustees (optional)
+                    </h2>
+                    <p className="text-base text-white">
+                      <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who can help
+                      you recover this account if you lose your seed phrase. A majority of them must agree before any
+                      recovery happens. Pick people who know you.
+                    </p>
+                    <p className="text-base text-white">
+                      You can skip this now and set it up from your settings later — but without trustees, losing your
+                      seed phrase means losing the account.
+                    </p>
+                  </div>
 
-              {trusteeMsg ? (
-                <p
-                  className="border border-black bg-grey-100 px-3 py-2 text-small font-mono"
-                  role="alert"
-                >
-                  {trusteeMsg}
-                </p>
-              ) : null}
+                  {trusteeMsg ? (
+                    <p
+                      className="border border-black bg-grey-100 px-3 py-2 text-small font-mono"
+                      role="alert"
+                    >
+                      {trusteeMsg}
+                    </p>
+                  ) : null}
 
-              <form onSubmit={onSaveTrustees} className="space-y-3">
-                <div className="space-y-2">
-                  {trustees.map((t, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        value={t}
-                        onChange={(e) => setTrusteeAt(i, e.target.value)}
-                        placeholder={`Trustee alias ${i + 1}`}
-                        className={fieldInput + ' flex-1'}
-                        autoComplete="off"
-                      />
-                      {trustees.length > 1 ? (
+                  <form onSubmit={onSaveTrustees} className="space-y-3">
+                    <div className="space-y-2">
+                      {trustees.map((t, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            value={t}
+                            onChange={(e) => setTrusteeAt(i, e.target.value)}
+                            placeholder={`Trustee alias ${i + 1}`}
+                            className={fieldInput + ' flex-1'}
+                            autoComplete="off"
+                          />
+                          {trustees.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => removeTrustee(i)}
+                              className="border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
+                            >
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {trustees.length < MAX_TRUSTEES ? (
                         <button
                           type="button"
-                          onClick={() => removeTrustee(i)}
-                          className="border border-black px-2 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
+                          onClick={addTrustee}
+                          className="border border-black px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
                         >
-                          Remove
+                          + Add another
                         </button>
                       ) : null}
+                      <p className="text-small font-mono text-white">
+                        {trustees.filter(Boolean).length} / {MAX_TRUSTEES} · need ≥ {MIN_TRUSTEES}
+                      </p>
                     </div>
-                  ))}
-                </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {trustees.length < MAX_TRUSTEES ? (
-                    <button
-                      type="button"
-                      onClick={addTrustee}
-                      className="border border-black px-3 py-1 font-mono text-small uppercase tracking-[0.14em] hover:bg-white/10"
-                    >
-                      + Add another
-                    </button>
-                  ) : null}
-                  <p className="self-center text-small font-mono text-white">
-                    {trustees.filter(Boolean).length} / {MAX_TRUSTEES} · need ≥ {MIN_TRUSTEES}
-                  </p>
+                    <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:flex-wrap sm:items-center">
+                      <button type="submit" className={`${outlineBtn} w-full sm:w-auto`} disabled={trusteeBusy}>
+                        {trusteeBusy ? (
+                          <span className="inline-flex min-w-[1.25em] justify-center" aria-busy>
+                            <span className="etch-loading-caret">_</span>
+                          </span>
+                        ) : (
+                          'Save trustees'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={skipTrustees}
+                        className="self-start bg-transparent p-0 font-mono text-small normal-case tracking-normal text-[#666666] underline-offset-4 hover:text-white hover:underline"
+                      >
+                        Skip and set up later
+                      </button>
+                    </div>
+                  </form>
                 </div>
-
-                <div className="flex flex-wrap gap-2 border-t border-grey-200 pt-2">
-                  <Button type="submit" variant="primary" loading={trusteeBusy}>
-                    Save trustees
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={skipTrustees}
-                    className="border border-white/25 bg-zinc-900/55 px-4 py-2 font-mono text-small uppercase tracking-[0.18em] hover:bg-white/10"
-                  >
-                    Skip and set up later
-                  </button>
-                </div>
-              </form>
+                <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[#555555] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                  Without trustees, losing your seed phrase means permanent loss of the account. No email recovery
+                  exists.
+                </aside>
+              </div>
             </div>
           ) : null}
 
           {step === 5 ? (
             <div className="space-y-4 border-t border-white/10 pt-6">
-              <p className="text-h3 font-heading">Welcome to the chain</p>
-              <p className="text-body">
+              <h2 className="font-mono text-h3 uppercase tracking-[0.14em] text-white">Welcome to the chain</h2>
+              <p className="text-base text-white">
                 Node <span className="font-mono">{alias}</span> is ready.
               </p>
-              <a
-                href="/dashboard"
-                className="inline-block border border-black bg-yellow-400 px-6 py-2 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:bg-black hover:text-yellow-400 active:scale-[0.98]"
-              >
+              <Link to="/dashboard" className={`${outlineBtn} inline-flex w-auto`}>
                 Go to home
-              </a>
+              </Link>
+              <ul className="mt-8 max-w-md list-none space-y-2 pl-0 font-mono text-small leading-relaxed text-[#555555]">
+                <li>→ complete your personal statement on your profile</li>
+                <li>→ join or create a space</li>
+                <li>→ start your first project</li>
+              </ul>
             </div>
           ) : null}
         </div>

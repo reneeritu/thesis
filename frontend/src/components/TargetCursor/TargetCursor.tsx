@@ -11,8 +11,16 @@ import {
   useState,
 } from 'react'
 import gsap from 'gsap'
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useMotionValueEvent,
+} from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 
+import { useTheme } from '../../context/ThemeContext'
 import { getGlobalLoading, subscribeGlobalLoading } from '../../lib/cursor'
 
 import './TargetCursor.css'
@@ -36,8 +44,13 @@ export const ETCH_CURSOR_TARGET_SELECTOR =
 const IDLE = 18
 /** Same footprint as idle — “?” fits inside the 18px circle */
 const IDLE_DEF_TERM = 18
+/** Fixed hit box while global API loading (decoupled from snapped element size). */
+const LOADING_CURSOR_PX = 32
 /** Extra padding around snapped controls (lighter than thick chrome). */
 const PAD = 6
+/** Don't snap to interactives larger than this — avoids the cursor becoming a giant box/circle. */
+const MAX_SNAP_W = 280
+const MAX_SNAP_H = 140
 
 const springPhysics = Object.freeze({
   mass: 0.72,
@@ -54,16 +67,15 @@ const DEFAULT_IDLE_SNAP_MS = 3200
 export default function TargetCursor({
   targetSelector = ETCH_CURSOR_TARGET_SELECTOR,
   excludeSelector = '[data-target-cursor-exclude]',
-  spinDuration = 2,
+  spinDuration: _spinDuration = 2,
   hideDefaultCursor = true,
   idleSnapToCenterMs = DEFAULT_IDLE_SNAP_MS,
 }: TargetCursorProps) {
+  const { theme } = useTheme()
   const iw = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
   const ih = typeof window !== 'undefined' ? window.innerHeight / 2 : 0
 
   const pulseRef = useRef<HTMLDivElement | null>(null)
-  const loadingRotRef = useRef<HTMLDivElement | null>(null)
-  const spinTl = useRef<gsap.core.Timeline | null>(null)
 
   const snapTargetRef = useRef<HTMLElement | null>(null)
   const snappingRef = useRef(false)
@@ -79,6 +91,14 @@ export default function TargetCursor({
     getGlobalLoading,
     () => false,
   )
+
+  const location = useLocation()
+  /** Sim page polls often; global API loading would spin the cursor non-stop. */
+  const suppressLoadingVisual =
+    location.pathname === '/simulation' || location.pathname.startsWith('/simulation/')
+  const loadingVisualActive = globalLoading && !suppressLoadingVisual
+  const loadingVisualRef = useRef(false)
+  loadingVisualRef.current = loadingVisualActive
 
   /** Hovering inline glossary spans (`data-etch-def-term`) — same 18px dot + “?” */
   const [defTermHover, setDefTermHover] = useState(false)
@@ -97,12 +117,46 @@ export default function TargetCursor({
   const targetCy = useMotionValue(ih)
   const targetW = useMotionValue(IDLE)
   const targetH = useMotionValue(IDLE)
+  /** Display size: mirrors targetW/H except fixed while loading (avoids huge “circle” after snap). */
+  const boxW = useMotionValue(IDLE)
+  const boxH = useMotionValue(IDLE)
 
   const springX = useSpring(targetCx, springPhysics)
   const springY = useSpring(targetCy, springPhysics)
   /** Size is not spring-smoothed — avoids overshoot so idle stays a true 18px hit area */
-  const tx = useTransform([springX, targetW], ([x, w]) => (x as number) - (w as number) / 2)
-  const ty = useTransform([springY, targetH], ([y, h]) => (y as number) - (h as number) / 2)
+  const tx = useTransform([springX, boxW], ([x, w]) => (x as number) - (w as number) / 2)
+  const ty = useTransform([springY, boxH], ([y, h]) => (y as number) - (h as number) / 2)
+
+  useEffect(() => {
+    if (loadingVisualActive) {
+      /** Drop snap while loading so dimensions cannot stay huge and “idle circle” won’t inherit a large box. */
+      snappingRef.current = false
+      snapTargetRef.current = null
+      setHoveredElement(null)
+      setDefTermHover(false)
+      const { x, y } = lastMouseRef.current
+      targetCx.set(x)
+      targetCy.set(y)
+      targetW.set(IDLE)
+      targetH.set(IDLE)
+      boxW.set(LOADING_CURSOR_PX)
+      boxH.set(LOADING_CURSOR_PX)
+      if (pulseRef.current) {
+        gsap.killTweensOf(pulseRef.current)
+        gsap.set(pulseRef.current, { scale: 1 })
+      }
+    } else {
+      boxW.set(targetW.get())
+      boxH.set(targetH.get())
+    }
+  }, [loadingVisualActive, boxW, boxH, targetW, targetH, targetCx, targetCy])
+
+  useMotionValueEvent(targetW, 'change', (w) => {
+    if (!loadingVisualRef.current) boxW.set(w)
+  })
+  useMotionValueEvent(targetH, 'change', (h) => {
+    if (!loadingVisualRef.current) boxH.set(h)
+  })
 
   const applyRect = useCallback(
     (r: DOMRectReadOnly) => {
@@ -122,35 +176,16 @@ export default function TargetCursor({
     setHoveredElement(null)
   }, [])
 
-  /** Spinning brackets only while global loading. */
-  useEffect(() => {
-    if (isMobile || !loadingRotRef.current) return
-    spinTl.current?.kill()
-    gsap.set(loadingRotRef.current, { rotation: 0 })
-    if (!globalLoading) return
-    spinTl.current = gsap
-      .timeline({ repeat: -1 })
-      .to(loadingRotRef.current, {
-        rotation: '+=360',
-        duration: spinDuration,
-        ease: 'none',
-      })
-    return () => {
-      spinTl.current?.kill()
-      spinTl.current = null
-    }
-  }, [globalLoading, spinDuration, isMobile])
-
-  /** Click pulse: 1 → 1.5 → 1 (GSAP on inner layer only). */
+  /** Click pulse: 1 → 1.35 → 1 (GSAP on inner layer only). */
   const playClickPulse = useCallback(() => {
-    if (!pulseRef.current || globalLoading) return
+    if (!pulseRef.current || loadingVisualActive) return
     const el = pulseRef.current
     gsap.killTweensOf(el)
     gsap
       .timeline()
       .to(el, { scale: 1.35, duration: 0.08, ease: 'power2.out' })
       .to(el, { scale: 1, duration: 0.16, ease: 'power2.inOut' })
-  }, [globalLoading])
+  }, [loadingVisualActive])
 
   useEffect(() => {
     if (isMobile || typeof window === 'undefined') return
@@ -253,6 +288,7 @@ export default function TargetCursor({
     window.addEventListener('pointerdown', pointerDownHandler)
 
     const enterHandler = (e: MouseEvent) => {
+      if (getGlobalLoading()) return
       clearIdleSnapTimer()
       const raw = e.target
       if (!(raw instanceof Element)) return
@@ -276,11 +312,22 @@ export default function TargetCursor({
       if (activeTarget === target) return
       if (activeTarget) cleanupTarget(activeTarget)
 
+      const initialRect = target.getBoundingClientRect()
+      if (
+        initialRect.width <= 0 ||
+        initialRect.height <= 0 ||
+        initialRect.width > MAX_SNAP_W ||
+        initialRect.height > MAX_SNAP_H
+      ) {
+        // Skip snapping to oversized interactives so the cursor stays a small dot.
+        return
+      }
+
       activeTarget = target
       snappingRef.current = true
       snapTargetRef.current = target
       setDefTermHover(false)
-      applyRect(target.getBoundingClientRect())
+      applyRect(initialRect)
 
       const leaveHandler = () => {
         clearSnap()
@@ -339,22 +386,25 @@ export default function TargetCursor({
   }
 
   const isSnapped = hoveredElement != null
-  const showIdle = !globalLoading && !isSnapped
-  const showSnappedTarget = !globalLoading && isSnapped
-  const showLoading = globalLoading
+  const showIdle = !loadingVisualActive && !isSnapped
+  const showSnappedTarget = !loadingVisualActive && isSnapped
+  const showLoading = loadingVisualActive
+
+  const lightCursor = theme === 'light'
 
   return (
     <motion.div
-      className="target-cursor-wrapper"
+      className={`target-cursor-wrapper${lightCursor ? ' target-cursor-wrapper--light' : ''}`}
       style={{
         position: 'fixed',
         left: 0,
         top: 0,
-        width: targetW,
-        height: targetH,
+        width: boxW,
+        height: boxH,
         x: tx,
         y: ty,
-        mixBlendMode: 'difference',
+        /* difference reads as a dark fringe/shadow on light UI — use normal blend + ink strokes */
+        mixBlendMode: lightCursor ? 'normal' : 'difference',
       }}
     >
       <div className="target-cursor-visual">
@@ -362,22 +412,45 @@ export default function TargetCursor({
           {showIdle ? (
             defTermHover ? (
               <svg className="target-cursor-idle-svg" viewBox="0 0 18 18" aria-hidden>
-                <circle cx="9" cy="9" r="9" fill="#ffffff" />
-                <text
-                  x="9"
-                  y="12.25"
-                  textAnchor="middle"
-                  fill="#0a0a0a"
-                  fontSize="8.5"
-                  fontWeight="700"
-                  fontFamily="ui-sans-serif, system-ui, sans-serif"
-                >
-                  ?
-                </text>
+                {lightCursor ? (
+                  <>
+                    <circle cx="9" cy="9" r="8" className="target-cursor-idle-disk--light" />
+                    <text
+                      x="9"
+                      y="12.25"
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="8.5"
+                      fontWeight="700"
+                      fontFamily="ui-sans-serif, system-ui, sans-serif"
+                    >
+                      ?
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    <circle cx="9" cy="9" r="9" fill="#ffffff" />
+                    <text
+                      x="9"
+                      y="12.25"
+                      textAnchor="middle"
+                      fill="#0a0a0a"
+                      fontSize="8.5"
+                      fontWeight="700"
+                      fontFamily="ui-sans-serif, system-ui, sans-serif"
+                    >
+                      ?
+                    </text>
+                  </>
+                )}
               </svg>
             ) : (
               <svg className="target-cursor-idle-svg" viewBox="0 0 18 18" aria-hidden>
-                <circle cx="9" cy="9" r="9" fill="#ffffff" />
+                {lightCursor ? (
+                  <circle cx="9" cy="9" r="8" className="target-cursor-idle-disk--light" />
+                ) : (
+                  <circle cx="9" cy="9" r="9" fill="#ffffff" />
+                )}
               </svg>
             )
           ) : null}
@@ -392,11 +465,10 @@ export default function TargetCursor({
           ) : null}
 
           {showLoading ? (
-            <div ref={loadingRotRef} className="target-cursor-loading-rot" aria-hidden>
-              <div className="target-cursor-corner corner-tl" />
-              <div className="target-cursor-corner corner-tr" />
-              <div className="target-cursor-corner corner-br" />
-              <div className="target-cursor-corner corner-bl" />
+            <div className="target-cursor-loading-dots" aria-hidden>
+              <span className="dot dot-1" />
+              <span className="dot dot-2" />
+              <span className="dot dot-3" />
             </div>
           ) : null}
         </div>

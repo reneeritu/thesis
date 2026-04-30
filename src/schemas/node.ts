@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const updateProfileSchema = z.object({
   interests: z.array(z.string().max(100)).max(50).optional(),
+  tools: z.array(z.string().max(100)).max(50).optional(),
+  mediums: z.array(z.string().max(100)).max(50).optional(),
   portfolioUrl: z.string().url().or(z.literal('')).optional(),
   keywords: z.array(z.string().max(60)).max(30).optional(),
   profileStatement: z.string().max(8000).optional(),

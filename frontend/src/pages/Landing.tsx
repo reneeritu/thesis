@@ -17,28 +17,27 @@ export default function Landing() {
             <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap">
               <Link
                 to="/register"
-                className="inline-flex justify-center border border-black bg-yellow-400 text-white font-mono text-small uppercase tracking-[0.2em] px-6 py-2.5 hover:bg-black hover:text-yellow-400 transition active:scale-[0.98] [touch-action:manipulation] sm:text-center"
+                className="etch-outlined-press inline-flex justify-center border border-white bg-[#0a0a0a] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:bg-white hover:text-[#0a0a0a] [touch-action:manipulation] sm:text-center"
               >
                 Enter the chain
               </Link>
               <Link
                 to="/login"
-                className="inline-flex justify-center border border-white/25 bg-zinc-900/55 text-white font-mono text-small uppercase tracking-[0.2em] px-6 py-2.5 hover:bg-black hover:text-yellow-400 transition active:scale-[0.98] [touch-action:manipulation] sm:text-center"
+                className="etch-outlined-press inline-flex justify-center border border-[#444444] bg-[#0a0a0a] px-6 py-2.5 font-mono text-small uppercase tracking-[0.2em] text-white transition hover:border-white hover:text-white [touch-action:manipulation] sm:text-center"
               >
                 Already a node? Login
               </Link>
             </div>
-            <p className="text-small text-white pt-6">
-              Etch welcome (scroll + 3D):{' '}
-              <Link to="/welcome" className="underline underline-offset-4 hover:text-white">
+            <p className="pt-6 font-mono text-[10px] uppercase tracking-[0.14em] text-[#333333]">
+              <span className="opacity-90">Dev</span>
+              {' · '}
+              <Link to="/welcome" className="text-[#333333] underline-offset-2 hover:text-[#555555]">
                 open /welcome
               </Link>
-              <span className="mx-2 text-white">·</span>
-              Previous UI:{' '}
-              <a href="/legacy/index.html" className="underline underline-offset-4 hover:text-white">
+              <span className="mx-1.5">·</span>
+              <a href="/legacy/index.html" className="text-[#333333] underline-offset-2 hover:text-[#555555]">
                 open legacy app
               </a>
-              .
             </p>
           </div>
         </div>

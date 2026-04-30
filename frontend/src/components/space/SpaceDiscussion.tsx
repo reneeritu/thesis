@@ -164,14 +164,14 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
       className={`flex max-h-[min(520px,65vh)] w-full flex-col overflow-hidden rounded-sm border border-white/12 bg-black/22 font-mono ${className}`.trim()}
     >
       {err ? (
-        <p className="shrink-0 border-b border-white/10 bg-black/35 px-3 py-2 text-[11px] text-white/85" role="alert">
+        <p className="shrink-0 border-b border-white/10 bg-black/35 px-3 py-2 text-base text-white/85" role="alert">
           {err}
         </p>
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-2">
         {pinned.length === 0 && messages.length === 0 ? (
-          <p className="text-[12px] text-white/38">No messages yet.</p>
+          <p className="text-xs text-white/38">No messages yet.</p>
         ) : (
           <ul className="m-0 flex list-none flex-col divide-y divide-white/[0.08] p-0">
             {pinned.map((m) => (
@@ -182,12 +182,12 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                       <span className="inline-flex shrink-0 items-center text-fuchsia-400/88" title="Pinned message">
                         <PinGlyph className="translate-y-[1px]" aria-hidden />
                       </span>
-                      <span className="text-[12px] font-medium" style={{ color: ACCENT }}>
+                      <span className="text-xs font-medium" style={{ color: ACCENT }}>
                         {m.senderAlias}
                       </span>
-                      <span className="text-[10px] text-white/32">{formatMsgTime(m.createdAt)}</span>
+                      <span className="text-xs text-white/32">{formatMsgTime(m.createdAt)}</span>
                     </div>
-                    <p className="mt-1.5 mb-0 whitespace-pre-wrap text-[12px] leading-relaxed text-white/78">{m.body}</p>
+                    <p className="mt-1.5 mb-0 whitespace-pre-wrap text-xs leading-relaxed text-white/78">{m.body}</p>
                   </div>
                   {isAdmin ? (
                     <div
@@ -199,7 +199,7 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                         aria-expanded={actionMenuId === m._id}
                         aria-haspopup="menu"
                         aria-label="Message actions"
-                        className="msg-actions-btn rounded px-1.5 py-0.5 text-[16px] leading-none text-white/42 transition hover:bg-white/[0.06] hover:text-white/78 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400/50"
+                        className="msg-actions-btn rounded px-1.5 py-0.5 text-lg leading-none text-white/42 transition hover:bg-white/[0.06] hover:text-white/78 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400/50"
                         onClick={(e) => {
                           e.stopPropagation()
                           setActionMenuId((id) => (id === m._id ? null : m._id))
@@ -216,7 +216,7 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                           <button
                             type="button"
                             role="menuitem"
-                            className="block w-full px-3 py-2 text-left text-[11px] uppercase tracking-[0.12em] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                            className="block w-full px-3 py-2 text-left text-base uppercase tracking-[0.12em] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
                             onClick={() => void togglePin(m._id)}
                           >
                             Unpin
@@ -233,12 +233,12 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                      <span className="text-[12px] font-medium" style={{ color: ACCENT }}>
+                      <span className="text-xs font-medium" style={{ color: ACCENT }}>
                         {m.senderAlias}
                       </span>
-                      <span className="text-[10px] text-white/32">{formatMsgTime(m.createdAt)}</span>
+                      <span className="text-xs text-white/32">{formatMsgTime(m.createdAt)}</span>
                     </div>
-                    <p className="mt-1.5 mb-0 whitespace-pre-wrap text-[12px] leading-relaxed text-white/78">{m.body}</p>
+                    <p className="mt-1.5 mb-0 whitespace-pre-wrap text-xs leading-relaxed text-white/78">{m.body}</p>
                   </div>
                   {showActionsColumn(m) ? (
                     <div
@@ -250,7 +250,7 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                         aria-expanded={actionMenuId === m._id}
                         aria-haspopup="menu"
                         aria-label="Message actions"
-                        className="msg-actions-btn rounded px-1.5 py-0.5 text-[16px] leading-none text-white/42 transition hover:bg-white/[0.06] hover:text-white/78 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400/50"
+                        className="msg-actions-btn rounded px-1.5 py-0.5 text-lg leading-none text-white/42 transition hover:bg-white/[0.06] hover:text-white/78 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400/50"
                         onClick={(e) => {
                           e.stopPropagation()
                           setActionMenuId((id) => (id === m._id ? null : m._id))
@@ -268,7 +268,7 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                             <button
                               type="button"
                               role="menuitem"
-                              className="block w-full px-3 py-2 text-left text-[11px] uppercase tracking-[0.12em] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                              className="block w-full px-3 py-2 text-left text-base uppercase tracking-[0.12em] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
                               onClick={() => void togglePin(m._id)}
                             >
                               Pin
@@ -278,7 +278,7 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                             <button
                               type="button"
                               role="menuitem"
-                              className="block w-full px-3 py-2 text-left text-[11px] uppercase tracking-[0.12em] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                              className="block w-full px-3 py-2 text-left text-base uppercase tracking-[0.12em] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
                               onClick={() => void del(m._id)}
                             >
                               Delete
@@ -309,19 +309,19 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
                 }
               }}
               placeholder="write something..."
-              className="min-w-0 flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2.5 text-[13px] text-white/88 outline-none transition placeholder:text-white/32 focus:border-white/28"
+              className="min-w-0 flex-1 rounded-sm border border-white/14 bg-black/45 px-3 py-2.5 text-sm text-white/88 outline-none transition placeholder:text-white/32 focus:border-white/28"
             />
             <button
               type="button"
               disabled={busy || !body.trim()}
               onClick={() => void send()}
-              className="shrink-0 rounded-sm border border-white/18 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/78 transition hover:border-white/35 hover:text-white disabled:opacity-40"
+              className="shrink-0 rounded-sm border border-white/18 px-4 py-2 font-mono text-base uppercase tracking-[0.16em] text-white/78 transition hover:border-white/35 hover:text-white disabled:opacity-40"
             >
               {busy ? '…' : 'Send'}
             </button>
           </div>
         ) : (
-          <p className="m-0 text-[11px] text-white/42">
+          <p className="m-0 text-base text-white/42">
             {!isLoggedIn ? (
               <>
                 <Link to="/login" className="text-white/65 underline decoration-white/25 hover:text-white">

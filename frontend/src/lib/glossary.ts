@@ -1,4 +1,4 @@
-/** Very short strings for native `title` tooltips (hover). */
+/** Very short strings for inline glossary hints ({@link DefTerm} hover tooltips). */
 
 export const GLOSSARY: Record<string, string> = {
   // Flag categories (Governance)

@@ -10,7 +10,7 @@ type RecoverResponse = { token: string; alias: string }
 
 const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
-  'w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-sans focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
+  'w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-mono focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 const textareaClass = fieldInput + ' min-h-[120px] font-mono text-small'
 
 export default function RecoverPage() {

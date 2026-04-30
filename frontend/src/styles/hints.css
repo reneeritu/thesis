@@ -1,0 +1,86 @@
+/* Inline glossary hints — word marker + floating tooltip (see DefTerm.tsx) */
+
+.hint-word {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: help;
+  /* Dark: explicit muted ink — light theme overrides with tokens below */
+  text-decoration-color: rgba(255, 255, 255, 0.42);
+}
+
+.hint-word:hover {
+  text-decoration-color: rgba(255, 255, 255, 0.68);
+}
+
+html[data-theme='light'] .hint-word,
+html.light-mode .hint-word {
+  text-decoration-color: var(--text-muted);
+}
+
+html[data-theme='light'] .hint-word:hover,
+html.light-mode .hint-word:hover {
+  text-decoration-color: var(--text-secondary);
+}
+
+.hint-tooltip {
+  position: fixed;
+  z-index: 100;
+  box-sizing: border-box;
+  max-width: 260px;
+  padding: 10px 14px;
+  background: #161618;
+  border: 1px solid #333;
+  border-left: 2px solid #555;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: #ccc;
+  border-radius: 0;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+  pointer-events: none;
+}
+
+.hint-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hint-tooltip .hint-term {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.hint-tooltip .hint-definition {
+  font-size: var(--text-sm);
+  color: #ccc;
+  line-height: 1.5;
+  display: block;
+}
+
+html[data-theme='light'] .hint-tooltip,
+html.light-mode .hint-tooltip {
+  background: #eeede7;
+  border-color: #c5c4bc;
+  border-left-color: #6a6a64;
+  color: #3a3a36;
+}
+
+html[data-theme='light'] .hint-tooltip .hint-term,
+html.light-mode .hint-tooltip .hint-term {
+  color: #9a9a93;
+}
+
+html[data-theme='light'] .hint-tooltip .hint-definition,
+html.light-mode .hint-tooltip .hint-definition {
+  color: #3a3a36;
+}

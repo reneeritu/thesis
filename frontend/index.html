@@ -13,9 +13,11 @@
           var v = localStorage.getItem('etch_theme')
           if (v === 'light') {
             document.documentElement.setAttribute('data-theme', 'light')
+            document.documentElement.classList.add('light-mode')
             document.documentElement.style.colorScheme = 'light'
           } else {
             document.documentElement.removeAttribute('data-theme')
+            document.documentElement.classList.remove('light-mode')
             document.documentElement.style.colorScheme = 'dark'
           }
         } catch (e) {}

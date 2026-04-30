@@ -4,7 +4,7 @@ import { AnchoredGlassDropdownPanel } from './AnchoredGlassDropdownPanel'
 
 /** Discover, notifications, glossary triggers in AppShell — same hit area, no boxed chrome. */
 export const HEADER_NAV_ICON_BUTTON_CLASS =
-  'relative inline-flex h-9 w-9 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-white/90 transition-etch hover:text-yellow-400 [touch-action:manipulation] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400/50'
+  'etch-nav-icon-btn relative inline-flex h-9 w-9 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-white/90 transition-etch hover:text-yellow-400 [touch-action:manipulation] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400/50'
 
 export const HEADER_NAV_ICON_SVG_CLASS = 'h-[18px] w-[18px]'
 

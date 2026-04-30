@@ -73,7 +73,7 @@ type SpaceRecentTrace = {
 function AsideSectionLabel({ children }: { children: ReactNode }) {
   return (
     <div className="mb-2 flex min-w-0 items-center gap-2">
-      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.22em] text-white/38">{children}</span>
+      <span className="shrink-0 font-mono text-xs uppercase tracking-[0.22em] text-white/38">{children}</span>
       <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
     </div>
   )
@@ -133,15 +133,15 @@ function SpaceProjectCard({ project }: { project: ProjectRow }) {
         </div>
       </div>
       <div className="flex min-h-0 flex-[2] flex-col gap-1.5 bg-black/82 px-3 py-3">
-        <h3 className="m-0 font-mono text-[13px] font-medium uppercase tracking-[0.1em] leading-snug text-white/90 line-clamp-2">
+        <h3 className="m-0 font-mono text-sm font-medium uppercase tracking-[0.1em] leading-snug text-white/90 line-clamp-2">
           {project.title}
         </h3>
-        <p className="m-0 font-mono text-[9px] uppercase tracking-[0.16em] text-white/45">{labelProjectStatus(project.status)}</p>
+        <p className="m-0 font-mono text-xs uppercase tracking-[0.16em] text-white/45">{labelProjectStatus(project.status)}</p>
         <div className="flex flex-wrap gap-1">
           {aliases.map((a) => (
             <span
               key={a}
-              className="rounded px-1.5 py-0.5 font-mono text-[9px] text-white/55 bg-white/[0.06]"
+              className="rounded px-1.5 py-0.5 font-mono text-xs text-white/55 bg-white/[0.06]"
             >
               {a}
             </span>
@@ -325,7 +325,7 @@ export default function SpaceDetailPage() {
                 <h1 className="m-0 font-mono text-[clamp(1.25rem,3vw,1.75rem)] font-semibold uppercase tracking-[0.1em] leading-tight text-white">
                   {space.name}
                 </h1>
-                <div className="flex flex-wrap items-center gap-3 font-mono text-[11px] uppercase tracking-[0.14em]">
+                <div className="flex flex-wrap items-center gap-3 font-mono text-base uppercase tracking-[0.14em]">
                   <span className="flex items-center gap-2">
                     <span
                       className={`inline-block h-2 w-2 rounded-full ${
@@ -340,7 +340,7 @@ export default function SpaceDetailPage() {
                   <span className="text-white/42">{memberCount} members</span>
                 </div>
                 {space.description?.trim() ? (
-                  <p className="m-0 max-w-[52ch] text-[13px] leading-relaxed text-white/58">{space.description.trim()}</p>
+                  <p className="m-0 max-w-[52ch] text-sm leading-relaxed text-white/58">{space.description.trim()}</p>
                 ) : null}
               </div>
 
@@ -350,7 +350,7 @@ export default function SpaceDetailPage() {
                     key={key}
                     type="button"
                     onClick={() => setSpaceTab(key)}
-                    className={`border-b-2 pb-2 font-mono text-[11px] uppercase tracking-[0.22em] transition-colors ${
+                    className={`border-b-2 pb-2 font-mono text-base uppercase tracking-[0.22em] transition-colors ${
                       spaceTab === key
                         ? 'border-white text-white'
                         : 'border-transparent text-white/42 hover:text-white/72'
@@ -364,7 +364,7 @@ export default function SpaceDetailPage() {
               <div className="mt-6 space-y-10 pb-4">
                 {spaceTab === 'overview' && (
                   <div className="flex flex-col gap-8">
-                    <section className="space-y-3 text-[13px] leading-relaxed text-white/78">
+                    <section className="space-y-3 text-sm leading-relaxed text-white/78">
                       <p className="m-0">
                         <span className="text-white/45">open to · </span>
                         {labelProjectAccess(settings?.projectAccess)}
@@ -381,16 +381,16 @@ export default function SpaceDetailPage() {
 
                     {hasPendingVeto && (
                       <section className="border border-amber-400/35 bg-amber-400/5 px-4 py-4 space-y-3">
-                        <p className="m-0 font-mono text-[11px] uppercase tracking-[0.18em] text-amber-200/95">
+                        <p className="m-0 font-mono text-base uppercase tracking-[0.18em] text-amber-200/95">
                           You have been invited to join this space as veto authority
                         </p>
-                        <p className="m-0 text-[12px] text-white/75">Choose how to respond:</p>
+                        <p className="m-0 text-xs text-white/75">Choose how to respond:</p>
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             disabled={busy}
                             onClick={() => respondVeto(true, true)}
-                            className="border border-amber-400/50 bg-black/40 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-amber-100 transition hover:bg-black/60 disabled:opacity-60"
+                            className="border border-amber-400/50 bg-black/40 px-3 py-2 text-base uppercase tracking-[0.14em] text-amber-100 transition hover:bg-black/60 disabled:opacity-60"
                           >
                             Join + Accept Veto
                           </button>
@@ -398,7 +398,7 @@ export default function SpaceDetailPage() {
                             type="button"
                             disabled={busy}
                             onClick={() => respondVeto(true, false)}
-                            className="border border-white/18 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-white/75 transition hover:border-white/35 disabled:opacity-60"
+                            className="border border-white/18 px-3 py-2 text-base uppercase tracking-[0.14em] text-white/75 transition hover:border-white/35 disabled:opacity-60"
                           >
                             Join Only (no veto)
                           </button>
@@ -406,7 +406,7 @@ export default function SpaceDetailPage() {
                             type="button"
                             disabled={busy}
                             onClick={() => respondVeto(false, false)}
-                            className="border border-white/12 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-white/55 transition hover:border-white/28 disabled:opacity-60"
+                            className="border border-white/12 px-3 py-2 text-base uppercase tracking-[0.14em] text-white/55 transition hover:border-white/28 disabled:opacity-60"
                           >
                             Decline
                           </button>
@@ -417,13 +417,13 @@ export default function SpaceDetailPage() {
                     <div>
                       <AsideSectionLabel>Recent activity</AsideSectionLabel>
                       {recentTraces.length === 0 ? (
-                        <p className="m-0 text-[12px] text-white/42">No traces yet.</p>
+                        <p className="m-0 text-xs text-white/42">No traces yet.</p>
                       ) : (
                         <ul className="m-0 list-none space-y-2.5 p-0">
                           {recentTraces.map((t, idx) => (
                             <li
                               key={`${t.projectId}-${t.timestamp}-${idx}`}
-                              className="text-[12px] leading-relaxed text-white/75"
+                              className="text-xs leading-relaxed text-white/75"
                             >
                               <span className="text-white/88">{t.nodeAlias}</span>
                               <span className="text-white/35"> · </span>
@@ -431,7 +431,7 @@ export default function SpaceDetailPage() {
                               <span className="text-white/35"> · </span>
                               <span>{t.projectTitle}</span>
                               <span className="text-white/35"> · </span>
-                              <span className="text-[10px] text-white/38">{formatTimeAgo(t.timestamp)}</span>
+                              <span className="text-xs text-white/38">{formatTimeAgo(t.timestamp)}</span>
                             </li>
                           ))}
                         </ul>
@@ -442,14 +442,14 @@ export default function SpaceDetailPage() {
                       {isLoggedIn ? (
                         <Link
                           to={`/projects/new?space=${encodeURIComponent(space._id)}`}
-                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-black transition hover:bg-yellow-300"
+                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-base font-medium uppercase tracking-[0.18em] text-black transition hover:bg-yellow-300"
                         >
                           New project
                         </Link>
                       ) : (
                         <Link
                           to="/login"
-                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-black transition hover:bg-yellow-300"
+                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-base uppercase tracking-[0.18em] text-black transition hover:bg-yellow-300"
                         >
                           Log in to create a project
                         </Link>
@@ -458,7 +458,7 @@ export default function SpaceDetailPage() {
                         <button
                           type="button"
                           onClick={() => setSpaceTab('admin')}
-                          className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55 transition hover:text-white/85"
+                          className="font-mono text-base uppercase tracking-[0.2em] text-white/55 transition hover:text-white/85"
                         >
                           Admin →
                         </button>
@@ -468,7 +468,7 @@ export default function SpaceDetailPage() {
                           type="button"
                           disabled={busy}
                           onClick={leaveSpace}
-                          className="border border-white/18 bg-transparent px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white/65 transition hover:border-white/35 hover:text-white/88 disabled:opacity-60"
+                          className="border border-white/18 bg-transparent px-4 py-2 font-mono text-base uppercase tracking-[0.18em] text-white/65 transition hover:border-white/35 hover:text-white/88 disabled:opacity-60"
                         >
                           Leave space
                         </button>
@@ -502,7 +502,7 @@ export default function SpaceDetailPage() {
                       <AsideSectionLabel>Space settings</AsideSectionLabel>
                       <Link
                         to={`/spaces/${encodeURIComponent(space._id)}/settings`}
-                        className="inline-block font-mono text-[12px] uppercase tracking-[0.12em] text-white/70 underline decoration-white/25 underline-offset-[3px] transition hover:text-white"
+                        className="inline-block font-mono text-xs uppercase tracking-[0.12em] text-white/70 underline decoration-white/25 underline-offset-[3px] transition hover:text-white"
                       >
                         Open full settings →
                       </Link>
@@ -510,13 +510,13 @@ export default function SpaceDetailPage() {
 
                     {(space.pendingVeto?.length ?? 0) > 0 ? (
                       <section className="space-y-2 border border-white/12 bg-black/25 px-4 py-3">
-                        <p className="m-0 font-mono text-[10px] uppercase tracking-[0.2em] text-white/45">
+                        <p className="m-0 font-mono text-xs uppercase tracking-[0.2em] text-white/45">
                           Pending veto invites
                         </p>
                         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
                           {(space.pendingVeto ?? []).map((p) => (
                             <li key={p.alias}>
-                              <span className="inline-block rounded-sm border border-white/14 px-2 py-1 font-mono text-[11px] text-white/75">
+                              <span className="inline-block rounded-sm border border-white/14 px-2 py-1 font-mono text-base text-white/75">
                                 {p.alias}
                               </span>
                             </li>
@@ -526,20 +526,20 @@ export default function SpaceDetailPage() {
                     ) : null}
 
                     <section className="space-y-4 border border-white/12 bg-black/20 p-4">
-                      <h2 className="m-0 font-mono text-[10px] uppercase tracking-[0.2em] text-white/45">Invite codes</h2>
+                      <h2 className="m-0 font-mono text-xs uppercase tracking-[0.2em] text-white/45">Invite codes</h2>
                       <div className="flex flex-wrap items-end gap-4">
-                        <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/42">
+                        <label className="flex flex-col gap-1 font-mono text-xs uppercase tracking-[0.16em] text-white/42">
                           Mode
                           <select
                             value={genMode}
                             onChange={(e) => setGenMode(e.target.value as 'single_use' | 'multi_use')}
-                            className="border border-white/18 bg-black/50 px-2 py-1.5 font-mono text-[12px] text-white/85"
+                            className="border border-white/18 bg-black/50 px-2 py-1.5 font-mono text-xs text-white/85"
                           >
                             <option value="single_use">Single use</option>
                             <option value="multi_use">Multi use</option>
                           </select>
                         </label>
-                        <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/42">
+                        <label className="flex flex-col gap-1 font-mono text-xs uppercase tracking-[0.16em] text-white/42">
                           Expires in
                           <select
                             value={genExpiry === null ? 'never' : String(genExpiry)}
@@ -547,7 +547,7 @@ export default function SpaceDetailPage() {
                               const v = e.target.value
                               setGenExpiry(v === 'never' ? null : Number(v))
                             }}
-                            className="border border-white/18 bg-black/50 px-2 py-1.5 font-mono text-[12px] text-white/85"
+                            className="border border-white/18 bg-black/50 px-2 py-1.5 font-mono text-xs text-white/85"
                           >
                             <option value="7">7 days</option>
                             <option value="15">15 days</option>
@@ -559,28 +559,28 @@ export default function SpaceDetailPage() {
                           type="button"
                           disabled={busy}
                           onClick={() => generateInvite({ mode: genMode, expiryDays: genExpiry })}
-                          className="border border-yellow-400/80 bg-yellow-400/90 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
+                          className="border border-yellow-400/80 bg-yellow-400/90 px-4 py-2 font-mono text-base uppercase tracking-[0.16em] text-black transition hover:bg-yellow-300 disabled:opacity-60"
                         >
                           Generate code
                         </button>
                       </div>
                       {genResult ? (
                         <div className="rounded-sm border border-emerald-400/35 bg-emerald-400/8 px-3 py-3 space-y-2">
-                          <p className="m-0 font-mono text-[11px] text-emerald-100/95">
+                          <p className="m-0 font-mono text-base text-emerald-100/95">
                             New code: <span className="select-all text-white">{genResult.inviteCode}</span>
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() => copyToClipboard(inviteJoinUrl(genResult.inviteCode), 'join')}
-                              className="border border-white/22 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/75 transition hover:border-white/40"
+                              className="border border-white/22 px-3 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-white/75 transition hover:border-white/40"
                             >
                               {copied === 'join' ? 'Copied' : 'Copy join link'}
                             </button>
                             <button
                               type="button"
                               onClick={() => copyToClipboard(genResult.inviteCode, 'code')}
-                              className="border border-white/22 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/75 transition hover:border-white/40"
+                              className="border border-white/22 px-3 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-white/75 transition hover:border-white/40"
                             >
                               {copied === 'code' ? 'Copied' : 'Copy code'}
                             </button>
@@ -588,16 +588,16 @@ export default function SpaceDetailPage() {
                         </div>
                       ) : null}
                       {(space.inviteCodes?.length ?? 0) === 0 ? (
-                        <p className="m-0 text-[12px] text-white/42">No invite codes yet.</p>
+                        <p className="m-0 text-xs text-white/42">No invite codes yet.</p>
                       ) : (
                         <ul className="m-0 list-none space-y-2 p-0">
                           {(space.inviteCodes ?? []).map((ic) => (
                             <li
                               key={ic.code}
-                              className="flex flex-wrap items-center justify-between gap-2 border border-white/10 bg-black/35 px-3 py-2 text-[11px] text-white/72"
+                              className="flex flex-wrap items-center justify-between gap-2 border border-white/10 bg-black/35 px-3 py-2 text-base text-white/72"
                             >
                               <span className="font-mono select-all">{ic.code}</span>
-                              <span className="text-[10px] uppercase tracking-[0.12em] text-white/38">
+                              <span className="text-xs uppercase tracking-[0.12em] text-white/38">
                                 {ic.mode.replace('_', ' ')}
                                 {ic.used ? ' · used' : ''} · {ic.usedCount} uses
                                 {ic.expiresAt
@@ -607,7 +607,7 @@ export default function SpaceDetailPage() {
                               <button
                                 type="button"
                                 onClick={() => copyToClipboard(inviteJoinUrl(ic.code), ic.code)}
-                                className="shrink-0 border border-white/18 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/65 transition hover:border-white/35"
+                                className="shrink-0 border border-white/18 px-2 py-1 font-mono text-xs uppercase tracking-[0.12em] text-white/65 transition hover:border-white/35"
                               >
                                 {copied === ic.code ? 'Copied' : 'Copy link'}
                               </button>
@@ -623,7 +623,7 @@ export default function SpaceDetailPage() {
                           type="button"
                           disabled={busy}
                           onClick={leaveSpace}
-                          className="border border-white/18 bg-transparent px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-white/65 transition hover:border-white/35 hover:text-white/88 disabled:opacity-60"
+                          className="border border-white/18 bg-transparent px-4 py-2 font-mono text-base uppercase tracking-[0.18em] text-white/65 transition hover:border-white/35 hover:text-white/88 disabled:opacity-60"
                         >
                           Leave space
                         </button>
@@ -651,8 +651,8 @@ export default function SpaceDetailPage() {
                             <GenerativeAvatar seed={alias} size={80} monochrome={false} luminescent className="opacity-95" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <span className="block truncate font-mono text-[12px] text-white/88">{alias}</span>
-                            <span className="text-[9px] uppercase tracking-[0.16em] text-white/38">{admin ? 'admin' : 'member'}</span>
+                            <span className="block truncate font-mono text-xs text-white/88">{alias}</span>
+                            <span className="text-xs uppercase tracking-[0.16em] text-white/38">{admin ? 'admin' : 'member'}</span>
                           </div>
                         </Link>
                       </li>
@@ -664,10 +664,10 @@ export default function SpaceDetailPage() {
               <div>
                 <AsideSectionLabel>Space rules</AsideSectionLabel>
                 {hasRulesContent ? (
-                  <div className="space-y-4 text-[11px] leading-relaxed text-white/58">
+                  <div className="space-y-4 text-base leading-relaxed text-white/58">
                     {minDocs.length > 0 ? (
                       <div>
-                        <p className="m-0 mb-1 text-[9px] uppercase tracking-[0.16em] text-white/35">Minimum documentation</p>
+                        <p className="m-0 mb-1 text-xs uppercase tracking-[0.16em] text-white/35">Minimum documentation</p>
                         <ul className="m-0 list-disc space-y-1 pl-4">
                           {minDocs.map((line, i) => (
                             <li key={i}>{line}</li>
@@ -677,7 +677,7 @@ export default function SpaceDetailPage() {
                     ) : null}
                     {restrictions.length > 0 ? (
                       <div>
-                        <p className="m-0 mb-1 text-[9px] uppercase tracking-[0.16em] text-white/35">Content restrictions</p>
+                        <p className="m-0 mb-1 text-xs uppercase tracking-[0.16em] text-white/35">Content restrictions</p>
                         <ul className="m-0 list-disc space-y-1 pl-4">
                           {restrictions.map((line, i) => (
                             <li key={i}>{line}</li>
@@ -687,7 +687,7 @@ export default function SpaceDetailPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="m-0 text-[11px] italic leading-relaxed text-white/38">
+                  <p className="m-0 text-base italic leading-relaxed text-white/38">
                     No additional rules beyond chain defaults.
                   </p>
                 )}
@@ -696,17 +696,17 @@ export default function SpaceDetailPage() {
               <div>
                 <AsideSectionLabel>Veto authority</AsideSectionLabel>
                 {vetoList.length > 0 ? (
-                  <ul className="m-0 list-none space-y-1.5 p-0 font-mono text-[11px] text-white/65">
+                  <ul className="m-0 list-none space-y-1.5 p-0 font-mono text-base text-white/65">
                     {vetoList.map((a) => (
                       <li key={a}>{a}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="m-0 text-[11px] text-white/38">none assigned</p>
+                  <p className="m-0 text-base text-white/38">none assigned</p>
                 )}
               </div>
 
-              <p className="mt-10 font-mono text-[9px] leading-relaxed tracking-wide text-white/28 break-all">
+              <p className="mt-10 font-mono text-xs leading-relaxed tracking-wide text-white/28 break-all">
                 {space._id}
               </p>
             </aside>

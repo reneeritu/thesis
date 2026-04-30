@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { SimEvent } from '../../lib/simApi'
+import { ghostEventText } from '../../lib/simGameplay'
 
 type Props = {
   events: SimEvent[]
+  /** Ghost mode: redact human text, show placeholder. */
+  ghostMode?: boolean
 }
 
-export function SimulationEventFeed({ events }: Props) {
+export function SimulationEventFeed({ events, ghostMode = false }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const newestSigRef = useRef<string>('')
 
@@ -42,12 +45,19 @@ export function SimulationEventFeed({ events }: Props) {
       {ordered.map((ev, i) => (
         <div
           key={`${ev.tick}-${ev.type}-${i}`}
-          className="border-b border-white/5 pb-1.5 font-mono text-small leading-snug text-white/75 last:border-b-0 last:pb-0"
+          className="border-b border-white/5 pb-1.5 font-mono text-small leading-snug last:border-b-0 last:pb-0"
+          style={{ opacity: ghostMode ? 0.45 : 1 }}
         >
-          <span className="text-cyan-400/90">t{ev.tick}</span>
-          <span className="text-white/35"> · </span>
-          <span className="text-amber-200/80">{ev.type}</span>
-          <div className="mt-0.5 text-white/60">{ev.human}</div>
+          <span className={ghostMode ? 'text-white/25' : 'text-cyan-400/90'}>t{ev.tick}</span>
+          <span className="text-white/20"> · </span>
+          {ghostMode ? (
+            <span className="text-white/20">{ev.type}</span>
+          ) : (
+            <span className="text-amber-200/80">{ev.type}</span>
+          )}
+          <div className={`mt-0.5 ${ghostMode ? 'text-white/20 italic' : 'text-white/60'}`}>
+            {ghostMode ? ghostEventText(ev.type) : ev.human}
+          </div>
         </div>
       ))}
     </div>

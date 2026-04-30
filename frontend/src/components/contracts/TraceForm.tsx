@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { DefTerm } from '../DefTerm'
 import { LiveCapture } from '../LiveCapture'
 import { useDefinitions } from '../../context/DefinitionsContext'
+import { useTheme } from '../../context/ThemeContext'
 import { api } from '../../lib/api'
 import { GLOSSARY } from '../../lib/glossary'
 import {
@@ -9,8 +10,10 @@ import {
   CATEGORY_LABELS,
   categoryForActivity,
 } from '../../lib/reputationColours'
+import { mixBlack } from '../../lib/colorMix'
 import { getToken } from '../../lib/session'
 import { Button } from '../Button'
+import { useToast } from '../../context/ToastContext'
 
 const ACTIVITY_TYPES = [
   'brainstorm',
@@ -53,8 +56,15 @@ function apiBase() {
   return window.location.origin.replace(/\/$/, '')
 }
 
+type TraceCreateResponse = {
+  _id: string
+  blockIndex?: number
+}
+
 export function TraceForm({ projectId, onDone }: Props) {
   const { definitionsOn } = useDefinitions()
+  const { theme } = useTheme()
+  const { showToast } = useToast()
   const [activityType, setActivityType] = useState<(typeof ACTIVITY_TYPES)[number]>(ACTIVITY_TYPES[0])
   const [otherDescription, setOtherDescription] = useState('')
   const [description, setDescription] = useState('')
@@ -130,7 +140,17 @@ export function TraceForm({ projectId, onDone }: Props) {
       if (activityType === 'other') body.otherDescription = otherDescription
       if (proxy) body.proxyForAlias = proxyForAlias
       if (uploadedMedia?.mediaId) body.mediaId = uploadedMedia.mediaId
-      await api('/traces', { method: 'POST', body })
+      const created = await api<TraceCreateResponse>('/traces', { method: 'POST', body })
+      const idx = created.blockIndex
+      showToast(
+        typeof idx === 'number' ? `trace logged — block #${idx}` : 'trace logged — chain updated',
+      )
+      const idStr = String(created._id ?? '').replace(/[^a-f0-9]/gi, '')
+      window.dispatchEvent(
+        new CustomEvent('etch:chain-flash', {
+          detail: { hashHint: idStr.length >= 8 ? idStr.slice(-10) : idStr },
+        }),
+      )
       setResult('Trace logged.')
       onDone()
     } catch (err) {
@@ -189,13 +209,27 @@ export function TraceForm({ projectId, onDone }: Props) {
             <span className="text-white uppercase tracking-[0.12em]">Counts toward</span>
             {activityCategory ? (
               <span
-                className="inline-flex items-center gap-1 border border-black px-1.5 py-0.5 uppercase tracking-[0.14em]"
-                style={{ backgroundColor: activityCategoryColour, color: '#0b0b0b' }}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 uppercase tracking-[0.14em] border ${
+                  theme === 'light' ? 'border-transparent' : 'border-black'
+                }`}
+                style={
+                  theme === 'light'
+                    ? {
+                        backgroundColor: 'transparent',
+                        color: '#1a1a18',
+                        boxShadow: `inset 0 0 0 1px ${mixBlack(activityCategoryColour, 0.3)}`,
+                      }
+                    : { backgroundColor: activityCategoryColour, color: '#0b0b0b' }
+                }
               >
                 <span
                   aria-hidden
-                  className="inline-block h-1.5 w-1.5 rounded-full border border-black"
-                  style={{ backgroundColor: '#0b0b0b' }}
+                  className={`inline-block h-1.5 w-1.5 rounded-full border ${
+                    theme === 'light' ? 'border-[#888884]' : 'border-black'
+                  }`}
+                  style={{
+                    backgroundColor: theme === 'light' ? '#1a1a18' : '#0b0b0b',
+                  }}
                 />
                 {CATEGORY_LABELS[activityCategory]}
               </span>
@@ -215,7 +249,7 @@ export function TraceForm({ projectId, onDone }: Props) {
               value={otherDescription}
               onChange={(e) => setOtherDescription(e.target.value)}
               required
-              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
             />
           </div>
         )}
@@ -226,7 +260,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+            className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
           />
         </div>
 
@@ -250,7 +284,7 @@ export function TraceForm({ projectId, onDone }: Props) {
             <input
               value={toolSoftware}
               onChange={(e) => setToolSoftware(e.target.value)}
-              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-sans text-body"
+              className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-base"
             />
           </div>
         </div>

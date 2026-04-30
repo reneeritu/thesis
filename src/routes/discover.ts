@@ -352,17 +352,29 @@ router.get('/projects', requireAuth, async (req: AuthRequest, res: Response) => 
 
 router.get('/nodes', requireAuth, async (req: AuthRequest, res: Response) => {
   const { q, limit, offset } = parsePaging(req);
+  const interests = parseCsvParam(req, 'interests');
+  const tools = parseCsvParam(req, 'tools');
+  const mediums = parseCsvParam(req, 'mediums');
 
   const filter: Record<string, unknown> = { status: 'active' };
   if (q) {
     const re = new RegExp(escRe(q), 'i');
-    filter.$or = [{ alias: re }, { interests: re }, { keywords: re }];
+    filter.$or = [{ alias: re }, { interests: re }, { keywords: re }, { tools: re }];
+  }
+  if (interests.length > 0) {
+    filter.interests = { $in: interests };
+  }
+  if (tools.length > 0) {
+    filter.tools = { $in: tools };
+  }
+  if (mediums.length > 0) {
+    filter.mediums = { $in: mediums };
   }
 
   const total = await ChainNode.countDocuments(filter);
   const docs = await ChainNode.find(filter)
     .select(
-      'alias interests keywords portfolioUrl reputationScore badges createdAt lastActiveAt',
+      'alias interests tools mediums keywords portfolioUrl reputationScore badges createdAt lastActiveAt',
     )
     .sort({ lastActiveAt: -1, createdAt: -1 })
     .skip(offset)
@@ -376,6 +388,8 @@ router.get('/nodes', requireAuth, async (req: AuthRequest, res: Response) => {
       return {
         alias: n.alias,
         interests: n.interests || [],
+        tools: n.tools || [],
+        mediums: n.mediums || [],
         keywords: n.keywords || [],
         portfolioUrl: n.portfolioUrl || '',
         reputationScore: n.reputationScore,

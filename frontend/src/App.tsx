@@ -12,7 +12,10 @@ import { AppAtmosphere } from './components/AppAtmosphere'
 import { AppAmbientDotField } from './components/AppAmbientDotField'
 import { initFontInspect } from './lib/fontInspect'
 import TargetCursor from './components/TargetCursor/TargetCursor'
+import { PageTransitionLayout } from './components/PageTransitionLayout'
+import { MicroChainFlash } from './components/MicroChainFlash'
 import { DotFieldBurstProvider } from './context/DotFieldBurstContext'
+import { ToastProvider } from './context/ToastContext'
 
 // Everything below ships as its own JS chunk and is only downloaded when the
 // user navigates to that route. WelcomeLanding in particular carries Theatre +
@@ -62,47 +65,52 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <DefinitionsProvider>
-        <DotFieldBurstProvider>
-          <TargetCursor spinDuration={2} hideDefaultCursor />
-          <AppAtmosphere />
-          <AppAmbientDotField />
-          <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-            <Route path="/" element={<LandingLayout />} />
-            <Route path="/welcome" element={<WelcomeLanding />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/recover" element={<RecoverPage />} />
-            <Route path="/nodes/:alias" element={<PublicNodePage />} />
-            <Route path="/spaces/:id" element={<SpaceDetailPage />} />
-            <Route path="/projects/:id" element={<ProjectDetailPage />} />
-            <Route path="/nfts/:id" element={<NftPage />} />
-            <Route element={<RequireAuth />}>
-              <Route path="/dashboard" element={<HubPage />} />
-              <Route path="/me" element={<HubPage />} />
-              <Route path="/spaces" element={<SpacesPage />} />
-              <Route path="/spaces/search" element={<SpaceSearchPage />} />
-              <Route path="/spaces/new" element={<SpaceNewPage />} />
-              <Route path="/spaces/join" element={<SpaceJoinPage />} />
-              <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
-              <Route path="/projects" element={<ProjectsBoardPage />} />
-              <Route path="/projects/search" element={<ProjectSearchPage />} />
-              <Route path="/projects/new" element={<ProjectNewPage />} />
-              <Route path="/archive/new" element={<ArchiveNewPage />} />
-              <Route path="/discover" element={<DiscoverPage />} />
-              <Route path="/simulation" element={<SimulationPage />} />
-              <Route path="/governance" element={<GovernancePage />} />
-              <Route path="/messages" element={<MessagesPage />} />
-              <Route path="/messages/:id" element={<MessagesPage />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-          </div>
-        </DotFieldBurstProvider>
-      </DefinitionsProvider>
+      <ToastProvider>
+        <DefinitionsProvider>
+          <DotFieldBurstProvider>
+            <TargetCursor spinDuration={2} hideDefaultCursor />
+            <MicroChainFlash />
+            <AppAtmosphere />
+            <AppAmbientDotField />
+            <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route element={<PageTransitionLayout />}>
+                    <Route path="/" element={<LandingLayout />} />
+                    <Route path="/welcome" element={<WelcomeLanding />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/recover" element={<RecoverPage />} />
+                    <Route path="/nodes/:alias" element={<PublicNodePage />} />
+                    <Route path="/spaces/:id" element={<SpaceDetailPage />} />
+                    <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                    <Route path="/nfts/:id" element={<NftPage />} />
+                    <Route element={<RequireAuth />}>
+                      <Route path="/dashboard" element={<HubPage />} />
+                      <Route path="/me" element={<HubPage />} />
+                      <Route path="/spaces" element={<SpacesPage />} />
+                      <Route path="/spaces/search" element={<SpaceSearchPage />} />
+                      <Route path="/spaces/new" element={<SpaceNewPage />} />
+                      <Route path="/spaces/join" element={<SpaceJoinPage />} />
+                      <Route path="/spaces/:id/settings" element={<SpaceSettingsPage />} />
+                      <Route path="/projects" element={<ProjectsBoardPage />} />
+                      <Route path="/projects/search" element={<ProjectSearchPage />} />
+                      <Route path="/projects/new" element={<ProjectNewPage />} />
+                      <Route path="/archive/new" element={<ArchiveNewPage />} />
+                      <Route path="/discover" element={<DiscoverPage />} />
+                      <Route path="/simulation" element={<SimulationPage />} />
+                      <Route path="/governance" element={<GovernancePage />} />
+                      <Route path="/messages" element={<MessagesPage />} />
+                      <Route path="/messages/:id" element={<MessagesPage />} />
+                    </Route>
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Route>
+                </Routes>
+              </Suspense>
+            </div>
+          </DotFieldBurstProvider>
+        </DefinitionsProvider>
+      </ToastProvider>
     </ThemeProvider>
   )
 }

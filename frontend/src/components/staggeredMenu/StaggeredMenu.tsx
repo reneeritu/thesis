@@ -465,10 +465,11 @@ export function StaggeredMenu({
 
         tl.fromTo(
           panel,
-          { xPercent: panelStart, yPercent: 0 },
+          { xPercent: panelStart, yPercent: 0, y: dropdown ? -5 : 0 },
           {
             xPercent: 0,
             yPercent: 0,
+            y: 0,
             duration: panelDuration,
             ease: dropdown ? 'power3.out' : 'power4.out',
           },
