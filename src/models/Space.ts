@@ -15,7 +15,7 @@ export interface ISpaceSettings {
   projectAccess: 'open' | 'invite_only' | 'application';
   vetoAuthority: string[];
   votingThreshold: number;
-  privacyDefault: 'public' | 'space_specific' | 'private';
+  privacyDefault: 'public' | 'process_visible' | 'space_specific' | 'private';
   customContractsAllowed: boolean;
   contentRestrictions: string[];
   minDocRequirements: string[];
@@ -86,8 +86,8 @@ const spaceSettingsSchema = new Schema<ISpaceSettings>(
     votingThreshold: { type: Number, default: 0.5, min: 0, max: 1 },
     privacyDefault: {
       type: String,
-      enum: ['public', 'space_specific', 'private'],
-      default: 'space_specific',
+      enum: ['public', 'process_visible', 'space_specific', 'private'],
+      default: 'public',
     },
     customContractsAllowed: { type: Boolean, default: true },
     contentRestrictions: { type: [String], default: [] },

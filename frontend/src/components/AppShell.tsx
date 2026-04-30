@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { ChromeBackdropProvider } from '../context/ChromeBackdropContext'
 import { clearSession, getToken } from '../lib/session'
 import { isSimMode } from '../lib/simApi'
 import { layoutDebugZoneClass, useLayoutDebug } from '../lib/layoutDebug'
@@ -159,8 +160,9 @@ export function AppShell({ children, title, scrollMain = true, gridOverlay = tru
       data-layout-n={layoutDebug ? '1' : undefined}
       data-layout-name={layoutDebug ? 'App shell (root column, h-screen)' : undefined}
     >
+      <ChromeBackdropProvider>
       <header
-        className={`relative z-[50] overflow-visible border-b border-grey-200/30 shrink-0 ${layoutDebugZoneClass(2, layoutDebug)}`.trim()}
+        className={`relative z-[100] overflow-visible border-b border-grey-200/30 shrink-0 ${layoutDebugZoneClass(2, layoutDebug)}`.trim()}
         data-layout-n={layoutDebug ? '2' : undefined}
         data-layout-name={layoutDebug ? 'Header' : undefined}
       >
@@ -229,6 +231,27 @@ export function AppShell({ children, title, scrollMain = true, gridOverlay = tru
             ) : (
               <nav className="etch-float-caps flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5 sm:gap-x-3">
                 <HelpButton />
+                <Link
+                  to="/discover"
+                  className={HEADER_NAV_ICON_BUTTON_CLASS}
+                  aria-label="Discover"
+                  title="Discover"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className={HEADER_NAV_ICON_SVG_CLASS}
+                    fill="none"
+                    aria-hidden
+                  >
+                    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
+                    <path
+                      d="m20 20-4.3-4.3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </Link>
                 <Link to="/login" className={navBtn}>
                   Login
                 </Link>
@@ -257,7 +280,7 @@ export function AppShell({ children, title, scrollMain = true, gridOverlay = tru
 
       {/* Main fills the column below the header: together they use one viewport (h-screen on root). */}
       <main
-        className={`flex w-full min-h-0 min-w-0 max-w-[100vw] flex-1 flex-col overflow-x-hidden ${scrollMain ? 'overflow-y-auto' : 'overflow-y-hidden'} ${layoutDebugZoneClass(3, layoutDebug)}`.trim()}
+        className={`relative z-0 flex w-full min-h-0 min-w-0 max-w-[100vw] flex-1 flex-col overflow-x-hidden ${scrollMain ? 'overflow-y-auto' : 'overflow-y-hidden'} ${layoutDebugZoneClass(3, layoutDebug)}`.trim()}
         data-layout-n={layoutDebug ? '3' : undefined}
         data-layout-name={layoutDebug ? 'Main (scroll + flex-1, height below header only)' : undefined}
       >
@@ -275,6 +298,7 @@ export function AppShell({ children, title, scrollMain = true, gridOverlay = tru
           </div>
         </div>
       </main>
+      </ChromeBackdropProvider>
     </div>
   )
 }

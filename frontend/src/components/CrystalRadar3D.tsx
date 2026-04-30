@@ -36,6 +36,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type RefObject,
 } from 'react'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
@@ -2321,6 +2322,8 @@ type MandalaProps = {
   clickToken: number // increments on every click — Mandala captures own time
   /** Dashboard legend hover — highlights matching arm */
   hoveredCategory?: CategoryKey | null
+  /** Default ~0.065 — lower = slower orbit around Y */
+  rotateYSpeed?: number
 }
 
 function Mandala({
@@ -2331,6 +2334,7 @@ function Mandala({
   onSelect,
   clickToken,
   hoveredCategory,
+  rotateYSpeed = 0.065,
 }: MandalaProps) {
   const rootRef = useRef<THREE.Group>(null)
 
@@ -2346,7 +2350,7 @@ function Mandala({
     const t = clock.getElapsedTime()
 
     // Slow rotation around Y — the kinetic spine of the piece.
-    root.rotation.y = t * 0.065
+    root.rotation.y = t * rotateYSpeed
 
     // Irregular wobble: a small field driven by incommensurate sines.
     if (theme === 'light') {
@@ -2521,6 +2525,12 @@ export type CrystalRadarProps = {
   hoveredCategory?: CategoryKey | null
   /** When true, omits legend chips, score list, aggregate paragraph, and hint/dialog below the canvas (e.g. profile embed). */
   hideLegendPanels?: boolean
+  /** Override inner viewport box classes (default: square responsive crystal). */
+  crystalViewportClassName?: string
+  /** Mandala Y rotation speed (rad/s × time); default ~0.065 */
+  mandalaRotateYSpeed?: number
+  /** e.g. profile → full reputation view; double-click on the crystal viewport only (not legend). */
+  onCrystalViewportDoubleClick?: (e: MouseEvent) => void
 }
 
 export function CrystalRadar3D({
@@ -2535,6 +2545,9 @@ export function CrystalRadar3D({
   onCategorySelect,
   hoveredCategory,
   hideLegendPanels = false,
+  crystalViewportClassName,
+  mandalaRotateYSpeed,
+  onCrystalViewportDoubleClick,
 }: CrystalRadarProps) {
   const viewRootRef = useRef<HTMLDivElement>(null)
   /** Don't even mount the Canvas until it's near the viewport — keeps initial page paint fast. */
@@ -2610,10 +2623,16 @@ export function CrystalRadar3D({
           Camera is pulled back so gyro rings + mandala stay fully in frame. */}
       <div
         data-crystal-viewport=""
-        className="mx-auto aspect-square w-full max-w-[min(100%,42rem)] shrink-0 overflow-visible bg-transparent sm:max-w-[44rem]"
+        className={
+          crystalViewportClassName ??
+          'mx-auto aspect-square w-full max-w-[min(100%,42rem)] shrink-0 overflow-visible bg-transparent sm:max-w-[44rem]'
+        }
         data-target-cursor-exclude=""
         onPointerDown={() => {
           onInteract?.()
+        }}
+        onDoubleClick={(e) => {
+          onCrystalViewportDoubleClick?.(e)
         }}
       >
         {everInView && (
@@ -2653,6 +2672,7 @@ export function CrystalRadar3D({
             onSelect={handleSelect}
             clickToken={clickToken}
             hoveredCategory={hoveredCategory}
+            rotateYSpeed={mandalaRotateYSpeed}
           />
           <OrbitControls
             target={[0, 0.06, 0]}

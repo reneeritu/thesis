@@ -250,13 +250,13 @@ export default function ArchiveNewPage() {
           <aside className="flex min-w-0 flex-col gap-5">
             <div>
               <p className="etch-page-header m-0">Archive</p>
-              <p className="mt-2 font-mono text-base font-normal leading-relaxed text-white/45">
+              <p className="mt-2 font-mono text-base font-normal leading-relaxed text-[var(--text-muted)]">
                 Past work documented with evidence. Lower base reputation than live traced work. Self-attestation only
                 is weakest — cross-attestation strengthens the record.
               </p>
             </div>
             <div className="border-t border-white/10 pt-4">
-              <p className="m-0 font-mono text-base font-normal leading-relaxed text-[#444]">
+              <p className="m-0 font-mono text-base font-normal leading-relaxed text-[var(--text-muted)]">
                 Evidence is anchored by SHA-256 hash on-chain. The file lives on the server. The fingerprint lives
                 forever.
               </p>
@@ -553,7 +553,7 @@ export default function ArchiveNewPage() {
               </div>
             </div>
 
-            <p className="mt-auto border-t border-white/10 pt-4 font-mono text-xs leading-relaxed text-white/30">
+            <p className="mt-auto border-t border-white/10 pt-4 font-mono text-xs leading-relaxed text-[var(--text-subtle)]">
               Archive NFTs carry a reconstruction badge. They are weighted lower than live traced work. This is by design.
             </p>
           </aside>

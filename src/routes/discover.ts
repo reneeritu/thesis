@@ -20,7 +20,7 @@
  */
 import mongoose from 'mongoose';
 import { Router, Response } from 'express';
-import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/optionalAuth';
 import { Space } from '../models/Space';
 import { Project } from '../models/Project';
 import { ChainNode } from '../models/Node';
@@ -91,9 +91,9 @@ function iso(d: unknown): string {
   return String(d);
 }
 
-router.get('/spaces', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/spaces', optionalAuth, async (req: AuthRequest, res: Response) => {
 
-  const alias = req.node!.alias;
+  const alias = req.node?.alias ?? '';
   const { q, limit, offset } = parsePaging(req);
   const accessRaw = parseCsvParam(req, 'access');
   const access = accessRaw.filter((a) => SPACE_ACCESS.has(a));
@@ -194,25 +194,28 @@ router.get('/spaces', requireAuth, async (req: AuthRequest, res: Response) => {
   });
 });
 
-router.get('/projects', requireAuth, async (req: AuthRequest, res: Response) => {
-  const alias = req.node!.alias;
+router.get('/projects', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const alias = req.node?.alias ?? '';
   const { q, limit, offset } = parsePaging(req);
 
-  const me = await ChainNode.findOne({ alias }).select('spaces').lean();
-  const fromNode = (me?.spaces ?? []) as mongoose.Types.ObjectId[];
-  /** Membership on Space is canonical; ChainNode.spaces can lag after joins. */
-  const fromMembership = (await Space.distinct('_id', {
-    members: alias,
-    status: 'active',
-  })) as mongoose.Types.ObjectId[];
+  let memberSpaceIds: mongoose.Types.ObjectId[] = [];
+  if (alias) {
+    const me = await ChainNode.findOne({ alias }).select('spaces').lean();
+    const fromNode = (me?.spaces ?? []) as mongoose.Types.ObjectId[];
+    /** Membership on Space is canonical; ChainNode.spaces can lag after joins. */
+    const fromMembership = (await Space.distinct('_id', {
+      members: alias,
+      status: 'active',
+    })) as mongoose.Types.ObjectId[];
 
-  const seen = new Set<string>();
-  const memberSpaceIds: mongoose.Types.ObjectId[] = [];
-  for (const id of [...fromNode, ...fromMembership]) {
-    const k = String(id);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    memberSpaceIds.push(id);
+    const seen = new Set<string>();
+    memberSpaceIds = [];
+    for (const id of [...fromNode, ...fromMembership]) {
+      const k = String(id);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      memberSpaceIds.push(id);
+    }
   }
 
   const visibilityOr: Record<string, unknown>[] = [
@@ -350,7 +353,7 @@ router.get('/projects', requireAuth, async (req: AuthRequest, res: Response) => 
   });
 });
 
-router.get('/nodes', requireAuth, async (req: AuthRequest, res: Response) => {
+router.get('/nodes', optionalAuth, async (req: AuthRequest, res: Response) => {
   const { q, limit, offset } = parsePaging(req);
   const interests = parseCsvParam(req, 'interests');
   const tools = parseCsvParam(req, 'tools');

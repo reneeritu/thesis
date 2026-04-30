@@ -14,7 +14,11 @@ import { Notification } from '../models/Notification';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
-import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
+import {
+  getProjectPayloadForViewer,
+  assertFullProcessLogReadable,
+} from '../utils/projectAccess';
+import { spacePrivacyAllowsPublicFullBrowse } from '../utils/spacePrivacy';
 
 const router = Router();
 
@@ -88,7 +92,7 @@ router.post(
       context: context || '',
       pedagogicalId: pedagogicalId || '',
       mentorAlias: mentorAlias || '',
-      visibility: visibility || 'space_only',
+      visibility: visibility || 'process_visible',
       startBlockIndex: block.index,
     });
 
@@ -210,7 +214,7 @@ router.get(
     if (!space) throw new NotFoundError('Space');
 
     const caller = req.node?.alias;
-    const isPublicSpace = space.settings?.privacyDefault === 'public';
+    const fullBrowse = spacePrivacyAllowsPublicFullBrowse(space.settings?.privacyDefault);
     const isMember = caller ? space.members.includes(caller) : false;
 
     let projects = await Project.find({ spaceId: req.params.spaceId }).sort({
@@ -218,11 +222,8 @@ router.get(
     });
 
     if (!isMember) {
-      if (!isPublicSpace && !caller) {
-        throw new ForbiddenError('Sign in to view projects in this space');
-      }
-      if (!isPublicSpace) {
-        throw new ForbiddenError('You are not a member of this space');
+      if (!fullBrowse) {
+        return res.json([]);
       }
       projects = projects.filter(
         (p) =>
@@ -281,24 +282,35 @@ router.get(
     const filtered = projects.filter((p) => {
       if (isSelf) return true;
       if (p.visibility === 'fully_public' || p.visibility === 'process_visible') return true;
-      // space_only
+      if (p.visibility === 'space_only') return true;
       return allowedSpaceIds.has(String(p.spaceId));
     });
 
-    const out = filtered.map((p) => ({
-      _id: String(p._id),
-      title: p.title,
-      status: p.status,
-      visibility: p.visibility,
-      spaceId: String(p.spaceId),
-      spaceName: spaceNameById.get(String(p.spaceId)) || String(p.spaceId),
-      creatorAlias: p.creatorAlias,
-      role:
-        p.creatorAlias === target
-          ? 'creator'
-          : (p.contributors?.find((c) => c.alias === target)?.role || 'contributor'),
-      logoSeed: p.logoSeed,
-    }));
+    const out = filtered.map((p) => {
+      const sid = String(p.spaceId);
+      const memberCanSeeLog =
+        isSelf ||
+        p.visibility === 'fully_public' ||
+        p.visibility === 'process_visible' ||
+        allowedSpaceIds.has(sid);
+      return {
+        _id: String(p._id),
+        title: p.title,
+        status: p.status,
+        visibility: p.visibility,
+        spaceId: sid,
+        spaceName: spaceNameById.get(sid) || sid,
+        creatorAlias: p.creatorAlias,
+        role:
+          p.creatorAlias === target
+            ? 'creator'
+            : (p.contributors?.find((c) => c.alias === target)?.role || 'contributor'),
+        logoSeed: p.logoSeed,
+        ...(p.visibility === 'space_only' && !memberCanSeeLog
+          ? { publicProcessLogRestricted: true as const }
+          : {}),
+      };
+    });
 
     res.json(out);
   },
@@ -309,8 +321,8 @@ router.get(
  * Readable without auth when visibility is process_visible or fully_public; space_only requires membership.
  */
 router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
-  const project = await assertProjectReadableForOptionalViewer(req.params.id, req);
-  res.json(project);
+  const payload = await getProjectPayloadForViewer(String(req.params.id), req);
+  res.json(payload);
 });
 
 /**

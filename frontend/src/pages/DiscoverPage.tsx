@@ -149,9 +149,9 @@ function DiscoverBrowseCard({
           <h3 className="m-0 line-clamp-2 font-mono text-sm font-bold uppercase tracking-[0.1em] leading-snug text-white/92">
             {title}
           </h3>
-          <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-white/38">{kindLabel}</p>
+          <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-secondary)]">{kindLabel}</p>
         </div>
-        <div className="border-t border-white/10 pt-1.5 font-mono text-base leading-snug text-white/52">{footer}</div>
+        <div className="border-t border-white/10 pt-1.5 font-mono text-base leading-snug text-[var(--text-subtle)]">{footer}</div>
       </div>
     </Link>
   )
@@ -159,7 +159,7 @@ function DiscoverBrowseCard({
 
 function traceFooterSnippet(trace?: TraceSnippet | null): ReactNode {
   if (!trace) {
-    return <span className="text-white/30">↳ no work documented yet</span>
+    return <span className="text-[var(--text-subtle)]">↳ no work documented yet</span>
   }
   return (
     <>
@@ -171,10 +171,10 @@ function traceFooterSnippet(trace?: TraceSnippet | null): ReactNode {
 function DiscoverEmptyState() {
   return (
     <div className="flex min-h-[min(420px,50vh)] flex-col items-center justify-center px-6 py-16 text-center">
-      <p className="font-mono text-small uppercase tracking-[0.18em] text-white/55">
+      <p className="font-mono text-small uppercase tracking-[0.18em] text-[var(--text-muted)]">
         Nothing matching these filters
       </p>
-      <p className="mt-3 max-w-md font-mono text-base leading-relaxed text-white/35">
+      <p className="mt-3 max-w-md font-mono text-base leading-relaxed text-[var(--text-muted)]">
         try broadening your search, or check back as more work gets documented
       </p>
     </div>
@@ -367,7 +367,7 @@ export default function DiscoverPage() {
       ? merged.length === 0
       : currentSingleFeed.items.length === 0)
 
-  const sectionLabel = 'mb-2 font-mono text-xs uppercase tracking-[0.22em] text-white/45'
+  const sectionLabel = 'mb-2 font-mono text-xs uppercase tracking-[0.22em] text-[var(--text-secondary)]'
   const toggleBtn = (active: boolean) =>
     `discover-type-toggle rounded-sm px-2 py-1 font-mono text-small uppercase tracking-[0.16em] transition ${
       active ? 'bg-black text-yellow-400' : 'bg-white/5 text-white/80 hover:bg-white/10 hover:text-yellow-200'
@@ -423,7 +423,7 @@ export default function DiscoverPage() {
 
           <div>
             <p className={sectionLabel}>Activity type</p>
-            <p className="mb-2 font-mono text-base leading-snug text-white/35">
+            <p className="mb-2 font-mono text-base leading-snug text-[var(--text-muted)]">
               Narrows projects that have traces with these activity types.
             </p>
             <div className="flex flex-col gap-1">
@@ -485,10 +485,10 @@ export default function DiscoverPage() {
 
           {!loadingInitial && !showError && (
             <header>
-              <p className="font-mono text-small uppercase tracking-[0.14em] text-white/78">
+              <p className="font-mono text-small uppercase tracking-[0.14em] text-[var(--text-muted)]">
                 Showing {loadedCount} of {totalCount} — sorted by recent chain activity
               </p>
-              <p className="mt-1 max-w-2xl font-mono text-base leading-relaxed text-white/38">
+              <p className="mt-1 max-w-2xl font-mono text-base leading-relaxed text-[var(--text-muted)]">
                 no algorithmic ranking · sorted by when work was last documented
               </p>
             </header>

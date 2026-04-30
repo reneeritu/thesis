@@ -1,4 +1,4 @@
-import type { Selection } from './MacroNetworkView'
+import type { MacroSelection as Selection } from './macroTypes'
 import { NodeDetail } from './EntityDetail/NodeDetail'
 import { SpaceDetail } from './EntityDetail/SpaceDetail'
 import { ProjectDetail } from './EntityDetail/ProjectDetail'

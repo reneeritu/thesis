@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import {
-  type GamePhase,
-  NARRATOR_FADE_OUT_MS,
-} from '../../lib/simGameplay'
+import type { GamePhase } from '../../lib/simGameplay'
+
+const ENTRANCE_MS = 300
 
 type Props = {
   text: string | null
@@ -14,50 +13,61 @@ type Props = {
 }
 
 /**
- * Manual-advance narrator card. Slides in from the right when `text` changes.
- * Stays visible until parent calls `onAdvance` (via card click, spacebar, etc.).
+ * Manual-advance narrator card. Subtle opacity entrance; stays until `onAdvance`.
  */
 export function SimNarratorCard({ text, phase, onAdvance, queueCount = 0 }: Props) {
-  const [visible, setVisible] = useState(false)
+  const [entered, setEntered] = useState(false)
 
   useEffect(() => {
     if (!text) {
-      setVisible(false)
+      setEntered(false)
       return
     }
-    const id = window.requestAnimationFrame(() => setVisible(true))
+    setEntered(false)
+    const id = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setEntered(true))
+    })
     return () => window.cancelAnimationFrame(id)
   }, [text])
 
   if (!text) return null
 
   const isGhost = phase === 'act1' || phase === 'transition'
+  const borderOuter = isGhost ? '#2a2a4a' : '#4a3a6a'
+  const borderAccent = isGhost ? '#666664' : '#a78bfa'
 
   return (
     <div
-      className="absolute bottom-6 right-4 z-30 max-w-[320px] transition-all"
+      className="absolute bottom-6 right-4 z-30 max-w-[320px] ease-out"
       style={{
-        transform: visible ? 'translateX(0)' : 'translateX(110%)',
-        opacity: visible ? 1 : 0,
-        transitionDuration: `${NARRATOR_FADE_OUT_MS}ms`,
+        opacity: entered ? 1 : 0,
+        transition: `opacity ${ENTRANCE_MS}ms ease-out`,
+        boxShadow: 'none',
       }}
     >
       <button
         type="button"
         onClick={() => onAdvance?.()}
-        className="cursor-target flex w-full flex-col items-stretch gap-3 border bg-black/85 px-4 py-3 text-left font-mono uppercase tracking-[0.18em] transition hover:bg-black/95"
+        className="cursor-target flex w-full flex-col items-stretch gap-3 px-4 py-3 text-left shadow-none transition-colors hover:brightness-[1.06]"
         style={{
-          borderColor: isGhost ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.32)',
-          color: isGhost ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.85)',
+          backgroundColor: 'rgba(10, 10, 15, 0.92)',
+          border: `1px solid ${borderOuter}`,
+          borderLeft: `2px solid ${borderAccent}`,
+          boxShadow: 'none',
         }}
         data-target-cursor-exclude
       >
-        <span className="text-[12px] leading-relaxed">{text}</span>
-        <span className="flex items-center justify-between text-[9px] tracking-[0.28em] text-white/35">
-          <span>[Space] continue</span>
+        <span
+          className="font-mono text-sm uppercase leading-relaxed tracking-widest"
+          style={{ color: isGhost ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.92)' }}
+        >
+          {text}
+        </span>
+        <span className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.22em] text-[var(--text-ghost)] opacity-60">
+          <span>[SPACE] CONTINUE</span>
           <span className="flex items-center gap-2">
-            {queueCount > 1 ? <span>+{queueCount - 1} more</span> : null}
-            <span aria-hidden className="narrator-card-arrow">→</span>
+            {queueCount > 1 ? <span>· +{queueCount - 1} MORE</span> : null}
+            <span aria-hidden>→</span>
           </span>
         </span>
       </button>

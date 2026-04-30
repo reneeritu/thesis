@@ -15,6 +15,7 @@ import { NFT } from '../models/NFT';
 import { Archive } from '../models/Archive';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { optionalViewerMayReadProject } from '../utils/projectAccess';
 
 /**
  * Activity-to-category map, duplicated here to avoid depending on the engine's internal
@@ -211,6 +212,94 @@ router.delete(
 );
 
 /**
+ * GET /nodes/:alias/traces?limit=8
+ * Recent traces for a node from projects the viewer may read (same rules as project detail).
+ * Omit traces from space_only / private projects for anonymous or non-member viewers.
+ */
+router.get('/:alias/traces', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const { alias } = req.params;
+  const rawLimit = Number.parseInt(String(req.query.limit ?? '8'), 10);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 50 ? rawLimit : 8;
+
+  const node = await ChainNode.findOne({ alias }).select('_id status blockedNodes');
+  if (!node || node.status === 'removed') throw new NotFoundError('Node');
+  if (req.node && node.blockedNodes?.includes(req.node.alias)) {
+    throw new ForbiddenError('You are blocked by this node');
+  }
+
+  const batchCap = Math.min(120, Math.max(limit * 12, limit));
+  const traces = await Trace.find({
+    $or: [{ nodeAlias: alias }, { proxyForAlias: alias, proxyConfirmed: true }],
+  })
+    .sort({ timestamp: -1 })
+    .limit(batchCap)
+    .select('activityType timestamp projectId')
+    .lean();
+
+  if (traces.length === 0) {
+    return res.json([]);
+  }
+
+  const projectIds = [...new Set(traces.map((t) => String(t.projectId)))];
+  const projects =
+    projectIds.length > 0
+      ? await Project.find({ _id: { $in: projectIds } })
+          .select('title status visibility spaceId contributors')
+          .lean()
+      : [];
+  const spaceIds = [...new Set(projects.map((p) => String(p.spaceId)))];
+  const spaces =
+    spaceIds.length > 0
+      ? await Space.find({ _id: { $in: spaceIds } }).select('members').lean()
+      : [];
+
+  const spaceById = new Map(spaces.map((s) => [String(s._id), s]));
+  const readableProjectIds = new Set<string>();
+  for (const p of projects) {
+    const space = spaceById.get(String(p.spaceId));
+    if (
+      optionalViewerMayReadProject(
+        {
+          visibility: String(p.visibility ?? ''),
+          contributors: (p.contributors ?? []) as { alias: string; accepted?: boolean | null }[],
+        },
+        space ? { members: (space.members ?? []) as string[] } : null,
+        req,
+      )
+    ) {
+      readableProjectIds.add(String(p._id));
+    }
+  }
+
+  const titleById = new Map(projects.map((p) => [String(p._id), String(p.title ?? '')]));
+  const statusById = new Map(projects.map((p) => [String(p._id), String(p.status ?? '')]));
+
+  const out: {
+    activityType: string;
+    timestamp: string;
+    projectId: string;
+    projectTitle: string;
+    projectStatus: string;
+  }[] = [];
+
+  for (const t of traces) {
+    if (out.length >= limit) break;
+    const pid = String(t.projectId);
+    if (!readableProjectIds.has(pid)) continue;
+    out.push({
+      activityType: String(t.activityType ?? ''),
+      timestamp:
+        t.timestamp instanceof Date ? t.timestamp.toISOString() : String(t.timestamp ?? ''),
+      projectId: pid,
+      projectTitle: titleById.get(pid) || 'Project',
+      projectStatus: statusById.get(pid) || '',
+    });
+  }
+
+  res.json(out);
+});
+
+/**
  * GET /nodes/:alias
  * Public profile. Hides score (shown only to self), respects blocks.
  */
@@ -307,7 +396,7 @@ router.get('/:alias', optionalAuth, async (req: AuthRequest, res: Response) => {
     profileLinks,
     spaces: node.spaces,
     spacesWithNames,
-    reputationCategories: node.reputationCategories,
+    reputationCategories: isSelf ? node.reputationCategories : undefined,
     badges: node.badges,
     status: node.status,
     completedProjects,
@@ -339,6 +428,24 @@ router.get('/:alias/reputation/recent', optionalAuth, async (req: AuthRequest, r
   }
 
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const isSelf = req.node?.alias === alias;
+  const emptyCats: RecentCategories = {
+    craft: 0,
+    research: 0,
+    collaboration: 0,
+    pedagogy: 0,
+    consistency: 0,
+    community: 0,
+  };
+
+  if (!isSelf) {
+    return res.json({
+      days,
+      since: since.toISOString(),
+      traceCount: 0,
+      categories: emptyCats,
+    });
+  }
 
   const traces = await Trace.find({
     $or: [
@@ -349,14 +456,7 @@ router.get('/:alias/reputation/recent', optionalAuth, async (req: AuthRequest, r
     .select('activityType')
     .lean();
 
-  const cats: RecentCategories = {
-    craft: 0,
-    research: 0,
-    collaboration: 0,
-    pedagogy: 0,
-    consistency: 0,
-    community: 0,
-  };
+  const cats: RecentCategories = { ...emptyCats };
 
   for (const t of traces) {
     const cat = ACTIVITY_TO_CATEGORY[t.activityType];

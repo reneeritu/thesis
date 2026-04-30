@@ -156,20 +156,6 @@ export const NARRATOR_TRIGGER_TYPES = new Set([
 ])
 
 /**
- * Ghost-mode display text for event feed entries.
- * Replaces the actual human text so traces remain hidden in Act 1.
- */
-export function ghostEventText(eventType: string): string {
-  if (eventType.startsWith('healthy:')) return 'work happened here'
-  if (eventType.startsWith('credit_dispute')) return 'a dispute was opened'
-  if (eventType.startsWith('plagiarism')) return 'a flag was filed'
-  if (eventType.startsWith('undercredit')) return 'credit was contested'
-  if (eventType.startsWith('governance')) return 'a vote occurred'
-  if (eventType.startsWith('world:')) return '—'
-  return 'an event occurred'
-}
-
-/**
  * End card stats for the ghost world (Act 1 outcome if documentation hadn't existed).
  * These are intentionally bleak / zeroed.
  */

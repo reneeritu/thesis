@@ -18,6 +18,30 @@ export type ReputationCategory =
   | 'consistency'
   | 'community'
 
+/** Canonical axis order — matches CrystalRadar3D KEYS */
+export const REPUTATION_CATEGORY_ORDER: ReputationCategory[] = [
+  'craft',
+  'research',
+  'collaboration',
+  'pedagogy',
+  'consistency',
+  'community',
+]
+
+/** Clamp API / unknown objects into per-category scores 0–1000 */
+export function clampReputationCategories(
+  raw: unknown,
+): Partial<Record<ReputationCategory, number>> {
+  if (!raw || typeof raw !== 'object') return {}
+  const o = raw as Record<string, unknown>
+  const out: Partial<Record<ReputationCategory, number>> = {}
+  for (const k of REPUTATION_CATEGORY_ORDER) {
+    const v = Number(o[k])
+    if (Number.isFinite(v)) out[k] = Math.max(0, Math.min(1000, v))
+  }
+  return out
+}
+
 /** Primary colour per category — jewel-tone palette, one per arm on the 3D radar. */
 export const CATEGORY_COLOURS: Record<ReputationCategory, string> = {
   craft:         '#e879f9', // neon lavender — aligns with shell accents / radar craft arm (dark)

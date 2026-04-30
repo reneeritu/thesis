@@ -13,6 +13,7 @@ import {
 } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
+import { useChromeBackdropWhileOpen } from '../../context/ChromeBackdropContext'
 
 import './StaggeredMenu.css'
 
@@ -223,6 +224,8 @@ export function StaggeredMenu({
   useEffect(() => {
     openRef.current = open
   }, [open])
+
+  useChromeBackdropWhileOpen(dropdown && open)
 
   const openTlRef = useRef<gsap.core.Timeline | null>(null)
   const closeTweenRef = useRef<gsap.core.Tween | null>(null)

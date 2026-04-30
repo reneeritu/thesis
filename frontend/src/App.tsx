@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import LandingLayout from './pages/LandingLayout'
+const Landing = lazy(() => import('./pages/Landing'))
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RecoverPage from './pages/RecoverPage'
@@ -33,17 +34,19 @@ const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 const ArchiveNewPage = lazy(() => import('./pages/ArchiveNewPage'))
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'))
 const GovernancePage = lazy(() => import('./pages/GovernancePage'))
-const PublicNodePage = lazy(() => import('./pages/PublicNodePage'))
 const NftPage = lazy(() => import('./pages/NftPage'))
 const SpaceSearchPage = lazy(() => import('./pages/SpaceSearchPage'))
 const ProjectSearchPage = lazy(() => import('./pages/ProjectSearchPage'))
 const SimulationPage = lazy(() => import('./pages/SimulationPage'))
 const MessagesPage = lazy(() => import('./pages/MessagesPage'))
+const NodeReputationPage = lazy(() => import('./pages/NodeReputationPage'))
 
 function RequireAuth() {
   const token = getToken()
+  const location = useLocation()
   if (!token) {
-    return <Navigate to="/login" replace />
+    const ret = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?return=${ret}`} replace />
   }
   return <Outlet />
 }
@@ -76,15 +79,20 @@ export default function App() {
               <Suspense fallback={<RouteFallback />}>
                 <Routes>
                   <Route element={<PageTransitionLayout />}>
-                    <Route path="/" element={<LandingLayout />} />
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/legacy-landing" element={<LandingLayout />} />
                     <Route path="/welcome" element={<WelcomeLanding />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/recover" element={<RecoverPage />} />
-                    <Route path="/nodes/:alias" element={<PublicNodePage />} />
+                    <Route path="/nodes/:alias" element={<HubPage />} />
                     <Route path="/spaces/:id" element={<SpaceDetailPage />} />
                     <Route path="/projects/:id" element={<ProjectDetailPage />} />
                     <Route path="/nfts/:id" element={<NftPage />} />
+                    <Route path="/provenance/:id" element={<NftPage />} />
+                    <Route path="/discover" element={<DiscoverPage />} />
+                    <Route path="/node/:alias/reputation" element={<NodeReputationPage />} />
+                    <Route path="/nodes/:alias/reputation" element={<NodeReputationPage />} />
                     <Route element={<RequireAuth />}>
                       <Route path="/dashboard" element={<HubPage />} />
                       <Route path="/me" element={<HubPage />} />
@@ -97,7 +105,6 @@ export default function App() {
                       <Route path="/projects/search" element={<ProjectSearchPage />} />
                       <Route path="/projects/new" element={<ProjectNewPage />} />
                       <Route path="/archive/new" element={<ArchiveNewPage />} />
-                      <Route path="/discover" element={<DiscoverPage />} />
                       <Route path="/simulation" element={<SimulationPage />} />
                       <Route path="/governance" element={<GovernancePage />} />
                       <Route path="/messages" element={<MessagesPage />} />

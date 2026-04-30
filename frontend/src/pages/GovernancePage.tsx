@@ -170,10 +170,10 @@ function FlagCard({ f }: { f: FlagRow }) {
         </span>
         <StatusChip status={f.status} />
       </div>
-      <p className="m-0 font-mono text-xs text-white/45">
-        {f.targetType} · <span className="text-white/55">{truncateId(f.targetId)}</span>
+      <p className="m-0 font-mono text-xs text-[var(--text-muted)]">
+        {f.targetType} · <span className="text-[var(--text-subtle)]">{truncateId(f.targetId)}</span>
       </p>
-      <p className="etch-meta m-0 text-white/32">Raised {formatShortDate(f.createdAt)}</p>
+      <p className="etch-meta m-0 text-[var(--text-muted)]">Raised {formatShortDate(f.createdAt)}</p>
     </div>
   )
 }
@@ -188,10 +188,10 @@ function MediationCard({ m }: { m: MediationRow }) {
         </span>
         <StatusChip status={m.status} />
       </div>
-      <p className="m-0 font-mono text-xs text-white/45">
-        project · <span className="text-white/55">{truncateId(m.projectId)}</span>
+      <p className="m-0 font-mono text-xs text-[var(--text-muted)]">
+        project · <span className="text-[var(--text-subtle)]">{truncateId(m.projectId)}</span>
       </p>
-      <p className="etch-meta m-0 text-white/32">
+      <p className="etch-meta m-0 text-[var(--text-muted)]">
         entity {m.relatedEntityType} · {formatShortDate(m.createdAt)}
       </p>
     </div>
@@ -216,7 +216,7 @@ function HistoryBlock({
       {has ? (
         <div className="space-y-2">{children}</div>
       ) : (
-        <p className="m-0 font-mono text-xs text-white/32">{empty}</p>
+        <p className="m-0 font-mono text-xs text-[var(--text-muted)]">{empty}</p>
       )}
     </div>
   )
@@ -303,14 +303,14 @@ export default function GovernancePage() {
           <aside className="flex min-w-0 flex-col gap-5 lg:col-span-3">
             <div>
               <p className="etch-page-header m-0">Governance</p>
-              <p className="mt-2 font-mono text-base font-normal leading-relaxed text-white/45">
+              <p className="mt-2 font-mono text-base font-normal leading-relaxed text-[var(--text-muted)]">
                 Flags initiate community review. Disputes are recorded on the chain. All resolutions are permanent and
                 visible.
               </p>
             </div>
 
             <div>
-              <p className="etch-section-rule m-0 mb-2 text-white/55">Status</p>
+              <p className="etch-section-rule m-0 mb-2">Status</p>
               <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-gutter:stable]">
                 {[
                   { label: 'Open flags', n: openFlags.length },
@@ -321,7 +321,7 @@ export default function GovernancePage() {
                     key={s.label}
                     className="flex min-w-[104px] max-w-[120px] shrink-0 flex-col gap-0.5 rounded-sm border border-white/[0.07] bg-black/22 px-2.5 py-2"
                   >
-                    <span className="font-mono text-sm font-medium uppercase tracking-[0.12em] text-white/38">
+                    <span className="font-mono text-sm font-medium uppercase tracking-[0.12em] text-[var(--text-secondary)]">
                       {s.label}
                     </span>
                     <span className="etch-stat-num">{s.n}</span>
@@ -331,11 +331,11 @@ export default function GovernancePage() {
             </div>
 
             <div className="mt-auto space-y-1.5 border-t border-white/10 pt-4">
-              <p className="etch-section-rule m-0 text-white/55">Legend</p>
-              <p className="m-0 font-mono text-base font-normal leading-relaxed text-white/28">
-                <span className="text-white/38">Dispute</span> — credit, veto, space ban, classification appeals.{' '}
-                <span className="text-white/38">Governance</span> — space conduct, moderator good faith, contracts.{' '}
-                <span className="text-white/38">Credit dispute</span> — attribution and provenance conflicts.
+              <p className="etch-section-rule m-0">Legend</p>
+              <p className="m-0 font-mono text-base font-normal leading-relaxed text-[var(--text-muted)]">
+                <span className="text-[var(--text-secondary)]">Dispute</span> — credit, veto, space ban, classification appeals.{' '}
+                <span className="text-[var(--text-secondary)]">Governance</span> — space conduct, moderator good faith, contracts.{' '}
+                <span className="text-[var(--text-secondary)]">Credit dispute</span> — attribution and provenance conflicts.
               </p>
             </div>
           </aside>
@@ -478,7 +478,7 @@ export default function GovernancePage() {
                     <p className="m-0 font-mono text-xs uppercase tracking-[0.14em] text-amber-200/85">
                       {info?.label ?? `Level ${lastFlag.complexityLevel}`}
                     </p>
-                    <p className="m-0 text-xs leading-relaxed text-white/50">
+                    <p className="m-0 text-xs leading-relaxed text-[var(--text-muted)]">
                       {info?.blurb ?? ''} {hours ? `${prettyWindow(hours)} time-lock.` : ''}
                     </p>
                   </div>

@@ -31,11 +31,11 @@ export default function LandingLayout() {
             <p className="border-t border-white/10 pt-6 font-mono text-[10px] uppercase tracking-[0.14em] text-[#333333]">
               <span className="opacity-90">Dev</span>
               {' · '}
-              <Link to="/welcome" className="text-[#333333] underline-offset-2 hover:text-[#555555]">
+              <Link to="/welcome" className="text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)]">
                 open /welcome
               </Link>
               <span className="mx-1.5">·</span>
-              <a href="/legacy/index.html" className="text-[#333333] underline-offset-2 hover:text-[#555555]">
+              <a href="/legacy/index.html" className="text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)]">
                 open legacy app
               </a>
             </p>

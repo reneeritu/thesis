@@ -152,7 +152,7 @@ export default function ProjectNewPage() {
           <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-4 lg:self-start">
             <div>
               <p className="etch-page-header m-0">New project</p>
-              <p className="mt-3 font-mono text-base font-normal leading-relaxed text-[#444]">
+              <p className="mt-3 font-mono text-base font-normal leading-relaxed text-[var(--text-muted)]">
                 A project is a single tracked work thread. Contributors are recorded on the start block. The chain record
                 begins the moment you submit.
               </p>

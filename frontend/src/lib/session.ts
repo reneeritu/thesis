@@ -52,6 +52,21 @@ export function redirectToDashboard(): void {
   window.location.href = '/dashboard'
 }
 
+/** After login/register: honor ?return= safe internal path, else dashboard */
+export function redirectAfterAuth(): void {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const ret = params.get('return')
+    if (ret && ret.startsWith('/') && !ret.startsWith('//')) {
+      window.location.assign(ret)
+      return
+    }
+  } catch {
+    /* ignore */
+  }
+  window.location.href = '/dashboard'
+}
+
 export function clearSession(): void {
   clearLegacyLocalStorage()
   sessionStorage.removeItem(LS_TOKEN)

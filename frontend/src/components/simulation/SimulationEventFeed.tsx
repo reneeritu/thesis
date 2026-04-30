@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { SimEvent } from '../../lib/simApi'
-import { ghostEventText } from '../../lib/simGameplay'
 
 type Props = {
   events: SimEvent[]
-  /** Ghost mode: redact human text, show placeholder. */
+  /** Ghost mode: no raw types — four rotating placeholders only (tick stays visible). */
   ghostMode?: boolean
 }
+
+/** Ghost feed body lines cycle by row index (newest-first order). */
+const GHOST_FEED_LINES = [
+  '[ redacted ]',
+  '[ work occurred ]',
+  '[ contribution unrecorded ]',
+  '[ event — no trace ]',
+] as const
 
 export function SimulationEventFeed({ events, ghostMode = false }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -51,13 +58,13 @@ export function SimulationEventFeed({ events, ghostMode = false }: Props) {
           <span className={ghostMode ? 'text-white/25' : 'text-cyan-400/90'}>t{ev.tick}</span>
           <span className="text-white/20"> · </span>
           {ghostMode ? (
-            <span className="text-white/20">{ev.type}</span>
+            <span className="text-white/28">{GHOST_FEED_LINES[i % GHOST_FEED_LINES.length]}</span>
           ) : (
-            <span className="text-amber-200/80">{ev.type}</span>
+            <>
+              <span className="text-amber-200/80">{ev.type}</span>
+              <div className="mt-0.5 text-white/60">{ev.human}</div>
+            </>
           )}
-          <div className={`mt-0.5 ${ghostMode ? 'text-white/20 italic' : 'text-white/60'}`}>
-            {ghostMode ? ghostEventText(ev.type) : ev.human}
-          </div>
         </div>
       ))}
     </div>

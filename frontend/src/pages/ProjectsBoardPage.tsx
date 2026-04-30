@@ -110,11 +110,11 @@ export default function ProjectsBoardPage() {
   }) {
     return (
       <div className="space-y-2">
-        <h2 className="border-b border-[#333333] pb-2 font-mono text-small uppercase tracking-[0.14em] text-[#555555]">
+        <h2 className="border-b border-[#333333] pb-2 font-mono text-small uppercase tracking-[0.14em] text-[var(--text-muted)]">
           {title}
         </h2>
         {items.length === 0 ? (
-          <p className="m-0 font-mono text-small leading-relaxed text-[#555555]">{emptyText}</p>
+          <p className="m-0 font-mono text-small leading-relaxed text-[var(--text-muted)]">{emptyText}</p>
         ) : (
           <div className="min-h-0 space-y-2">
             {items.map((item) =>

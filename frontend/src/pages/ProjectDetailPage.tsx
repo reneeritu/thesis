@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
+import { loginUrl } from '../lib/authNavigate'
 import { getAlias, getToken } from '../lib/session'
 import { AppShell } from '../components/AppShell'
 import { MediaPreview } from '../components/MediaPreview'
@@ -27,6 +28,8 @@ type Project = {
   status: string
   spaceId: string
   visibility?: string
+  /** Strangers see summary-only project payload without process log */
+  publicProcessLogRestricted?: boolean
   context?: string
   logoSeed?: string
   creatorAlias?: string
@@ -175,51 +178,63 @@ export default function ProjectDetailPage() {
         }
         if (!cancelled) setSpaceName(name)
 
-        const [traceRes, refRes, pivotRes, vetoRes, mediaRes] = await Promise.all([
-          api<TraceRow[]>('/traces/project/' + encodeURIComponent(id)).catch(() => [] as TraceRow[]),
-          api<RefRow[]>('/references/project/' + encodeURIComponent(id)).catch(() => [] as RefRow[]),
-          api<PivotRow[]>('/pivots/project/' + encodeURIComponent(id)).catch(() => [] as PivotRow[]),
-          api<VetoRow[]>('/vetos/project/' + encodeURIComponent(id)).catch(() => [] as VetoRow[]),
-          api<MediaItem[]>('/media/project/' + encodeURIComponent(id)).catch(() => [] as MediaItem[]),
-        ])
-        if (cancelled) return
+        const processRestricted = Boolean(p.publicProcessLogRestricted)
 
-        setTraces(traceRes)
-        setReferencesList(refRes)
-        setPivotsList(pivotRes)
-        setMediaItems(mediaRes)
+        if (processRestricted) {
+          if (!cancelled) {
+            setTraces([])
+            setReferencesList([])
+            setPivotsList([])
+            setMediaItems([])
+            setTimeline([])
+          }
+        } else {
+          const [traceRes, refRes, pivotRes, vetoRes, mediaRes] = await Promise.all([
+            api<TraceRow[]>('/traces/project/' + encodeURIComponent(id)).catch(() => [] as TraceRow[]),
+            api<RefRow[]>('/references/project/' + encodeURIComponent(id)).catch(() => [] as RefRow[]),
+            api<PivotRow[]>('/pivots/project/' + encodeURIComponent(id)).catch(() => [] as PivotRow[]),
+            api<VetoRow[]>('/vetos/project/' + encodeURIComponent(id)).catch(() => [] as VetoRow[]),
+            api<MediaItem[]>('/media/project/' + encodeURIComponent(id)).catch(() => [] as MediaItem[]),
+          ])
+          if (cancelled) return
 
-        const entries: TimelineEntry[] = []
-        for (const t of traceRes) {
-          entries.push({
-            kind: 'trace',
-            timestamp: new Date(t.timestamp || t.createdAt || 0).getTime(),
-            data: t as unknown as Record<string, unknown>,
-          })
+          setTraces(traceRes)
+          setReferencesList(refRes)
+          setPivotsList(pivotRes)
+          setMediaItems(mediaRes)
+
+          const entries: TimelineEntry[] = []
+          for (const t of traceRes) {
+            entries.push({
+              kind: 'trace',
+              timestamp: new Date(t.timestamp || t.createdAt || 0).getTime(),
+              data: t as unknown as Record<string, unknown>,
+            })
+          }
+          for (const r of refRes) {
+            entries.push({
+              kind: 'reference',
+              timestamp: new Date(r.createdAt || 0).getTime(),
+              data: r as unknown as Record<string, unknown>,
+            })
+          }
+          for (const pv of pivotRes) {
+            entries.push({
+              kind: 'pivot',
+              timestamp: new Date(pv.createdAt || 0).getTime(),
+              data: pv as unknown as Record<string, unknown>,
+            })
+          }
+          for (const v of vetoRes) {
+            entries.push({
+              kind: 'veto',
+              timestamp: new Date(v.createdAt || 0).getTime(),
+              data: v as unknown as Record<string, unknown>,
+            })
+          }
+          entries.sort((a, b) => a.timestamp - b.timestamp)
+          setTimeline(entries)
         }
-        for (const r of refRes) {
-          entries.push({
-            kind: 'reference',
-            timestamp: new Date(r.createdAt || 0).getTime(),
-            data: r as unknown as Record<string, unknown>,
-          })
-        }
-        for (const pv of pivotRes) {
-          entries.push({
-            kind: 'pivot',
-            timestamp: new Date(pv.createdAt || 0).getTime(),
-            data: pv as unknown as Record<string, unknown>,
-          })
-        }
-        for (const v of vetoRes) {
-          entries.push({
-            kind: 'veto',
-            timestamp: new Date(v.createdAt || 0).getTime(),
-            data: v as unknown as Record<string, unknown>,
-          })
-        }
-        entries.sort((a, b) => a.timestamp - b.timestamp)
-        setTimeline(entries)
 
         if (p.status === 'completed') {
           try {
@@ -253,6 +268,7 @@ export default function ProjectDetailPage() {
     : false
 
   const canActOnProject = isLoggedIn && amListed && !myPendingInvite
+  const processRestricted = Boolean(project?.publicProcessLogRestricted)
 
   const [joinReqNote, setJoinReqNote] = useState('')
   const [joinReqBusy, setJoinReqBusy] = useState(false)
@@ -365,6 +381,23 @@ export default function ProjectDetailPage() {
     </button>
   )
 
+  function guestAuthAction(label: string, reason: string, primary?: boolean, danger?: boolean) {
+    const idle = primary
+      ? 'border-yellow-400/90 bg-yellow-400 text-black hover:bg-yellow-300'
+      : danger
+        ? 'border-rose-400/40 bg-rose-950/40 text-rose-100/90 hover:border-rose-400/60'
+        : 'border-white/18 bg-black/40 text-white/70 hover:border-white/35 hover:text-white/90'
+    return (
+      <button
+        type="button"
+        onClick={() => window.location.assign(loginUrl({ reason }))}
+        className={`shrink-0 rounded-sm border px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] opacity-50 transition ${idle}`}
+      >
+        {label}
+      </button>
+    )
+  }
+
   const artSeed = project?.logoSeed ?? project?._id ?? ''
   const contextText = project?.context?.trim()
 
@@ -439,9 +472,17 @@ export default function ProjectDetailPage() {
                   <p className="m-0 text-xs uppercase tracking-[0.2em] text-white/45">Collaborate</p>
                   {!isLoggedIn ? (
                     <p className="m-0 text-xs text-white/65">
-                      <Link to="/login" className="text-yellow-400/90 underline underline-offset-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.location.assign(
+                            loginUrl({ reason: `log in to collaborate on ${project.title}` }),
+                          )
+                        }
+                        className="border-0 bg-transparent p-0 font-inherit text-yellow-400/90 underline underline-offset-2 opacity-80 transition hover:opacity-100"
+                      >
                         Log in
-                      </Link>{' '}
+                      </button>{' '}
                       to send a collaboration request.
                     </p>
                   ) : (
@@ -588,6 +629,12 @@ export default function ProjectDetailPage() {
                 )}
               </section>
 
+              {processRestricted ? (
+                <p className="m-0 max-w-[62ch] text-xs leading-relaxed text-white/42">
+                  the process log for this project is visible to space members only.
+                </p>
+              ) : null}
+
               {contextText ? (
                 <section className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -598,7 +645,7 @@ export default function ProjectDetailPage() {
                 </section>
               ) : null}
 
-              {isActive && canActOnProject ? (
+              {isActive && !processRestricted && canActOnProject ? (
                 <section className="flex flex-wrap gap-2">
                   {compactAction('Log work', 'trace', true)}
                   {compactAction('Add reference', 'reference')}
@@ -609,16 +656,27 @@ export default function ProjectDetailPage() {
                 </section>
               ) : null}
 
-              {project.status === 'completed' && canActOnProject ? (
+              {isActive && !processRestricted && !canActOnProject && !isLoggedIn ? (
+                <section className="flex flex-wrap gap-2">
+                  {guestAuthAction('Log work', `log in to log work on ${project.title}`, true)}
+                  {guestAuthAction('Add reference', `log in to add a reference on ${project.title}`)}
+                  {guestAuthAction('Record pivot', `log in to record a pivot on ${project.title}`)}
+                  {guestAuthAction('Raise veto', `log in to raise a veto on ${project.title}`, false, true)}
+                  {guestAuthAction('Fork', `log in to fork ${project.title}`)}
+                  {guestAuthAction('End project', `log in to end ${project.title}`, false, true)}
+                </section>
+              ) : null}
+
+              {project.status === 'completed' && !processRestricted && canActOnProject ? (
                 <section className="flex flex-wrap gap-2">{compactAction('Credit / sign', 'credit')}</section>
               ) : null}
 
-              {activeForm === 'trace' && <TraceForm projectId={project._id} onDone={reload} />}
-              {activeForm === 'reference' && <ReferenceForm projectId={project._id} onDone={reload} />}
-              {activeForm === 'pivot' && <PivotForm projectId={project._id} onDone={reload} />}
-              {activeForm === 'veto' && <VetoForm projectId={project._id} traces={traces} onDone={reload} />}
-              {activeForm === 'fork' && <ForkForm projectId={project._id} onDone={reload} />}
-              {activeForm === 'credit' && (
+              {!processRestricted && activeForm === 'trace' && <TraceForm projectId={project._id} onDone={reload} />}
+              {!processRestricted && activeForm === 'reference' && <ReferenceForm projectId={project._id} onDone={reload} />}
+              {!processRestricted && activeForm === 'pivot' && <PivotForm projectId={project._id} onDone={reload} />}
+              {!processRestricted && activeForm === 'veto' && <VetoForm projectId={project._id} traces={traces} onDone={reload} />}
+              {!processRestricted && activeForm === 'fork' && <ForkForm projectId={project._id} onDone={reload} />}
+              {!processRestricted && activeForm === 'credit' && (
                 <CreditForm
                   projectId={project._id}
                   contributors={contributors}
@@ -635,6 +693,8 @@ export default function ProjectDetailPage() {
                 />
               )}
 
+              {!processRestricted ? (
+              <>
               {/* Proof & media */}
               <section className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -713,6 +773,8 @@ export default function ProjectDetailPage() {
                     ))}
                   </ul>
                 </section>
+              ) : null}
+              </>
               ) : null}
 
               {project.status === 'completed' ? (
@@ -800,9 +862,23 @@ export default function ProjectDetailPage() {
                       >
                         {exportBusy ? 'Exporting…' : 'Export'}
                       </button>
+                    ) : !isLoggedIn ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.location.assign(
+                            loginUrl({
+                              reason: `log in as a contributor to export the chain record for ${project.title}`,
+                            }),
+                          )
+                        }
+                        className="cursor-pointer border-0 bg-transparent p-0 font-mono text-base uppercase tracking-[0.22em] text-amber-200/90 underline decoration-amber-400/40 underline-offset-[5px] opacity-50 transition hover:text-amber-50 hover:opacity-80 hover:decoration-amber-300/60"
+                      >
+                        Export
+                      </button>
                     ) : (
                       <p className="m-0 font-mono text-xs leading-relaxed text-white/38">
-                        Sign in as a contributor to export the chain JSON.
+                        Only listed contributors can export the chain JSON.
                       </p>
                     )}
                   </div>
@@ -812,13 +888,25 @@ export default function ProjectDetailPage() {
 
             {/* RIGHT ~40% — chain record */}
             <aside className="min-w-0 space-y-8 lg:sticky lg:top-4 lg:self-start">
-              <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="font-mono text-xs uppercase tracking-[0.28em] text-white/45">Chain record</span>
-                  <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
+              {processRestricted ? (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="font-mono text-xs uppercase tracking-[0.28em] text-white/45">Chain record</span>
+                    <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
+                  </div>
+                  <p className="m-0 text-xs leading-relaxed text-white/42">
+                    the process log for this project is visible to space members only.
+                  </p>
                 </div>
-                <ProjectTimeline entries={timeline} projectId={id} variant="chainRecord" />
-              </div>
+              ) : (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="font-mono text-xs uppercase tracking-[0.28em] text-white/45">Chain record</span>
+                    <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
+                  </div>
+                  <ProjectTimeline entries={timeline} projectId={id} variant="chainRecord" />
+                </div>
+              )}
 
               {project.status === 'completed' && creditBundle?.nft ? (
                 <section className="rounded-sm border border-amber-400/55 bg-amber-400/[0.06] p-5 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.12)]">
@@ -847,7 +935,7 @@ export default function ProjectDetailPage() {
                     </ul>
                   ) : null}
                   <Link
-                    to={`/nfts/${encodeURIComponent(creditBundle.nft._id)}`}
+                    to={`/provenance/${encodeURIComponent(creditBundle.nft._id)}`}
                     className="mt-5 inline-block font-mono text-xs uppercase tracking-[0.18em] text-amber-200/85 underline decoration-amber-400/35 underline-offset-4 transition hover:text-amber-100"
                   >
                     View on chain →

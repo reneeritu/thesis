@@ -15,7 +15,7 @@ import { sanitiseSvg, MAX_SVG_BYTES } from '../services/svgSanitise';
 import { config } from '../config';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
-import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
+import { loadProjectWithSpace, getProjectProcessLogScope } from '../utils/projectAccess';
 
 const ARTWORK_IMAGE_MIME = new Set([
   'image/png',
@@ -173,7 +173,10 @@ router.get(
   '/media/project/:projectId',
   optionalAuth,
   async (req: AuthRequest, res: Response) => {
-    const project = await assertProjectReadableForOptionalViewer(req.params.projectId, req);
+    const { project, space } = await loadProjectWithSpace(req.params.projectId);
+    if (getProjectProcessLogScope(project, space, req) !== 'full') {
+      return res.json([]);
+    }
 
     const alias = req.node?.alias;
     const isContributor = alias

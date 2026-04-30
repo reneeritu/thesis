@@ -20,7 +20,7 @@ export const createSpaceSchema = z.object({
        */
       vetoAuthority: z.array(z.string()).optional(),
       votingThreshold: z.number().min(0).max(1).optional(),
-      privacyDefault: z.enum(['public', 'space_specific', 'private']).optional(),
+      privacyDefault: z.enum(['public', 'process_visible', 'space_specific', 'private']).optional(),
       customContractsAllowed: z.boolean().optional(),
       contentRestrictions: z.array(z.string()).optional(),
       minDocRequirements: z.array(z.string()).optional(),
@@ -64,7 +64,7 @@ export const updateSpaceSettingsSchema = z.object({
   projectAccess: z.enum(['open', 'invite_only', 'application']).optional(),
   vetoAuthority: z.array(z.string()).optional(),
   votingThreshold: z.number().min(0).max(1).optional(),
-  privacyDefault: z.enum(['public', 'space_specific', 'private']).optional(),
+  privacyDefault: z.enum(['public', 'process_visible', 'space_specific', 'private']).optional(),
   customContractsAllowed: z.boolean().optional(),
   contentRestrictions: z.array(z.string()).optional(),
   minDocRequirements: z.array(z.string()).optional(),

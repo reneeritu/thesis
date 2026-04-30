@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useChromeBackdropWhileOpen } from '../context/ChromeBackdropContext'
 import { api } from '../lib/api'
 import { getToken } from '../lib/session'
 import { AnchoredGlassDropdownPanel } from './AnchoredGlassDropdownPanel'
@@ -31,6 +32,7 @@ export function NotificationBell() {
   const rootRef = useRef<HTMLDivElement>(null)
   const token = getToken()
   const navigate = useNavigate()
+  useChromeBackdropWhileOpen(open)
 
   const load = useCallback(() => {
     if (!token) return

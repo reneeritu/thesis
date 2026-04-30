@@ -42,6 +42,14 @@
     --text-lg: 16px;
     --text-xl: 18px;
     --text-2xl: 22px;
+
+    /* Semantic ink — dark default (see html.light-mode overrides in theme-modes.css) */
+    --text-primary: #f0f0ee;
+    --text-secondary: #ccccca;
+    --text-muted: #aaaaaa;
+    --text-subtle: #888886;
+    --text-ghost: #666664;
+    --text-placeholder: #888886;
   }
 
   html {
@@ -59,7 +67,7 @@
   body {
     @apply m-0 h-full min-h-0 max-h-full min-w-[80vw] max-w-[100vw] w-full overflow-x-visible overflow-y-hidden;
     @apply bg-grey-50 text-base leading-snug font-mono;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--text-primary);
     /* Only change from paper: desaturated blue–violet black (all other body chrome unchanged) */
     background-color: #0a0712;
     background-image:
@@ -148,7 +156,7 @@
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: #444444;
+    background: #666666;
   }
 
   *::-webkit-scrollbar-button {
@@ -212,6 +220,102 @@ a {
   background-size:
     calc(100% / 12) 100%,
     100% 24px;
+}
+
+/*
+ * Shell chrome: frosted + grain while nav menu / notifications / glossary are open.
+ * Lives inside AppShell below header + dropdowns (z-100+) and theme/hints rail (z-180).
+ */
+.etch-chrome-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: auto;
+  background: rgba(6, 5, 12, 0.38);
+  backdrop-filter: blur(11px) saturate(1.1);
+  -webkit-backdrop-filter: blur(11px) saturate(1.1);
+}
+
+.etch-chrome-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.22  0 0 0 0 0.24  0 0 0 0.42 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 320px 320px;
+}
+
+html[data-theme='light'] .etch-chrome-backdrop,
+html.light-mode .etch-chrome-backdrop {
+  background: rgba(236, 234, 226, 0.48);
+  backdrop-filter: blur(13px) saturate(1.05);
+  -webkit-backdrop-filter: blur(13px) saturate(1.05);
+}
+
+html[data-theme='light'] .etch-chrome-backdrop::after,
+html.light-mode .etch-chrome-backdrop::after {
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etch-chrome-backdrop {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+/* Reputation page — custom range sliders */
+.etch-rep-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  border-radius: 0;
+  background: linear-gradient(
+    to right,
+    var(--rep-accent, #888888) 0%,
+    var(--rep-accent, #888888) var(--rep-fill, 0%),
+    #2a2a2a var(--rep-fill, 0%),
+    #2a2a2a 100%
+  );
+}
+
+html.light-mode .etch-rep-range {
+  background: linear-gradient(
+    to right,
+    var(--rep-accent, #888888) 0%,
+    var(--rep-accent, #888888) var(--rep-fill, 0%),
+    var(--border-default, #c5c4bc) var(--rep-fill, 0%),
+    var(--border-default, #c5c4bc) 100%
+  );
+}
+
+.etch-rep-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  margin-top: -3px;
+}
+
+.etch-rep-range::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.etch-rep-range::-moz-range-track {
+  background: transparent;
 }
 
 @layer utilities {
@@ -286,35 +390,39 @@ a {
 
   /* ─── Etch semantic type (prefer these over raw text-[Npx] in TSX) ─── */
   .etch-field-label {
-    @apply mb-1.5 block font-mono font-medium uppercase tracking-[0.18em] text-white/45;
+    @apply mb-1.5 block font-mono font-medium uppercase tracking-[0.18em];
     font-size: var(--text-md);
+    color: var(--text-secondary);
   }
 
   .etch-field-group-title {
-    @apply m-0 mb-2 font-mono font-medium uppercase tracking-[0.18em] text-white/45;
+    @apply m-0 mb-2 font-mono font-medium uppercase tracking-[0.18em];
     font-size: var(--text-md);
+    color: var(--text-secondary);
   }
 
   .etch-field-help {
-    @apply mt-1 font-mono font-normal leading-snug text-[#444];
+    @apply mt-1 font-mono font-normal leading-snug;
     font-size: var(--text-base);
+    color: var(--text-muted);
   }
 
   .etch-muted {
-    @apply font-mono font-normal leading-relaxed text-[#555];
+    @apply font-mono font-normal leading-relaxed;
     font-size: var(--text-xs);
+    color: var(--text-muted);
   }
 
   .etch-section-rule {
     @apply shrink-0 font-mono font-medium uppercase tracking-[0.14em];
     font-size: var(--text-sm);
-    color: #555;
+    color: var(--text-muted);
   }
 
   .etch-card-title {
     @apply font-mono font-medium uppercase tracking-[0.14em];
     font-size: var(--text-lg);
-    color: #aaa;
+    color: var(--text-secondary);
   }
 
   .etch-page-header {
@@ -338,14 +446,15 @@ a {
   }
 
   .etch-mono-dim {
-    @apply font-mono font-normal text-[#666];
+    @apply font-mono font-normal;
     font-size: var(--text-sm);
+    color: var(--text-subtle);
   }
 
   .etch-stat-num {
     @apply font-mono font-normal tabular-nums;
     font-size: var(--text-xs);
-    color: #555;
+    color: var(--text-subtle);
   }
 
   .etch-control {
@@ -355,11 +464,11 @@ a {
   }
 
   .etch-control::placeholder {
-    color: rgba(255, 255, 255, 0.28);
+    color: var(--text-placeholder);
   }
 
   .etch-control:focus {
-    border-color: #555;
+    border-color: #777777;
   }
 
   .etch-select {
@@ -1115,3 +1224,46 @@ svg#contourPatterns {
     rgba(42, 37, 32, 0.12) 100%
   );
 }
+
+/* Auth surfaces stay visually dark — pin ink tokens so html.light-mode globals don't wash out copy */
+.auth-page,
+.etch-auth-ink {
+  --text-primary: #f0f0ee;
+  --text-secondary: #ccccca;
+  --text-muted: #aaaaaa;
+  --text-subtle: #888886;
+  --text-ghost: #666664;
+  --text-placeholder: #888886;
+}
+
+/* Auth Page Styles */
+.auth-page {
+  padding-top: 80px;
+}
+
+.auth-container {
+  margin: 0 auto;
+}
+
+.auth-columns {
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+}
+
+.auth-column-left,
+.auth-column-right {
+  font-family: var(--font-mono);
+}
+
+/* Prevent autofill from overriding input background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0d0d0b inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+}
+
+

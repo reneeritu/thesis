@@ -193,7 +193,7 @@ async function startProject(opts: {
     context,
     pedagogicalId = '',
     mentorAlias = '',
-    visibility = 'space_only',
+    visibility = 'process_visible',
     status,
   } = opts
 
@@ -505,7 +505,7 @@ async function main(): Promise<void> {
         projectAccess: 'open',
         vetoAuthority: [],
         votingThreshold: 0.5,
-        privacyDefault: 'space_specific',
+        privacyDefault: 'public',
         customContractsAllowed: true,
         contentRestrictions: [],
         minDocRequirements: [],

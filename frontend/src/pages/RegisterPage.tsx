@@ -4,7 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { DefTerm } from '../components/DefTerm'
 import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
-import { setSession } from '../lib/session'
+import { redirectAfterAuth, setSession } from '../lib/session'
 import { INTEREST_PRESETS, MIN_PROFILE_INTERESTS } from '../lib/interestPresets'
 
 type RegisterResponse = {
@@ -15,7 +15,6 @@ type RegisterResponse = {
 
 type Step = 1 | 2 | 3 | 4 | 5
 
-const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
   'etch-field-input w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-mono focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 
@@ -56,7 +55,8 @@ function Progress({ step }: { step: Step }) {
       </div>
       <div className="grid w-full grid-cols-2 gap-x-3 gap-y-2 text-small font-mono uppercase tracking-[0.18em] sm:grid-cols-5">
         {items.map(({ n, label }) => {
-          const tone = step === n ? 'text-white' : n < step ? 'text-[#555555]' : 'text-[#333333]'
+          const tone =
+            step === n ? 'text-white' : n < step ? 'text-[var(--text-muted)]' : 'text-[var(--text-subtle)]'
           const mark = step === n ? 'border-b border-white pb-0.5' : ''
           return (
             <span key={n} className={`${tone} ${mark}`.trim()}>
@@ -217,81 +217,167 @@ export default function RegisterPage() {
 
   return (
     <AppShell title="Register">
-      <div className="grid w-full grid-cols-12 gap-x-3 gap-y-6">
+      <div className="grid w-full grid-cols-12 gap-x-3 gap-y-6 etch-auth-ink">
         <div className="col-span-12 w-full max-w-5xl space-y-6">
           <Progress step={step} />
 
           {step === 1 ? (
-            <div className="grid gap-8 border-t border-white/10 pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,40%)] lg:items-start lg:gap-10">
-              <form onSubmit={onStep1} className="max-w-md space-y-4">
-                {error ? (
-                  <p
-                    className="border border-black bg-grey-100 px-3 py-2 text-small font-mono text-white"
-                    role="alert"
+            <div className="auth-columns flex flex-col md:flex-row gap-y-8 md:gap-x-[60px] md:items-start border-t border-[#1a1a1a] pt-8">
+              {/* Left Column */}
+              <div className="auth-column-left w-full md:w-[45%]">
+                {/* Wordmark */}
+                <div className="font-mono text-sm uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-6">
+                  ETCH
+                </div>
+
+                {/* Heading */}
+                <h1 className="font-mono text-xl uppercase tracking-[0.14em] text-[var(--text-primary)] mb-3">
+                  CREATE A NODE
+                </h1>
+
+                {/* Tagline */}
+                <p className="font-mono text-sm text-[var(--text-secondary)] mb-6">
+                  your alias is permanent and cannot be changed.
+                </p>
+
+                {/* Divider */}
+                <div className="h-px bg-[#2a2a2a] mb-6" />
+
+                {/* Form */}
+                <form onSubmit={onStep1} className="space-y-4">
+                  {error ? (
+                    <div
+                      className="border border-[#2a2a2a] bg-black/35 px-3 py-2 font-mono text-sm text-red-300"
+                      role="alert"
+                    >
+                      {error}
+                    </div>
+                  ) : null}
+
+                  {/* Alias */}
+                  <label className="block">
+                    <div className="font-mono text-sm uppercase tracking-[0.14em] text-[var(--text-secondary)] mb-2">
+                      ALIAS (3-30 CHARS)
+                    </div>
+                    <input
+                      name="alias"
+                      required
+                      minLength={3}
+                      maxLength={30}
+                      pattern="[a-z0-9_-]{3,30}"
+                      title="Lowercase letters, numbers, hyphen, underscore"
+                      autoComplete="username"
+                      className="w-full bg-[#0d0d0b] border border-[#2a2a2a] focus:border-[#777] font-mono text-base px-3 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none transition"
+                      placeholder="xyz_123"
+                    />
+                    <p className="font-mono text-xs text-[var(--text-muted)] mt-1">
+                      this is your permanent public handle. choose carefully.
+                    </p>
+                  </label>
+
+                  {/* Password */}
+                  <label className="block">
+                    <div className="font-mono text-sm uppercase tracking-[0.14em] text-[var(--text-secondary)] mb-2">
+                      PASSWORD (MIN 8 CHARACTERS)
+                    </div>
+                    <input
+                      name="password"
+                      type="password"
+                      minLength={8}
+                      required
+                      autoComplete="new-password"
+                      className="w-full bg-[#0d0d0b] border border-[#2a2a2a] focus:border-[#777] font-mono text-base px-3 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none transition"
+                    />
+                  </label>
+
+                  {/* Button */}
+                  <button
+                    type="submit"
+                    className="w-full border border-[#777] bg-transparent px-4 py-2.5 font-mono text-sm uppercase tracking-[0.14em] text-[var(--text-primary)] transition hover:bg-white hover:text-black disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={step1Busy}
                   >
-                    {error}
+                    {step1Busy ? (
+                      <span className="etch-loading-caret" aria-hidden>
+                        _
+                      </span>
+                    ) : (
+                      'CREATE NODE'
+                    )}
+                  </button>
+
+                  {/* Login Link */}
+                  <p className="text-sm font-mono text-[var(--text-muted)]">
+                    already a node?{' '}
+                    <Link to="/login" className="hover:text-[var(--text-secondary)] transition no-underline">
+                      login
+                    </Link>
                   </p>
-                ) : null}
-                <p className="text-base text-white">
-                  Your alias is permanent on the chain. No email or phone — only this name and your seed.
-                </p>
-                <div>
-                  <label htmlFor="reg-alias" className={fieldLabel}>
-                    Alias (3–30 chars)
-                  </label>
-                  <input
-                    id="reg-alias"
-                    name="alias"
-                    required
-                    minLength={3}
-                    maxLength={30}
-                    pattern="[a-z0-9_-]{3,30}"
-                    title="Lowercase letters, numbers, hyphen, underscore"
-                    autoComplete="username"
-                    className={fieldInput}
-                  />
+                </form>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden md:block w-px bg-[#1a1a1a] flex-shrink-0" />
+
+              {/* Right Column */}
+              <div className="hidden md:block auth-column-right w-[45%]">
+                <div className="font-mono text-sm uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-6">
+                  BEFORE YOU BEGIN
                 </div>
-                <div>
-                  <label htmlFor="reg-password" className={fieldLabel}>
-                    Password (min 8 characters)
-                  </label>
-                  <input
-                    id="reg-password"
-                    name="password"
-                    type="password"
-                    minLength={8}
-                    required
-                    autoComplete="new-password"
-                    className={fieldInput}
-                  />
+
+                <div className="space-y-0 border-t border-[#1a1a1a]">
+                  {/* Alias Row */}
+                  <div className="grid grid-cols-[140px_1fr] gap-0 py-2.5 px-0 border-b border-[#1a1a1a]">
+                    <div className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                      ALIAS
+                    </div>
+                    <div className="font-mono text-sm text-[var(--text-muted)]">
+                      permanent. appears on every credit and trace forever.
+                    </div>
+                  </div>
+
+                  {/* Seed Phrase Row */}
+                  <div className="grid grid-cols-[140px_1fr] gap-0 py-2.5 px-0 border-b border-[#1a1a1a]">
+                    <div className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                      SEED PHRASE
+                    </div>
+                    <div className="font-mono text-sm text-[var(--text-muted)]">
+                      generated on the next step. write it down offline.
+                    </div>
+                  </div>
+
+                  {/* No Email Row */}
+                  <div className="grid grid-cols-[140px_1fr] gap-0 py-2.5 px-0 border-b border-[#1a1a1a]">
+                    <div className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                      NO EMAIL
+                    </div>
+                    <div className="font-mono text-sm text-[var(--text-muted)]">
+                      there is no "forgot password" email. your seed is your key.
+                    </div>
+                  </div>
+
+                  {/* Trustees Row */}
+                  <div className="grid grid-cols-[140px_1fr] gap-0 py-2.5 px-0">
+                    <div className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                      TRUSTEES
+                    </div>
+                    <div className="font-mono text-sm text-[var(--text-muted)]">
+                      optional recovery contacts you set after registration.
+                    </div>
+                  </div>
                 </div>
-                <button type="submit" className={`${outlineBtn} w-full`} disabled={step1Busy}>
-                  {step1Busy ? (
-                    <span className="inline-flex min-w-[1.25em] justify-center" aria-busy>
-                      <span className="etch-loading-caret">_</span>
-                    </span>
-                  ) : (
-                    'Create node'
-                  )}
-                </button>
-                <p className="text-small text-white">
-                  Already have an account?{' '}
-                  <Link to="/login" className="underline underline-offset-4 hover:text-white">
-                    Login
-                  </Link>
+
+                {/* Footer */}
+                <p className="font-mono text-xs text-[var(--text-subtle)] mt-6 leading-relaxed">
+                  registration writes an identity block to the chain. this action is permanent.
                 </p>
-              </form>
-              <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[#555555] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-                Your alias is permanent. It will appear on every trace, credit, and provenance record you are
-                ever part of. It cannot be changed.
-              </aside>
+              </div>
             </div>
           ) : null}
 
           {step === 2 ? (
             <div className="space-y-4 border-t border-white/10 pt-6">
               <div
-                className="border border-[#555555] border-l-[3px] border-l-[#5a4a00] bg-zinc-950/80 px-4 py-3 text-base font-mono normal-case leading-relaxed text-white"
+                className="border border-[#777777] border-l-[3px] border-l-[#5a4a00] bg-zinc-950/80 px-4 py-3 text-base font-mono normal-case leading-relaxed text-[var(--text-secondary)]"
                 role="status"
               >
                 Write these words down in order. This is the only time they are shown. There is no account
@@ -303,7 +389,7 @@ export default function RegisterPage() {
                     key={i}
                     className="border border-[#2a2a2a] bg-zinc-900/55 px-3 py-2 font-mono text-small"
                   >
-                    <span className="text-[#555555]">{i + 1}.</span>{' '}
+                    <span className="text-[var(--text-muted)]">{i + 1}.</span>{' '}
                     <span className="text-white">{w}</span>
                   </div>
                 ))}
@@ -318,7 +404,7 @@ export default function RegisterPage() {
                     required
                   />
                   <span
-                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-[#555555] bg-[#0a0a0a] peer-checked:border-white peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#0a0a0a]"
+                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border border-[#777777] bg-[#0a0a0a] peer-checked:border-white peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#0a0a0a]"
                     aria-hidden
                   >
                     {seedAck ? (
@@ -433,7 +519,7 @@ export default function RegisterPage() {
                     </button>
                   </form>
                 </div>
-                <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[#555555] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[var(--text-muted)] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                   Interests help peers find you on the discover page. They are not permanent — you can change
                   them later.
                 </aside>
@@ -521,14 +607,14 @@ export default function RegisterPage() {
                       <button
                         type="button"
                         onClick={skipTrustees}
-                        className="self-start bg-transparent p-0 font-mono text-small normal-case tracking-normal text-[#666666] underline-offset-4 hover:text-white hover:underline"
+                        className="self-start bg-transparent p-0 font-mono text-small normal-case tracking-normal text-[var(--text-subtle)] underline-offset-4 hover:text-[var(--text-primary)] hover:underline"
                       >
                         Skip and set up later
                       </button>
                     </div>
                   </form>
                 </div>
-                <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[#555555] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[var(--text-muted)] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                   Without trustees, losing your seed phrase means permanent loss of the account. No email recovery
                   exists.
                 </aside>
@@ -542,10 +628,10 @@ export default function RegisterPage() {
               <p className="text-base text-white">
                 Node <span className="font-mono">{alias}</span> is ready.
               </p>
-              <Link to="/dashboard" className={`${outlineBtn} inline-flex w-auto`}>
+              <button type="button" onClick={() => redirectAfterAuth()} className={`${outlineBtn} inline-flex w-auto`}>
                 Go to home
-              </Link>
-              <ul className="mt-8 max-w-md list-none space-y-2 pl-0 font-mono text-small leading-relaxed text-[#555555]">
+              </button>
+              <ul className="mt-8 max-w-md list-none space-y-2 pl-0 font-mono text-small leading-relaxed text-[var(--text-muted)]">
                 <li>→ complete your personal statement on your profile</li>
                 <li>→ join or create a space</li>
                 <li>→ start your first project</li>

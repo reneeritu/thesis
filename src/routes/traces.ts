@@ -14,7 +14,7 @@ import { onTraceCreated } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
-import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
+import { assertFullProcessLogReadable } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -179,7 +179,7 @@ router.get(
   '/project/:projectId',
   optionalAuth,
   async (req: AuthRequest, res: Response) => {
-    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
+    await assertFullProcessLogReadable(req.params.projectId, req);
 
     const callerAlias = req.node?.alias ?? '';
 

@@ -61,7 +61,7 @@ const projectSchema = new Schema<IProject>(
     visibility: {
       type: String,
       enum: ['space_only', 'process_visible', 'fully_public'],
-      default: 'space_only',
+      default: 'process_visible',
     },
     startBlockIndex: { type: Number, required: true },
     logoSeed: { type: String, default: () => generateSeed() },

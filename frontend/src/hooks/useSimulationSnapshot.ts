@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { simApi, type SimSnapshot } from '../lib/simApi'
 
+const POLL_RUNNING_MS = 2000
+const POLL_SLOW_MS = 3000
+
 export function useSimulationSnapshot(simRunId: string | null) {
   const [snapshot, setSnapshot] = useState<SimSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -19,7 +22,15 @@ export function useSimulationSnapshot(simRunId: string | null) {
         cancelled.current = true
       }
     }
+
     let timer: ReturnType<typeof setTimeout> | null = null
+
+    function clearPollTimer() {
+      if (timer != null) {
+        clearTimeout(timer)
+        timer = null
+      }
+    }
 
     async function tick() {
       if (cancelled.current || !simRunId) return
@@ -28,20 +39,32 @@ export function useSimulationSnapshot(simRunId: string | null) {
         if (cancelled.current) return
         setSnapshot(s)
         setError(null)
-        const interval =
-          s.status === 'running' || s.status === 'seeding' ? 320 : 3000
-        timer = setTimeout(tick, interval)
+
+        if (s.status === 'complete') {
+          clearPollTimer()
+          return
+        }
+
+        const delayMs =
+          s.status === 'running' || s.status === 'seeding'
+            ? POLL_RUNNING_MS
+            : POLL_SLOW_MS
+
+        clearPollTimer()
+        timer = setTimeout(tick, delayMs)
       } catch (e) {
         if (cancelled.current) return
         setError(e instanceof Error ? e.message : 'sim status fetch failed')
-        timer = setTimeout(tick, 3000)
+        clearPollTimer()
+        timer = setTimeout(tick, POLL_SLOW_MS)
       }
     }
+
     tick()
 
     return () => {
       cancelled.current = true
-      if (timer) clearTimeout(timer)
+      clearPollTimer()
     }
   }, [simRunId])
 

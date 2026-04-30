@@ -103,7 +103,7 @@ html.light-mode .etch-form-success {
 
 /* Chain flash micro celebration */
 .etch-chain-flash-hash {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-muted);
 }
 
 html.light-mode .etch-chain-flash-hash {
@@ -184,11 +184,11 @@ html.light-mode .etch-chain-flash-icon {
 }
 
 .login-page-input::placeholder {
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--text-placeholder);
 }
 
 .login-page-input:focus {
-  border-color: #555555;
+  border-color: #777777;
   background-color: #0f0f0d;
 }
 
@@ -218,7 +218,7 @@ html.light-mode .login-page-input:focus {
   align-items: center;
   justify-content: center;
   padding: 12px;
-  border: 1px solid #444444;
+  border: 1px solid #777777;
   background-color: transparent;
   color: #ffffff;
   font-family: JetBrains Mono, ui-monospace, monospace;
@@ -247,7 +247,7 @@ html.light-mode .login-page-input:focus {
 
 html.light-mode .login-page-btn-outline {
   color: var(--text-secondary);
-  border-color: #444444;
+  border-color: #333330;
 }
 
 html.light-mode .login-page-btn-outline:hover:not(:disabled) {
@@ -258,7 +258,7 @@ html.light-mode .login-page-btn-outline:hover:not(:disabled) {
 
 .login-page-recover {
   font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-muted);
   text-decoration: none;
   transition: color 0.15s ease;
 }
@@ -276,7 +276,7 @@ html.light-mode .login-page-recover:hover {
 }
 
 .login-page-subhead {
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-muted);
 }
 
 html.light-mode .login-page-subhead {
@@ -286,11 +286,11 @@ html.light-mode .login-page-subhead {
 .login-page-explainer {
   font-size: 13px;
   line-height: 1.55;
-  color: #555555;
+  color: var(--text-muted);
 }
 
 html.light-mode .login-page-explainer {
-  color: #555555;
+  color: var(--text-muted);
 }
 
 .login-page-title {
@@ -302,7 +302,7 @@ html.light-mode .login-page-title {
 }
 
 .login-page-label {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-secondary);
 }
 
 html.light-mode .login-page-label {

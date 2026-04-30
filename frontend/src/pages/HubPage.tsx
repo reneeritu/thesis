@@ -1,35 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { CrystalRadar3DLazy } from '../components/CrystalRadar3DLazy'
 import { GenerativeAvatar } from '../components/GenerativeAvatar'
 import { useTheme } from '../context/ThemeContext'
 import { api } from '../lib/api'
 import { activityLabel } from '../lib/activityLabels'
-import { getAlias } from '../lib/session'
+import { getAlias, getToken } from '../lib/session'
+import { createConversation } from '../lib/messagesApi'
 import { formatTimeAgo } from '../lib/timeAgo'
 import { INTEREST_PRESETS } from '../lib/interestPresets'
 import {
   CATEGORY_COLOURS,
+  clampReputationCategories,
   colourForActivity,
+  REPUTATION_CATEGORY_ORDER,
   type ReputationCategory,
 } from '../lib/reputationColours'
 import { mixBlack } from '../lib/colorMix'
-
-const CATEGORY_ORDER = Object.keys(CATEGORY_COLOURS) as ReputationCategory[]
-
-function pickReputationCategories(
-  raw: unknown,
-): Partial<Record<ReputationCategory, number>> {
-  if (!raw || typeof raw !== 'object') return {}
-  const o = raw as Record<string, unknown>
-  const out: Partial<Record<ReputationCategory, number>> = {}
-  for (const k of CATEGORY_ORDER) {
-    const v = Number(o[k])
-    if (Number.isFinite(v)) out[k] = Math.max(0, Math.min(1000, v))
-  }
-  return out
-}
 
 /** Hub right column: compact outlined actions, 1px #333, mono caps */
 const hubOutlineAction =
@@ -41,7 +29,7 @@ function chipColourForTag(tag: string): string {
     h ^= tag.charCodeAt(i)
     h = Math.imul(h, 16777619)
   }
-  return CATEGORY_COLOURS[CATEGORY_ORDER[Math.abs(h) % CATEGORY_ORDER.length]!]!
+  return CATEGORY_COLOURS[REPUTATION_CATEGORY_ORDER[Math.abs(h) % REPUTATION_CATEGORY_ORDER.length]!]!
 }
 
 function interestChipStyle(
@@ -132,7 +120,7 @@ type RecentReputationResponse = {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-2 mt-1 flex min-w-0 items-center gap-2">
-      <span className="shrink-0 font-mono text-xs uppercase tracking-[0.22em] text-white/38">{children}</span>
+      <span className="shrink-0 font-mono text-xs uppercase tracking-[0.22em] text-[var(--text-secondary)]">{children}</span>
       <span className="h-px min-w-0 flex-1 bg-white/12" aria-hidden />
     </div>
   )
@@ -193,7 +181,7 @@ function HubTallCard({
       <div className="flex min-h-0 flex-[3] flex-col justify-center gap-0.5 px-2 py-1.5">
         <span className="line-clamp-2 font-mono text-xs uppercase tracking-[0.16em] text-white/88">{title}</span>
         {subtitle ? (
-          <span className="line-clamp-2 text-xs leading-tight text-white/42">{subtitle}</span>
+          <span className="line-clamp-2 text-xs leading-tight text-[var(--text-muted)]">{subtitle}</span>
         ) : null}
       </div>
     </Link>
@@ -228,6 +216,8 @@ function AddTall({ href, label }: { href: string; label: string }) {
 
 export default function HubPage() {
   const { theme } = useTheme()
+  const params = useParams<{ alias?: string }>()
+  const navigate = useNavigate()
 
   const [profile, setProfile] = useState<HubProfile | null>(null)
   const [traces, setTraces] = useState<TraceCard[]>([])
@@ -247,6 +237,8 @@ export default function HubPage() {
   const [customInterest, setCustomInterest] = useState('')
   const [stmtEditing, setStmtEditing] = useState(false)
   const [interestInputOpen, setInterestInputOpen] = useState(false)
+  /** Collapsed by default so Links / Trustees stay reachable without scrolling the full preset grid */
+  const [hubInterestsExpanded, setHubInterestsExpanded] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
@@ -254,20 +246,57 @@ export default function HubPage() {
   const baselineRef = useRef('')
   const stmtRef = useRef<HTMLTextAreaElement | null>(null)
 
+  const [msgOpen, setMsgOpen] = useState(false)
+  const [msgIntro, setMsgIntro] = useState('')
+  const [msgBusy, setMsgBusy] = useState(false)
+  const [msgErr, setMsgErr] = useState<string | null>(null)
+
   const sessionAlias = getAlias().trim()
+  const authed = !!getToken()
+  const urlAliasParam = params.alias?.trim() ?? ''
+  const viewingAlias = urlAliasParam || sessionAlias
+
   const isOwnProfile = useMemo(
-    () => !!(profile && sessionAlias.toLowerCase() === profile.alias.trim().toLowerCase()),
-    [profile, sessionAlias],
+    () =>
+      !!(
+        sessionAlias &&
+        viewingAlias &&
+        sessionAlias.toLowerCase() === viewingAlias.toLowerCase()
+      ),
+    [sessionAlias, viewingAlias],
   )
+
+  const canMessage =
+    authed &&
+    !isOwnProfile &&
+    Boolean(viewingAlias) &&
+    Boolean(sessionAlias) &&
+    viewingAlias.toLowerCase() !== sessionAlias.toLowerCase()
+
+  const viewerInterestCount = (profile?.interests ?? []).length
+  const hubInterestsToggleable =
+    isOwnProfile || viewerInterestCount > 8
 
   const load = useCallback(async () => {
     try {
-      const a = getAlias()
+      const a = viewingAlias.trim()
+      if (!a) {
+        setError('Missing profile')
+        return
+      }
+
+      const traceUrl =
+        isOwnProfile && sessionAlias
+          ? '/nodes/me/traces?limit=8'
+          : '/nodes/' + encodeURIComponent(a) + '/traces?limit=8'
+
       const [me, projList, traceList, archList, recentRep] = await Promise.all([
         api<HubProfile>('/nodes/' + encodeURIComponent(a)),
         api<ProjectCard[]>('/projects/by-node/' + encodeURIComponent(a)).catch(() => []),
-        api<TraceCard[]>('/nodes/me/traces?limit=8').catch(() => []),
-        api<ArchivePreview[]>('/nodes/me/archives-preview').catch(() => []),
+        api<TraceCard[]>(traceUrl).catch(() => []),
+        isOwnProfile
+          ? api<ArchivePreview[]>('/nodes/me/archives-preview').catch(() => [])
+          : Promise.resolve([]),
         api<RecentReputationResponse>(
           '/nodes/' + encodeURIComponent(a) + '/reputation/recent?days=90',
         ).catch(() => null),
@@ -275,7 +304,7 @@ export default function HubPage() {
       setProfile(me)
       setRecentCrystalCategories(
         recentRep?.categories != null
-          ? pickReputationCategories(recentRep.categories)
+          ? clampReputationCategories(recentRep.categories)
           : undefined,
       )
       setProjects(projList)
@@ -298,7 +327,7 @@ export default function HubPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load hub')
     }
-  }, [])
+  }, [viewingAlias, isOwnProfile, sessionAlias])
 
   useEffect(() => {
     let cancel = false
@@ -417,11 +446,11 @@ export default function HubPage() {
   const lastTrace = traces[0]
 
   const hubCrystalCategories = useMemo(
-    () => pickReputationCategories(profile?.reputationCategories),
+    () => clampReputationCategories(profile?.reputationCategories),
     [profile?.reputationCategories],
   )
 
-  const title = profile?.alias?.trim() ? profile.alias : 'Home'
+  const title = profile?.alias?.trim() ? profile.alias : viewingAlias.trim() || 'Home'
 
   return (
     <AppShell title={title} scrollMain={false}>
@@ -441,28 +470,70 @@ export default function HubPage() {
           </p>
         ) : null}
 
-        {profile ? (
+            {profile ? (
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden px-1 pb-2 pt-1 lg:grid-cols-[35fr_35fr_30fr] lg:gap-3 lg:px-2">
             {/* LEFT — identity + proof */}
             <section className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto overflow-x-hidden lg:border-r lg:border-white/10 lg:pr-2">
-              <div className="relative min-h-[42vh] shrink-0 lg:min-h-0 lg:flex-[1_1_65%] lg:basis-[65%]">
+              <div className="group/crystal relative min-h-[42vh] shrink-0 lg:min-h-0 lg:flex-[1_1_65%] lg:basis-[65%]">
+                <button
+                  type="button"
+                  className="absolute right-2 top-2 z-[2] flex h-[18px] w-[18px] cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-[#666666] transition-colors hover:text-white [html.light-mode_&]:text-[var(--text-muted)] [html.light-mode_&]:hover:text-[var(--text-primary)]"
+                  title="expand reputation"
+                  aria-label="expand reputation"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const a = profile.alias?.trim()
+                    if (!a) return
+                    navigate(`/nodes/${encodeURIComponent(a)}/reputation`)
+                  }}
+                >
+                  <span className="pointer-events-none text-[14px] leading-none" aria-hidden>
+                    ↗
+                  </span>
+                </button>
                 <CrystalRadar3DLazy
-                  categories={hubCrystalCategories}
-                  recentCategories={recentCrystalCategories}
+                  categories={isOwnProfile ? hubCrystalCategories : {}}
+                  recentCategories={isOwnProfile ? recentCrystalCategories : {}}
                   aggregateReputationScore={
-                    profile.reputationScore != null && Number.isFinite(profile.reputationScore)
+                    isOwnProfile &&
+                    profile.reputationScore != null &&
+                    Number.isFinite(profile.reputationScore)
                       ? profile.reputationScore
                       : null
                   }
                   className="h-full w-full"
                   hideLegendPanels
                   theme={theme}
+                  onCrystalViewportDoubleClick={(e) => {
+                    e.preventDefault()
+                    const a = profile.alias?.trim()
+                    if (!a) return
+                    navigate(`/nodes/${encodeURIComponent(a)}/reputation`)
+                  }}
                 />
+                <p className="pointer-events-none mt-1 text-center text-[length:var(--text-xs)] text-[var(--text-ghost)] opacity-0 transition-opacity duration-200 group-hover/crystal:opacity-100">
+                  double-click to expand
+                </p>
               </div>
 
-              <p className="shrink-0 text-md font-normal leading-snug text-white/52">{profile.alias}</p>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <p className="text-md font-normal leading-snug text-[var(--text-subtle)]">{profile.alias}</p>
+                {canMessage ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMsgErr(null)
+                      setMsgIntro('')
+                      setMsgOpen(true)
+                    }}
+                    className={hubOutlineAction}
+                  >
+                    Message
+                  </button>
+                ) : null}
+              </div>
 
-              <p className="shrink-0 text-xs leading-relaxed text-white/38">
+              <p className="shrink-0 text-xs leading-relaxed text-[var(--text-muted)]">
                 {lastTrace ? (
                   <>
                     Last logged: {activityLabel(lastTrace.activityType)} · {formatTimeAgo(lastTrace.timestamp)}
@@ -476,7 +547,7 @@ export default function HubPage() {
                 <SectionLabel>Proof of work</SectionLabel>
                 <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-gutter:stable]">
                 {traces.length === 0 ? (
-                  <p className="text-base text-white/40">No traces yet.</p>
+                  <p className="text-base text-[var(--text-muted)]">No traces yet.</p>
                 ) : (
                   traces.map((t) => (
                     <div
@@ -586,38 +657,64 @@ export default function HubPage() {
 
               <div>
                 <SectionLabel>Interests</SectionLabel>
-                {isOwnProfile ? (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-                    {INTEREST_PRESETS.map((tag) => {
-                      const on = interestSel.has(tag)
-                      const col = chipColourForTag(tag)
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => toggleInterest(tag)}
-                          className={`cursor-pointer rounded-full px-2.5 py-0.5 text-base tracking-wide transition hover:brightness-110 ${pulseInterest === tag ? 'etch-interest-pulse' : ''}`}
-                          style={interestChipStyle(
-                            col,
-                            theme === 'light' ? 'light' : 'dark',
-                            'toggle',
-                            on,
-                          )}
-                        >
-                          {tag}
-                        </button>
-                      )
-                    })}
-                    {[...interestSel]
-                      .filter((t) => !(INTEREST_PRESETS as readonly string[]).includes(t))
-                      .map((tag) => {
+                <div
+                  className={
+                    hubInterestsToggleable && !hubInterestsExpanded
+                      ? 'max-h-[9.5rem] overflow-hidden'
+                      : undefined
+                  }
+                >
+                  {isOwnProfile ? (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+                      {INTEREST_PRESETS.map((tag) => {
+                        const on = interestSel.has(tag)
                         const col = chipColourForTag(tag)
                         return (
                           <button
                             key={tag}
                             type="button"
-                            onClick={() => removeInterest(tag)}
-                            className="cursor-pointer rounded-full px-2.5 py-0.5 text-base tracking-wide transition hover:brightness-110"
+                            onClick={() => toggleInterest(tag)}
+                            className={`cursor-pointer rounded-full px-2.5 py-0.5 text-base tracking-wide transition hover:brightness-110 ${pulseInterest === tag ? 'etch-interest-pulse' : ''}`}
+                            style={interestChipStyle(
+                              col,
+                              theme === 'light' ? 'light' : 'dark',
+                              'toggle',
+                              on,
+                            )}
+                          >
+                            {tag}
+                          </button>
+                        )
+                      })}
+                      {[...interestSel]
+                        .filter((t) => !(INTEREST_PRESETS as readonly string[]).includes(t))
+                        .map((tag) => {
+                          const col = chipColourForTag(tag)
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => removeInterest(tag)}
+                              className="cursor-pointer rounded-full px-2.5 py-0.5 text-base tracking-wide transition hover:brightness-110"
+                              style={interestChipStyle(
+                                col,
+                                theme === 'light' ? 'light' : 'dark',
+                                'pill',
+                              )}
+                            >
+                              {tag}
+                            </button>
+                          )
+                        })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-x-2 gap-y-2">
+                      {(profile.interests ?? []).map((tag) => {
+                        const col = chipColourForTag(tag)
+                        return (
+                          <span
+                            key={tag}
+                            className="rounded-full px-2.5 py-0.5 text-base tracking-wide"
                             style={interestChipStyle(
                               col,
                               theme === 'light' ? 'light' : 'dark',
@@ -625,9 +722,14 @@ export default function HubPage() {
                             )}
                           >
                             {tag}
-                          </button>
+                          </span>
                         )
                       })}
+                    </div>
+                  )}
+                </div>
+                {isOwnProfile ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2">
                     {interestInputOpen ? (
                       <input
                         autoFocus
@@ -661,26 +763,22 @@ export default function HubPage() {
                       </button>
                     )}
                   </div>
-                ) : (
-                  <div className="flex flex-wrap gap-x-2 gap-y-2">
-                    {(profile.interests ?? []).map((tag) => {
-                      const col = chipColourForTag(tag)
-                      return (
-                        <span
-                          key={tag}
-                          className="rounded-full px-2.5 py-0.5 text-base tracking-wide"
-                          style={interestChipStyle(
-                            col,
-                            theme === 'light' ? 'light' : 'dark',
-                            'pill',
-                          )}
-                        >
-                          {tag}
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
+                ) : null}
+                {hubInterestsToggleable ? (
+                  <button
+                    type="button"
+                    onClick={() => setHubInterestsExpanded(!hubInterestsExpanded)}
+                    className={`mt-2 inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.12em] transition hover:underline hover:underline-offset-2 ${
+                      theme === 'light'
+                        ? 'text-[var(--text-secondary,#3a3a36)]'
+                        : 'text-white/48 hover:text-white/78'
+                    }`}
+                    aria-expanded={hubInterestsExpanded}
+                  >
+                    <span aria-hidden>{hubInterestsExpanded ? '▴' : '▾'}</span>
+                    {hubInterestsExpanded ? 'Show less' : 'Show all interests'}
+                  </button>
+                ) : null}
               </div>
 
               <div>
@@ -771,7 +869,7 @@ export default function HubPage() {
                       </span>
                       <button
                         type="button"
-                        className="bg-transparent p-0 font-mono text-xs text-[#666666] underline-offset-2 hover:text-white/75 hover:underline"
+                        className="bg-transparent p-0 font-mono text-xs text-[var(--text-subtle)] underline-offset-2 hover:text-[var(--text-muted)] hover:underline"
                         title="Enter 3–5 trustee aliases (comma-separated)"
                         onClick={() => {
                           const raw = window.prompt(
@@ -820,9 +918,18 @@ export default function HubPage() {
                 <SectionLabel>Spaces you&apos;re a part of</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {spaces.length === 0 ? (
-                    <Link to="/spaces/new" className={hubOutlineAction}>
-                      Create a space
-                    </Link>
+                    isOwnProfile ? (
+                      <>
+                        <Link to="/spaces/new" className={hubOutlineAction}>
+                          Create a space
+                        </Link>
+                        <Link to="/spaces/join" className={hubOutlineAction}>
+                          Join a space
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="text-base text-white/38">—</span>
+                    )
                   ) : (
                     <>
                       {spaces.slice(0, 2).map((s) => (
@@ -835,8 +942,12 @@ export default function HubPage() {
                           showStatusDot
                         />
                       ))}
-                      <ViewAllTall href="/spaces" />
-                      <AddTall href="/spaces/new" label="New space" />
+                      {isOwnProfile ? (
+                        <>
+                          <ViewAllTall href="/spaces" />
+                          <AddTall href="/spaces/new" label="New space" />
+                        </>
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -846,9 +957,13 @@ export default function HubPage() {
                 <SectionLabel>Active projects</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {activeProjects.length === 0 ? (
-                    <Link to="/projects/new" className={hubOutlineAction}>
-                      Start a project
-                    </Link>
+                    isOwnProfile ? (
+                      <Link to="/projects/new" className={hubOutlineAction}>
+                        Start a project
+                      </Link>
+                    ) : (
+                      <span className="text-base text-white/38">—</span>
+                    )
                   ) : (
                     <>
                       {activeProjects.map((p) => (
@@ -862,8 +977,12 @@ export default function HubPage() {
                           showStatusDot
                         />
                       ))}
-                      <ViewAllTall href="/projects" />
-                      <AddTall href="/projects/new" label="New project" />
+                      {isOwnProfile ? (
+                        <>
+                          <ViewAllTall href="/projects" />
+                          <AddTall href="/projects/new" label="New project" />
+                        </>
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -886,7 +1005,7 @@ export default function HubPage() {
                           showStatusDot={false}
                         />
                       ))}
-                      <ViewAllTall href="/projects" />
+                      {isOwnProfile ? <ViewAllTall href="/projects" /> : null}
                     </>
                   )}
                 </div>
@@ -895,7 +1014,9 @@ export default function HubPage() {
               <div>
                 <SectionLabel>Archives</SectionLabel>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-                  {archives.length === 0 ? (
+                  {!isOwnProfile ? (
+                    <span className="text-base text-white/38">—</span>
+                  ) : archives.length === 0 ? (
                     <Link to="/archive/new" className={hubOutlineAction}>
                       + archive past work
                     </Link>
@@ -922,6 +1043,67 @@ export default function HubPage() {
         ) : (
           <p className="p-4 text-small text-white/70">Loading…</p>
         )}
+
+        {msgOpen && viewingAlias ? (
+          <div
+            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4"
+            role="dialog"
+            aria-modal
+            aria-label="Send connection request"
+          >
+            <div className="w-full max-w-md space-y-3 border border-white/25 bg-zinc-950 p-4 shadow-xl">
+              <p className="font-mono text-small uppercase tracking-[0.16em] text-white">
+                Message @{viewingAlias}
+              </p>
+              <p className="text-small text-white/80">
+                They&apos;ll get a connection request with this intro. You can chat after they accept.
+              </p>
+              <textarea
+                value={msgIntro}
+                onChange={(e) => setMsgIntro(e.target.value)}
+                placeholder="Intro line…"
+                rows={4}
+                className="w-full border border-white/25 bg-zinc-900/55 px-3 py-2 font-mono text-small text-white placeholder:text-white/35"
+              />
+              {msgErr ? (
+                <p className="border border-white/15 bg-grey-100 px-2 py-1 font-mono text-small text-white">
+                  {msgErr}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  className="border border-white/25 px-3 py-1 font-mono text-small uppercase text-white transition hover:bg-white/10"
+                  onClick={() => setMsgOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={msgBusy || !msgIntro.trim()}
+                  className="border border-black bg-yellow-400 px-3 py-1 font-mono text-small uppercase text-black transition hover:bg-yellow-300 disabled:opacity-50"
+                  onClick={() => {
+                    void (async () => {
+                      setMsgBusy(true)
+                      setMsgErr(null)
+                      try {
+                        const r = await createConversation(viewingAlias, msgIntro.trim())
+                        setMsgOpen(false)
+                        navigate('/messages/' + encodeURIComponent(r.conversation._id))
+                      } catch (e) {
+                        setMsgErr(e instanceof Error ? e.message : 'Failed')
+                      } finally {
+                        setMsgBusy(false)
+                      }
+                    })()
+                  }}
+                >
+                  {msgBusy ? 'Sending…' : 'Send request'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </AppShell>
   )

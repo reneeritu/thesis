@@ -8,7 +8,7 @@ import { Project } from '../models/Project';
 import { addBlock } from '../services/chain';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
-import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
+import { assertFullProcessLogReadable } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.get(
   '/project/:projectId',
   optionalAuth,
   async (req: AuthRequest, res: Response) => {
-    await assertProjectReadableForOptionalViewer(req.params.projectId, req);
+    await assertFullProcessLogReadable(req.params.projectId, req);
     const refs = await Reference.find({ projectId: req.params.projectId }).sort({
       createdAt: 1,
     });

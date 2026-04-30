@@ -24,6 +24,7 @@ import { sendSpaceMessageSchema } from '../schemas/spaceMessage';
 import { validateObjectId } from '../utils/validateObjectId';
 import { Project } from '../models/Project';
 import { Trace } from '../models/Trace';
+import { spacePrivacyAllowsPublicFullBrowse } from '../utils/spacePrivacy';
 
 const router = Router();
 
@@ -113,7 +114,7 @@ router.post('/', requireAuth, validate(createSpaceWithParentSchema), async (req:
       projectAccess: settings?.projectAccess || 'open',
       vetoAuthority: [],           // empty until accepted
       votingThreshold: settings?.votingThreshold ?? 0.5,
-      privacyDefault: settings?.privacyDefault || 'space_specific',
+      privacyDefault: settings?.privacyDefault || 'public',
       customContractsAllowed: settings?.customContractsAllowed ?? true,
       contentRestrictions: settings?.contentRestrictions || [],
       minDocRequirements: settings?.minDocRequirements || [],
@@ -213,8 +214,8 @@ router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
  * GET /spaces/discover
  * Public feed of all active spaces (no auth required for discovery but uses auth if present).
  */
-router.get('/discover', requireAuth, async (req: AuthRequest, res: Response) => {
-  const alias = req.node!.alias;
+router.get('/discover', optionalAuth, async (req: AuthRequest, res: Response) => {
+  const alias = req.node?.alias ?? '';
   const spaces = await Space.find({ status: 'active' })
     .select('name description creatorAlias members admins settings createdAt logoSeed')
     .sort({ createdAt: -1 })
@@ -253,30 +254,50 @@ router.get('/:id/children', requireAuth, async (req: AuthRequest, res: Response)
   res.json(children);
 });
 
-function assertSpaceDiscussionReadable(
-  space: { members: string[]; settings?: { privacyDefault?: string } },
-  req: AuthRequest,
-): void {
-  const isPublic = space.settings?.privacyDefault === 'public';
-  const alias = req.node?.alias;
-  if (isPublic) return;
-  if (!alias) {
-    throw new ForbiddenError('Sign in as a member to view this discussion');
-  }
-  if (!space.members.includes(alias)) {
-    throw new ForbiddenError('Members only');
-  }
+function buildPublicSpaceSummary(space: InstanceType<typeof Space>, projectCount: number) {
+  const s = space.settings;
+  return {
+    _id: String(space._id),
+    name: space.name,
+    description: space.description || '',
+    logoSeed: space.logoSeed,
+    status: space.status,
+    creatorAlias: space.creatorAlias,
+    parentSpaceId: space.parentSpaceId,
+    settings: {
+      projectAccess: s?.projectAccess,
+      privacyDefault: s?.privacyDefault,
+      votingThreshold: s?.votingThreshold,
+      contentRestrictions: s?.contentRestrictions ?? [],
+      minDocRequirements: s?.minDocRequirements ?? [],
+      customContractsAllowed: s?.customContractsAllowed ?? true,
+      enforceStrictMinDoc: s?.enforceStrictMinDoc ?? false,
+      vetoAuthority: [] as string[],
+      customContracts: [] as unknown[],
+    },
+    members: [] as string[],
+    admins: [] as string[],
+    pendingVeto: [] as unknown[],
+    inviteCodes: [] as unknown[],
+    memberCount: Array.isArray(space.members) ? space.members.length : 0,
+    projectCount,
+    publicBrowseLevel: 'summary' as const,
+    createdAt: space.createdAt,
+    updatedAt: space.updatedAt,
+  };
 }
 
 /**
- * GET /spaces/:id/messages
- * Latest messages (rolling chat). Public space: anyone reads. Otherwise members only.
+ * GET /spaces/:id/messages — signed-in space members only.
  */
-router.get('/:id/messages', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.get('/:id/messages', requireAuth, async (req: AuthRequest, res: Response) => {
   const space = await Space.findById(req.params.id);
   if (!space) throw new NotFoundError('Space');
 
-  assertSpaceDiscussionReadable(space, req);
+  const alias = req.node!.alias;
+  if (!space.members.includes(alias)) {
+    throw new ForbiddenError('Members only');
+  }
 
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
   const beforeRaw = req.query.before;
@@ -402,17 +423,11 @@ router.get('/:id/traces/recent', optionalAuth, async (req: AuthRequest, res: Res
   if (!space) throw new NotFoundError('Space');
 
   const alias = req.node?.alias;
-  const isPublicSpace = space.settings?.privacyDefault === 'public';
+  const fullBrowse = spacePrivacyAllowsPublicFullBrowse(space.settings?.privacyDefault);
+  const isMember = alias ? space.members.includes(alias) : false;
 
-  if (!alias) {
-    if (!isPublicSpace) {
-      throw new ForbiddenError('Sign in to view this space');
-    }
-  } else {
-    const isMember = space.members.includes(alias);
-    if (!isMember && !isPublicSpace) {
-      throw new ForbiddenError('Sign in as a member to view this space');
-    }
+  if (!fullBrowse && !isMember) {
+    return res.json([]);
   }
 
   const rawLimit = Number.parseInt(String(req.query.limit ?? '5'), 10);
@@ -446,36 +461,47 @@ router.get('/:id/traces/recent', optionalAuth, async (req: AuthRequest, res: Res
 
 /**
  * GET /spaces/:id
- * Public read when privacyDefault === 'public'. Members/admins see extra fields when authed.
+ * Anonymous + authenticated viewers: summary or full payload based on privacyDefault.
  */
 router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
   const space = await Space.findById(req.params.id);
   if (!space) throw new NotFoundError('Space');
 
   const alias = req.node?.alias;
-  const isPublicSpace = space.settings?.privacyDefault === 'public';
+  const isMember = alias ? space.members.includes(alias) : false;
+  const isAdmin = alias ? space.admins.includes(alias) : false;
+  const fullBrowse = spacePrivacyAllowsPublicFullBrowse(space.settings?.privacyDefault);
+  const projectCount = await Project.countDocuments({ spaceId: space._id });
+
+  const extrasFull = { projectCount, publicBrowseLevel: 'full' as const };
 
   if (!alias) {
-    if (!isPublicSpace) {
-      throw new ForbiddenError('Sign in to view this space');
+    if (fullBrowse) {
+      const obj = space.toObject();
+      delete (obj as { inviteCodes?: unknown }).inviteCodes;
+      delete (obj as { pendingVeto?: unknown }).pendingVeto;
+      return res.json({ ...obj, ...extrasFull });
     }
+    return res.json(buildPublicSpaceSummary(space, projectCount));
+  }
+
+  if (!isMember && !fullBrowse) {
+    return res.json(buildPublicSpaceSummary(space, projectCount));
+  }
+
+  if (!isMember && fullBrowse) {
     const obj = space.toObject();
     delete (obj as { inviteCodes?: unknown }).inviteCodes;
     delete (obj as { pendingVeto?: unknown }).pendingVeto;
-    return res.json(obj);
-  }
-
-  const isMember = space.members.includes(alias);
-  const isAdmin = space.admins.includes(alias);
-
-  if (!isMember && !isPublicSpace) {
-    throw new ForbiddenError('Sign in as a member to view this space');
+    return res.json({ ...obj, ...extrasFull });
   }
 
   res.json({
     ...space.toObject(),
     inviteCodes: isMember ? space.inviteCodes : undefined,
     pendingVeto: isAdmin ? space.pendingVeto : undefined,
+    projectCount,
+    publicBrowseLevel: 'full',
   });
 });
 

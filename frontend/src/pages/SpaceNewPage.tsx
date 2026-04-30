@@ -121,7 +121,7 @@ export default function SpaceNewPage() {
   const [vetoRaw, setVetoRaw] = useState('')
   const [votingThreshold, setVotingThreshold] = useState(0.5)
   const [customContractsAllowed, setCustomContractsAllowed] = useState(true)
-  const [privacyDefault, setPrivacyDefault] = useState<PrivacyDefault>('space_specific')
+  const [privacyDefault, setPrivacyDefault] = useState<PrivacyDefault>('public')
   const [restrictionsRaw, setRestrictionsRaw] = useState('')
   const [financeConfirmed, setFinanceConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)

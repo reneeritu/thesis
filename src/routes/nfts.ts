@@ -11,7 +11,7 @@ import { Reference } from '../models/Reference';
 import { sanitiseSvg, MAX_SVG_BYTES } from '../services/svgSanitise';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
-import { assertProjectReadableForOptionalViewer } from '../utils/projectAccess';
+import { getProjectPayloadForViewer } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -23,7 +23,7 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
   const nft = await NFT.findById(req.params.id);
   if (!nft) throw new NotFoundError('NFT');
 
-  const project = await assertProjectReadableForOptionalViewer(nft.projectId.toString(), req);
+  const project = await getProjectPayloadForViewer(nft.projectId.toString(), req);
 
   const contributorTokens = await ContributorToken.find({ nftId: nft._id });
 

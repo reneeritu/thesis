@@ -1,6 +1,9 @@
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
+import { Bloom, ChromaticAberration, EffectComposer } from '@react-three/postprocessing'
+import { BlendFunction } from 'postprocessing'
 import * as THREE from 'three'
+import { LineMaterial, LineSegments2, LineSegmentsGeometry } from 'three-stdlib'
 import {
   Suspense,
   useEffect,
@@ -8,7 +11,6 @@ import {
   useRef,
   useState,
   type MutableRefObject,
-  type ReactNode,
 } from 'react'
 import {
   simEntityApi,
@@ -35,12 +37,18 @@ type Props = {
   ghostMode?: boolean
 }
 
-function fibonacciSphere(i: number, n: number, radius = 6) {
+const Y_FLATTEN = 0.4
+
+/** Fibonacci sphere — tighter radius, shallow Y so reads as a flat-ish constellation. */
+function fibonacciSphere(i: number, n: number, radius = 3.2) {
   const goldenAngle = Math.PI * (3 - Math.sqrt(5))
   const y = 1 - (i / Math.max(1, n - 1)) * 2
   const r = Math.sqrt(1 - y * y)
   const theta = goldenAngle * i
-  return [Math.cos(theta) * r * radius, y * radius, Math.sin(theta) * r * radius] as const
+  const rx = Math.cos(theta) * r * radius
+  const ry = y * radius * Y_FLATTEN
+  const rz = Math.sin(theta) * r * radius
+  return [rx, ry, rz] as const
 }
 
 function hash01(s: string) {
@@ -53,6 +61,21 @@ function normKind(k: string) {
   return k.toLowerCase()
 }
 
+/** Act II edge: blend space purple ↔ identity white (membership edges). */
+const EDGE_ACT_II_HEX = new THREE.Color('#a78bfa').lerp(new THREE.Color('#f0f0ee'), 0.5).getHex()
+const EDGE_GHOST_HEX = new THREE.Color('#1e1e3a').getHex()
+
+const SPACE_PURPLE = '#a78bfa'
+const PROJECT_CYAN = '#67e8f9'
+const IDENTITY_LIGHT = '#f0f0ee'
+
+/** Shard geometry per variant (visual hierarchy). */
+const SHARD = {
+  space: { radius: 0.32, detail: 1 as const, outerRingRadius: 0.48, outerRingDetail: 0 as const },
+  project: { radius: 0.18, detail: 1 as const },
+  identity: { radius: 0.1, detail: 0 as const },
+}
+
 function pulseScale(now: number, key: string, pulseAt: Map<string, number>) {
   const t = pulseAt.get(key)
   if (t == null) return 1
@@ -61,22 +84,284 @@ function pulseScale(now: number, key: string, pulseAt: Map<string, number>) {
   return 1 + 0.3 * (1 - age) * Math.sin(age * Math.PI)
 }
 
+const icosahedronGeomCache = new Map<string, THREE.IcosahedronGeometry>()
+const wireframeIcosaCache = new Map<string, THREE.WireframeGeometry>()
+
+function getIcosahedronGeometry(radius: number, detail: number) {
+  const key = `${radius}:${detail}`
+  let g = icosahedronGeomCache.get(key)
+  if (!g) {
+    g = new THREE.IcosahedronGeometry(radius, detail)
+    icosahedronGeomCache.set(key, g)
+  }
+  return g
+}
+
+function getWireframeIcosahedronGeometry(radius: number, detail: number) {
+  const key = `${radius}:${detail}`
+  let g = wireframeIcosaCache.get(key)
+  if (!g) {
+    const icosa = new THREE.IcosahedronGeometry(radius, detail)
+    g = new THREE.WireframeGeometry(icosa)
+    icosa.dispose()
+    wireframeIcosaCache.set(key, g)
+  }
+  return g
+}
+
+type ShardVariant = 'space' | 'project' | 'identity'
+
+function DissolvingIdentityShard({
+  pulseKey,
+  pulseAt,
+  selectedMul,
+  onPointerDown,
+}: {
+  pulseKey: string
+  pulseAt: MutableRefObject<Map<string, number>>
+  selectedMul: number
+  onPointerDown: (e: ThreeEvent<PointerEvent>) => void
+}) {
+  const groupRef = useRef<THREE.Group>(null)
+  const meshRef = useRef<THREE.Mesh>(null)
+  const geo = useMemo(() => new THREE.IcosahedronGeometry(SHARD.identity.radius, SHARD.identity.detail), [])
+  const basePositions = useMemo(() => {
+    const pos = geo.attributes.position as THREE.BufferAttribute
+    return new Float32Array(pos.array)
+  }, [geo])
+
+  useEffect(
+    () => () => {
+      geo.dispose()
+    },
+    [geo],
+  )
+
+  useFrame(({ clock }) => {
+    const g = groupRef.current
+    if (g) {
+      const s = pulseScale(performance.now(), pulseKey, pulseAt.current) * selectedMul
+      g.scale.setScalar(s)
+    }
+    const mesh = meshRef.current
+    if (!mesh) return
+    const attr = mesh.geometry.attributes.position as THREE.BufferAttribute
+    const arr = attr.array as Float32Array
+    const t = clock.elapsedTime
+    for (let i = 0; i < arr.length; i += 3) {
+      const vi = i / 3
+      const bx = basePositions[i]!
+      const by = basePositions[i + 1]!
+      const bz = basePositions[i + 2]!
+      const len = Math.sqrt(bx * bx + by * by + bz * bz) || 1
+      const disp = Math.sin(t * 2 + vi) * 0.08
+      arr[i] = bx + (bx / len) * disp
+      arr[i + 1] = by + (by / len) * disp
+      arr[i + 2] = bz + (bz / len) * disp
+    }
+    attr.needsUpdate = true
+    mesh.geometry.computeBoundingSphere()
+  })
+
+  return (
+    <group ref={groupRef} onPointerDown={onPointerDown}>
+      <mesh ref={meshRef} geometry={geo}>
+        <meshBasicMaterial
+          color="#ffffff"
+          wireframe
+          transparent
+          opacity={0.15}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+function CrystalShard({
+  variant,
+  ghostMode,
+  pulseKey,
+  pulseAt,
+  selectedMul,
+  onPointerDown,
+}: {
+  variant: ShardVariant
+  ghostMode: boolean
+  pulseKey: string
+  pulseAt: MutableRefObject<Map<string, number>>
+  selectedMul: number
+  onPointerDown: (e: ThreeEvent<PointerEvent>) => void
+}) {
+  const groupRef = useRef<THREE.Group>(null)
+
+  const spec =
+    variant === 'space'
+      ? SHARD.space
+      : variant === 'project'
+        ? SHARD.project
+        : SHARD.identity
+
+  const innerRadius = spec.radius
+  const innerDetail = spec.detail
+
+  const wireGeom = useMemo(
+    () => getWireframeIcosahedronGeometry(innerRadius, innerDetail),
+    [innerRadius, innerDetail],
+  )
+  const solidGeom = useMemo(() => getIcosahedronGeometry(innerRadius, innerDetail), [innerRadius, innerDetail])
+
+  const outerRingGeom = useMemo(() => {
+    if (variant !== 'space') return null
+    return getWireframeIcosahedronGeometry(SHARD.space.outerRingRadius, SHARD.space.outerRingDetail)
+  }, [variant])
+
+  let lineColor: string
+  let lineOpacity: number
+  let shellColor: string
+  let shellOpacity: number
+
+  if (ghostMode) {
+    if (variant === 'space') {
+      lineColor = '#2a2a4a'
+      lineOpacity = 0.7
+      shellColor = '#2a2a4a'
+      shellOpacity = 0.12
+    } else if (variant === 'project') {
+      lineColor = '#1e1e3a'
+      lineOpacity = 0.5
+      shellColor = '#1e1e3a'
+      shellOpacity = 0.08
+    } else {
+      lineColor = '#ffffff'
+      lineOpacity = 0.15
+      shellColor = '#ffffff'
+      shellOpacity = 0.02
+    }
+  } else {
+    lineColor =
+      variant === 'space' ? SPACE_PURPLE : variant === 'project' ? PROJECT_CYAN : IDENTITY_LIGHT
+    lineOpacity = 1
+    shellColor = lineColor
+    shellOpacity = 0.04
+  }
+
+  useFrame(() => {
+    const g = groupRef.current
+    if (!g) return
+    const s = pulseScale(performance.now(), pulseKey, pulseAt.current) * selectedMul
+    g.scale.setScalar(s)
+  })
+
+  if (variant === 'identity' && ghostMode) {
+    return (
+      <DissolvingIdentityShard
+        pulseKey={pulseKey}
+        pulseAt={pulseAt}
+        selectedMul={selectedMul}
+        onPointerDown={onPointerDown}
+      />
+    )
+  }
+
+  return (
+    <group ref={groupRef} onPointerDown={onPointerDown}>
+      <mesh geometry={solidGeom}>
+        <meshBasicMaterial
+          color={shellColor}
+          transparent
+          opacity={shellOpacity}
+          depthWrite={false}
+        />
+      </mesh>
+      <lineSegments geometry={wireGeom}>
+        <lineBasicMaterial
+          color={lineColor}
+          transparent
+          opacity={lineOpacity}
+          depthWrite={false}
+        />
+      </lineSegments>
+      {variant === 'space' && outerRingGeom ? (
+        <lineSegments geometry={outerRingGeom}>
+          <lineBasicMaterial
+            color={ghostMode ? '#2a2a4a' : SPACE_PURPLE}
+            transparent
+            opacity={ghostMode ? 0.14 : 0.2}
+            depthWrite={false}
+          />
+        </lineSegments>
+      ) : null}
+    </group>
+  )
+}
+
 type Layout = { spaces: SimSpaceSummary[]; nodes: SimNodeSummary[]; projects: SimProjectSummary[] }
+
+/** Same composer baseline as CrystalRadar3D — aberration-only in ghost, bloom in Act II. */
+function SimPostFx({ ghostMode }: { ghostMode: boolean }) {
+  const chromaOffset = useMemo(() => new THREE.Vector2(0.001, 0.001), [])
+  return (
+    <EffectComposer enableNormalPass={false} multisampling={0}>
+      {ghostMode ? (
+        <ChromaticAberration blendFunction={BlendFunction.NORMAL} offset={chromaOffset} />
+      ) : (
+        <Bloom mipmapBlur luminanceThreshold={0.85} intensity={0.12} levels={4} />
+      )}
+    </EffectComposer>
+  )
+}
 
 function DynamicEdges({
   spacePos,
   nodeGroups,
   edges,
+  ghostMode,
 }: {
   spacePos: Map<string, THREE.Vector3>
   nodeGroups: MutableRefObject<Map<string, THREE.Group>>
   edges: { spaceId: string; alias: string }[]
+  ghostMode: boolean
 }) {
-  const lineRef = useRef<THREE.LineSegments>(null)
-  const geom = useMemo(() => new THREE.BufferGeometry(), [])
-  useFrame(() => {
-    const ls = lineRef.current
-    if (!ls) return
+  const size = useThree((s) => s.size)
+  const geom = useMemo(() => new LineSegmentsGeometry(), [])
+  const material = useMemo(
+    () =>
+      new LineMaterial({
+        color: EDGE_GHOST_HEX,
+        linewidth: 0.8,
+        transparent: true,
+        opacity: 1,
+        depthWrite: false,
+        resolution: new THREE.Vector2(1, 1),
+      }),
+    [],
+  )
+
+  const lineSegments = useMemo(() => new LineSegments2(geom, material), [geom, material])
+
+  useEffect(
+    () => () => {
+      geom.dispose()
+      material.dispose()
+    },
+    [geom, material],
+  )
+
+  useFrame(({ clock }) => {
+    material.resolution.set(size.width, size.height)
+
+    if (ghostMode) {
+      material.linewidth = 0.8
+      material.color.setHex(EDGE_GHOST_HEX)
+      const pulse = Math.sin(clock.elapsedTime * 0.8) * 0.5 + 0.5
+      material.opacity = 0.2 + pulse * 0.2
+    } else {
+      material.linewidth = 1.4
+      material.color.setHex(EDGE_ACT_II_HEX)
+      material.opacity = 0.6
+    }
+
     const arr: number[] = []
     for (const { spaceId, alias } of edges) {
       const c = spacePos.get(spaceId)
@@ -85,19 +370,60 @@ function DynamicEdges({
       const p = g.position
       arr.push(c.x, c.y, c.z, p.x, p.y, p.z)
     }
-    if (arr.length) {
-      ls.geometry.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3))
-      ls.geometry.computeBoundingSphere()
+    if (arr.length >= 6) {
+      geom.setPositions(arr)
     }
   })
+
+  return <primitive object={lineSegments} />
+}
+
+function SpaceNodeLabel({
+  spaceId,
+  name,
+  ghostMode,
+}: {
+  spaceId: string
+  name: string
+  ghostMode: boolean
+}) {
+  const barWidths = useMemo(() => {
+    const count = hash01(`${spaceId}:nBars`) > 0.45 ? 2 : 1
+    return Array.from({ length: count }, (_, i) => 40 + hash01(`${spaceId}:bar${i}`) * 40)
+  }, [spaceId])
+
   return (
-    <lineSegments ref={lineRef} geometry={geom}>
-      <lineBasicMaterial color="#ffffff" transparent opacity={0.14} depthWrite={false} />
-    </lineSegments>
+    <Html
+      position={[0, 0.75, 0]}
+      center
+      distanceFactor={8}
+      wrapperClass="pointer-events-none"
+      style={{ pointerEvents: 'none' }}
+    >
+      {ghostMode ? (
+        <div className="flex flex-col items-center gap-1">
+          {barWidths.map((w, i) => (
+            <div
+              key={i}
+              style={{
+                width: `${w}px`,
+                height: 8,
+                background: '#333333',
+                borderRadius: 2,
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="max-w-[200px] text-center font-mono text-xs uppercase tracking-widest text-[#a0a0a0]">
+          {name}
+        </div>
+      )}
+    </Html>
   )
 }
 
-function ProjectGem({
+function ProjectShard({
   id,
   spaceId,
   contribAlias,
@@ -106,6 +432,7 @@ function ProjectGem({
   selected,
   pulseAt,
   onSelect,
+  ghostMode,
 }: {
   id: string
   spaceId: string
@@ -115,35 +442,32 @@ function ProjectGem({
   selected: boolean
   pulseAt: MutableRefObject<Map<string, number>>
   onSelect: Props['onSelect']
+  ghostMode: boolean
 }) {
-  const mesh = useRef<THREE.Mesh>(null)
+  const groupRef = useRef<THREE.Group>(null)
   useFrame(() => {
-    const m = mesh.current
+    const m = groupRef.current
     if (!m) return
     const sc = spacePos.get(spaceId)
     if (!sc) return
     const g = nodeGroups.current.get(contribAlias)
     const end = g ? g.position : sc.clone().add(new THREE.Vector3(0, 0.9, 0))
     m.position.copy(sc.clone().lerp(end, 0.48).add(new THREE.Vector3(0, 0.32, 0)))
-    const s = pulseScale(performance.now(), `project:${id}`, pulseAt.current) * (selected ? 1.1 : 1)
-    m.scale.setScalar(s)
   })
   return (
-    <mesh
-      ref={mesh}
-      onPointerDown={(e) => {
-        e.stopPropagation()
-        onSelect({ kind: 'project', id })
-      }}
-    >
-      <octahedronGeometry args={[0.22]} />
-      <meshStandardMaterial
-        color="#a78bfa"
-        emissive="#7c3aed"
-        emissiveIntensity={selected ? 0.9 : 0.45}
-        toneMapped={false}
+    <group ref={groupRef}>
+      <CrystalShard
+        variant="project"
+        ghostMode={ghostMode}
+        pulseKey={`project:${id}`}
+        pulseAt={pulseAt}
+        selectedMul={selected ? 1.1 : 1}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          onSelect({ kind: 'project', id })
+        }}
       />
-    </mesh>
+    </group>
   )
 }
 
@@ -209,6 +533,8 @@ function SimScene({
     return { nodeOrbit, edges, projectsMeta }
   }, [layout, spaceIds, spacePos])
 
+  const gm = ghostMode ?? false
+
   useFrame((_, dt) => {
     orbitT.current += dt
     const t = orbitT.current
@@ -227,17 +553,11 @@ function SimScene({
     }
   })
 
-  const ghostOpacity = ghostMode ? 0.28 : 1
-  const spaceColor = ghostMode ? '#4a5568' : '#4fd1c5'
-  const spaceEmissive = ghostMode ? '#1a202c' : '#0d9488'
-  const nodeColor = ghostMode ? '#a0a0a0' : '#fef08a'
-  const nodeEmissive = ghostMode ? '#333333' : '#facc15'
-
   return (
     <>
-      <ambientLight intensity={ghostMode ? 0.15 : 0.35} />
-      <pointLight position={[10, 10, 10]} intensity={ghostMode ? 0.3 : 0.8} />
-      <DynamicEdges spacePos={spacePos} nodeGroups={nodeGroups} edges={edges} />
+      <ambientLight intensity={gm ? 0.15 : 0.35} />
+      <pointLight position={[10, 10, 10]} intensity={gm ? 0.3 : 0.8} />
+      <DynamicEdges spacePos={spacePos} nodeGroups={nodeGroups} edges={edges} ghostMode={gm} />
       {layout.spaces.map((sp) => {
         const id = String(sp._id)
         const p = spacePos.get(id)
@@ -245,28 +565,18 @@ function SimScene({
         const sel = selection?.kind === 'space' && selection.id === id
         return (
           <group key={id} position={p}>
-            <PulsingGroup
+            <CrystalShard
+              variant="space"
+              ghostMode={gm}
               pulseKey={`space:${id}`}
               pulseAt={pulseAt}
               selectedMul={sel ? 1.08 : 1}
-            >
-              <mesh
-                onPointerDown={(e) => {
-                  e.stopPropagation()
-                  onSelect({ kind: 'space', id })
-                }}
-              >
-                <sphereGeometry args={[0.6, 24, 24]} />
-                <meshStandardMaterial
-                  color={spaceColor}
-                  emissive={spaceEmissive}
-                  emissiveIntensity={ghostMode ? 0.1 : sel ? 1.2 : 0.55}
-                  transparent={ghostMode}
-                  opacity={ghostOpacity}
-                  toneMapped={false}
-                />
-              </mesh>
-            </PulsingGroup>
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                onSelect({ kind: 'space', id })
+              }}
+            />
+            <SpaceNodeLabel spaceId={id} name={sp.name} ghostMode={gm} />
           </group>
         )
       })}
@@ -292,26 +602,22 @@ function SimScene({
               } else nodeGroups.current.delete(n.alias)
             }}
           >
-            <PulsingSphere
-              radius={0.18}
+            <CrystalShard
+              variant="identity"
+              ghostMode={gm}
               pulseKey={`node:${n.alias}`}
               pulseAt={pulseAt}
-              selectedScale={sel ? 1.06 : 1}
+              selectedMul={sel ? 1.06 : 1}
               onPointerDown={(e) => {
                 e.stopPropagation()
                 onSelect({ kind: 'node', alias: n.alias })
               }}
-              color={nodeColor}
-              emissive={nodeEmissive}
-              emissiveIntensity={ghostMode ? 0.05 : sel ? 1.4 : 0.9}
-              transparent={ghostMode}
-              opacity={ghostOpacity}
             />
           </group>
         )
       })}
       {projectsMeta.map((pm) => (
-        <ProjectGem
+        <ProjectShard
           key={pm.id}
           id={pm.id}
           spaceId={pm.spaceId}
@@ -321,6 +627,7 @@ function SimScene({
           selected={selection?.kind === 'project' && selection.id === pm.id}
           pulseAt={pulseAt}
           onSelect={onSelect}
+          ghostMode={gm}
         />
       ))}
       <OrbitControls
@@ -335,82 +642,20 @@ function SimScene({
   )
 }
 
-function PulsingGroup({
-  pulseKey,
-  pulseAt,
-  selectedMul,
-  children,
-}: {
-  pulseKey: string
-  pulseAt: MutableRefObject<Map<string, number>>
-  selectedMul: number
-  children: ReactNode
-}) {
-  const g = useRef<THREE.Group>(null)
-  useFrame(() => {
-    const gr = g.current
-    if (!gr) return
-    gr.scale.setScalar(
-      pulseScale(performance.now(), pulseKey, pulseAt.current) * selectedMul,
-    )
-  })
-  return <group ref={g}>{children}</group>
-}
-
-function PulsingSphere({
-  radius,
-  pulseKey,
-  pulseAt,
-  selectedScale,
-  onPointerDown,
-  color,
-  emissive,
-  emissiveIntensity,
-  transparent,
-  opacity,
-}: {
-  radius: number
-  pulseKey: string
-  pulseAt: MutableRefObject<Map<string, number>>
-  selectedScale: number
-  onPointerDown: (e: { stopPropagation: () => void }) => void
-  color: string
-  emissive: string
-  emissiveIntensity: number
-  transparent?: boolean
-  opacity?: number
-}) {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(() => {
-    const m = ref.current
-    if (!m) return
-    const s =
-      pulseScale(performance.now(), pulseKey, pulseAt.current) * selectedScale
-    m.scale.setScalar(s)
-  })
-  return (
-    <mesh ref={ref} onPointerDown={onPointerDown}>
-      <sphereGeometry args={[radius, 16, 16]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={emissive}
-        emissiveIntensity={emissiveIntensity}
-        transparent={transparent}
-        opacity={opacity ?? 1}
-        toneMapped={false}
-      />
-    </mesh>
-  )
-}
-
 function IdleScene() {
+  const wireGeom = useMemo(() => getWireframeIcosahedronGeometry(1.2, 1), [])
+  const solidGeom = useMemo(() => getIcosahedronGeometry(1.2, 1), [])
   return (
     <>
       <ambientLight intensity={0.2} />
-      <mesh>
-        <icosahedronGeometry args={[1.2, 1]} />
-        <meshBasicMaterial color="#1e293b" wireframe transparent opacity={0.35} />
-      </mesh>
+      <group>
+        <mesh geometry={solidGeom}>
+          <meshBasicMaterial color="#1a1a2e" transparent opacity={0.04} depthWrite={false} />
+        </mesh>
+        <lineSegments geometry={wireGeom}>
+          <lineBasicMaterial color="#1a1a2e" transparent opacity={0.35} depthWrite={false} />
+        </lineSegments>
+      </group>
       <Html center>
         <div className="max-w-xs px-4 text-center font-mono text-small leading-relaxed text-white/45">
           Run a simulation to populate the network
@@ -469,16 +714,22 @@ export default function MacroNetworkView({
 
   return (
     <div
-      className="relative h-full min-h-[280px] w-full overflow-hidden rounded-md border border-white/10 bg-black"
+      className="relative h-full min-h-[280px] w-full overflow-hidden rounded-md border border-white/10 bg-[#06060f]"
       data-target-cursor-exclude=""
     >
+      <div
+        className="pointer-events-none absolute inset-0 z-0 rounded-[inherit]"
+        style={{
+          background: 'radial-gradient(ellipse at center, #0d0d1f 0%, #06060f 100%)',
+        }}
+        aria-hidden
+      />
       <Canvas
-        className="h-full w-full"
-        camera={{ position: [0, 2, 14], fov: 50 }}
+        className="relative z-[1] h-full w-full"
+        camera={{ position: [0, 0, 9], fov: 55, near: 0.1, far: 200 }}
         gl={{ antialias: true, alpha: false }}
       >
-        <color attach="background" args={['#000000']} />
-        <fogExp2 attach="fog" args={['#020203', 0.038]} />
+        <color attach="background" args={['#06060f']} />
         <Suspense
           fallback={
             <Html center>
@@ -507,6 +758,7 @@ export default function MacroNetworkView({
             />
           )}
         </Suspense>
+        <SimPostFx ghostMode={ghostMode} />
       </Canvas>
     </div>
   )

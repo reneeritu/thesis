@@ -14,9 +14,11 @@ html.light-mode {
   --border-focus: #6a6a64;
   --border-strong: #3a3a36;
   --text-primary: #111110;
-  --text-secondary: #3a3a36;
-  --text-muted: #6a6a64;
-  --text-placeholder: #9a9a93;
+  --text-secondary: #333330;
+  --text-muted: #555550;
+  --text-subtle: #777770;
+  --text-ghost: #999990;
+  --text-placeholder: #666660;
   --accent-tag-bg: transparent;
   --accent-tag-border: #6a6a64;
   --accent-tag-text: #111110;
@@ -178,7 +180,7 @@ html.light-mode .etch-mono-dim {
 
 html[data-theme='light'] .etch-stat-num,
 html.light-mode .etch-stat-num {
-  color: var(--text-muted);
+  color: var(--text-subtle);
 }
 
 /* Form controls — mirror dark structure */
@@ -452,8 +454,15 @@ html.light-mode .border-\[\#2a2a2a\].bg-zinc-900\/55 {
   border-color: var(--border-default) !important;
 }
 
-html[data-theme='light'] .text-\[\#555555\],
-html.light-mode .text-\[\#555555\] {
+html[data-theme='light'] .text-\[\#444\],
+html.light-mode .text-\[\#444\],
+html[data-theme='light'] .text-\[\#444444\],
+html.light-mode .text-\[\#444444\] {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='light'] .text-\[\#888\],
+html.light-mode .text-\[\#888\] {
   color: var(--text-muted) !important;
 }
 
@@ -545,7 +554,7 @@ html.light-mode .text-white\/50 {
 
 html[data-theme='light'] .text-white\/45,
 html.light-mode .text-white\/45 {
-  color: var(--text-muted) !important;
+  color: var(--text-secondary) !important;
 }
 
 html[data-theme='light'] .text-white\/42,

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { GenerativeAvatar } from '../components/GenerativeAvatar'
 import { api } from '../lib/api'
+import { loginUrl, registerUrl } from '../lib/authNavigate'
 import { activityLabel } from '../lib/activityLabels'
 import { getAlias, getToken } from '../lib/session'
 import { formatTimeAgo } from '../lib/timeAgo'
@@ -41,6 +42,10 @@ type Space = {
   pendingVeto?: PendingVeto[]
   inviteCodes?: InviteCode[]
   status?: string
+  /** Present when API returns a members-only public card */
+  publicBrowseLevel?: 'full' | 'summary'
+  memberCount?: number
+  projectCount?: number
 }
 
 type ProjectContributor = {
@@ -96,6 +101,8 @@ function labelPrivacy(v?: string) {
   switch (v) {
     case 'public':
       return 'public'
+    case 'process_visible':
+      return 'process visible'
     case 'space_specific':
       return 'space-specific'
     case 'private':
@@ -208,7 +215,9 @@ export default function SpaceDetailPage() {
   )
   const isDormant = space?.status === 'dormant'
 
-  const memberCount = space?.members?.length ?? 0
+  const memberCount = space?.memberCount ?? space?.members?.length ?? 0
+
+  const summaryBrowse = space?.publicBrowseLevel === 'summary'
 
   const sortedMembers = useMemo(() => {
     if (!space) return []
@@ -230,15 +239,21 @@ export default function SpaceDetailPage() {
     if (!isAdmin && spaceTab === 'admin') setSpaceTab('overview')
   }, [isAdmin, spaceTab])
 
+  useEffect(() => {
+    if (summaryBrowse && spaceTab === 'projects') setSpaceTab('overview')
+  }, [summaryBrowse, spaceTab])
+
   const tabs = useMemo(() => {
-    const rows: ['overview' | 'projects' | 'discussion' | 'admin', string][] = [
-      ['overview', 'Overview'],
-      ['projects', 'Projects'],
-      ['discussion', 'Discussion'],
-    ]
+    const rows: ['overview' | 'projects' | 'discussion' | 'admin', string][] = [['overview', 'Overview']]
+    if (!summaryBrowse) {
+      rows.push(['projects', 'Projects'])
+    }
+    if (isMember) {
+      rows.push(['discussion', 'Discussion'])
+    }
     if (isAdmin) rows.push(['admin', 'Admin'])
     return rows
-  }, [isAdmin])
+  }, [isAdmin, isMember, summaryBrowse])
 
   async function leaveSpace() {
     if (!id) return
@@ -377,7 +392,49 @@ export default function SpaceDetailPage() {
                         <span className="text-white/45">created by · </span>
                         {space.creatorAlias}
                       </p>
+                      {typeof space.projectCount === 'number' ? (
+                        <p className="m-0">
+                          <span className="text-white/45">projects · </span>
+                          {space.projectCount}
+                        </p>
+                      ) : null}
                     </section>
+
+                    {summaryBrowse ? (
+                      <p className="m-0 max-w-[52ch] text-xs leading-relaxed text-white/42">
+                        this space is members-only. content is visible to members only.
+                      </p>
+                    ) : null}
+
+                    {!isMember ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!isLoggedIn ? (
+                          <>
+                            <Link
+                              to={registerUrl(id ? `/spaces/${encodeURIComponent(id)}` : '/spaces')}
+                              className="border border-[#333333] px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-white/72 transition hover:border-white/35 hover:text-white"
+                            >
+                              Join / apply
+                            </Link>
+                            <Link
+                              to={loginUrl({
+                                returnPath: id ? `/spaces/${encodeURIComponent(id)}` : '/spaces',
+                              })}
+                              className="border border-[#333333] px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-white/55 transition hover:border-white/35 hover:text-white/85"
+                            >
+                              Log in
+                            </Link>
+                          </>
+                        ) : (
+                          <Link
+                            to={`/spaces/join?space=${encodeURIComponent(id ?? '')}`}
+                            className="border border-[#333333] px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-white/72 transition hover:border-white/35 hover:text-white"
+                          >
+                            Join space
+                          </Link>
+                        )}
+                      </div>
+                    ) : null}
 
                     {hasPendingVeto && (
                       <section className="border border-amber-400/35 bg-amber-400/5 px-4 py-4 space-y-3">
@@ -439,19 +496,33 @@ export default function SpaceDetailPage() {
                     </div>
 
                     <section className="flex flex-wrap items-center gap-4">
-                      {isLoggedIn ? (
+                      {isMember ? (
                         <Link
                           to={`/projects/new?space=${encodeURIComponent(space._id)}`}
                           className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-base font-medium uppercase tracking-[0.18em] text-black transition hover:bg-yellow-300"
                         >
                           New project
                         </Link>
+                      ) : !isLoggedIn ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            window.location.assign(
+                              loginUrl({
+                                reason: `log in to start a project in ${space.name}`,
+                              }),
+                            )
+                          }
+                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-base uppercase tracking-[0.18em] text-black opacity-50 transition hover:bg-yellow-300 hover:opacity-70"
+                        >
+                          New project
+                        </button>
                       ) : (
                         <Link
-                          to="/login"
-                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-base uppercase tracking-[0.18em] text-black transition hover:bg-yellow-300"
+                          to={`/spaces/join?space=${encodeURIComponent(space._id)}`}
+                          className="border border-yellow-400/90 bg-yellow-400 px-5 py-2.5 font-mono text-base uppercase tracking-[0.18em] text-black opacity-50 transition hover:bg-yellow-300 hover:opacity-70"
                         >
-                          Log in to create a project
+                          Join to create a project
                         </Link>
                       )}
                       {isAdmin ? (
@@ -482,13 +553,32 @@ export default function SpaceDetailPage() {
                     {projects.map((p) => (
                       <SpaceProjectCard key={p._id} project={p} />
                     ))}
-                    <Link
-                      to={`/projects/new?space=${encodeURIComponent(space._id)}`}
-                      className="flex min-h-[260px] flex-col items-center justify-center rounded-sm border border-dashed border-white/22 bg-transparent text-[28px] font-extralight text-white/38 transition hover:border-white/38 hover:text-white/65"
-                      aria-label="New project"
-                    >
-                      +
-                    </Link>
+                    {isMember ? (
+                      <Link
+                        to={`/projects/new?space=${encodeURIComponent(space._id)}`}
+                        className="flex min-h-[260px] flex-col items-center justify-center rounded-sm border border-dashed border-white/22 bg-transparent text-[28px] font-extralight text-white/38 transition hover:border-white/38 hover:text-white/65"
+                        aria-label="New project"
+                      >
+                        +
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.location.assign(
+                            !isLoggedIn
+                              ? loginUrl({
+                                  reason: `log in to start a project in ${space.name}`,
+                                })
+                              : `/spaces/join?space=${encodeURIComponent(space._id)}`,
+                          )
+                        }
+                        className="flex min-h-[260px] flex-col cursor-pointer items-center justify-center rounded-sm border border-dashed border-white/22 bg-transparent text-[28px] font-extralight text-white/38 opacity-50 transition hover:border-white/38 hover:text-white/65 hover:opacity-70"
+                        aria-label={!isLoggedIn ? 'Log in to start a project' : 'Join space to start a project'}
+                      >
+                        +
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -636,75 +726,79 @@ export default function SpaceDetailPage() {
 
             {/* RIGHT */}
             <aside className="flex flex-col gap-8 border-white/10 pb-4 lg:border-l lg:pl-8">
-              <div>
-                <AsideSectionLabel>Members</AsideSectionLabel>
-                <ul className="m-0 flex list-none flex-col gap-1 p-0">
-                  {sortedMembers.map((alias) => {
-                    const admin = space.admins.includes(alias)
-                    return (
-                      <li key={alias}>
-                        <Link
-                          to={`/nodes/${encodeURIComponent(alias)}`}
-                          className="flex items-center gap-3 rounded-md py-2 pr-2 transition hover:bg-white/[0.04]"
-                        >
-                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/12 bg-black/40">
-                            <GenerativeAvatar seed={alias} size={80} monochrome={false} luminescent className="opacity-95" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="block truncate font-mono text-xs text-white/88">{alias}</span>
-                            <span className="text-xs uppercase tracking-[0.16em] text-white/38">{admin ? 'admin' : 'member'}</span>
-                          </div>
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-
-              <div>
-                <AsideSectionLabel>Space rules</AsideSectionLabel>
-                {hasRulesContent ? (
-                  <div className="space-y-4 text-base leading-relaxed text-white/58">
-                    {minDocs.length > 0 ? (
-                      <div>
-                        <p className="m-0 mb-1 text-xs uppercase tracking-[0.16em] text-white/35">Minimum documentation</p>
-                        <ul className="m-0 list-disc space-y-1 pl-4">
-                          {minDocs.map((line, i) => (
-                            <li key={i}>{line}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                    {restrictions.length > 0 ? (
-                      <div>
-                        <p className="m-0 mb-1 text-xs uppercase tracking-[0.16em] text-white/35">Content restrictions</p>
-                        <ul className="m-0 list-disc space-y-1 pl-4">
-                          {restrictions.map((line, i) => (
-                            <li key={i}>{line}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
+              {!summaryBrowse ? (
+                <>
+                  <div>
+                    <AsideSectionLabel>Members</AsideSectionLabel>
+                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                      {sortedMembers.map((alias) => {
+                        const admin = space.admins.includes(alias)
+                        return (
+                          <li key={alias}>
+                            <Link
+                              to={`/nodes/${encodeURIComponent(alias)}`}
+                              className="flex items-center gap-3 rounded-md py-2 pr-2 transition hover:bg-white/[0.04]"
+                            >
+                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/12 bg-black/40">
+                                <GenerativeAvatar seed={alias} size={80} monochrome={false} luminescent className="opacity-95" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate font-mono text-xs text-white/88">{alias}</span>
+                                <span className="text-xs uppercase tracking-[0.16em] text-white/38">{admin ? 'admin' : 'member'}</span>
+                              </div>
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
                   </div>
-                ) : (
-                  <p className="m-0 text-base italic leading-relaxed text-white/38">
-                    No additional rules beyond chain defaults.
-                  </p>
-                )}
-              </div>
 
-              <div>
-                <AsideSectionLabel>Veto authority</AsideSectionLabel>
-                {vetoList.length > 0 ? (
-                  <ul className="m-0 list-none space-y-1.5 p-0 font-mono text-base text-white/65">
-                    {vetoList.map((a) => (
-                      <li key={a}>{a}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="m-0 text-base text-white/38">none assigned</p>
-                )}
-              </div>
+                  <div>
+                    <AsideSectionLabel>Space rules</AsideSectionLabel>
+                    {hasRulesContent ? (
+                      <div className="space-y-4 text-base leading-relaxed text-white/58">
+                        {minDocs.length > 0 ? (
+                          <div>
+                            <p className="m-0 mb-1 text-xs uppercase tracking-[0.16em] text-white/35">Minimum documentation</p>
+                            <ul className="m-0 list-disc space-y-1 pl-4">
+                              {minDocs.map((line, i) => (
+                                <li key={i}>{line}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {restrictions.length > 0 ? (
+                          <div>
+                            <p className="m-0 mb-1 text-xs uppercase tracking-[0.16em] text-white/35">Content restrictions</p>
+                            <ul className="m-0 list-disc space-y-1 pl-4">
+                              {restrictions.map((line, i) => (
+                                <li key={i}>{line}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="m-0 text-base italic leading-relaxed text-white/38">
+                        No additional rules beyond chain defaults.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <AsideSectionLabel>Veto authority</AsideSectionLabel>
+                    {vetoList.length > 0 ? (
+                      <ul className="m-0 list-none space-y-1.5 p-0 font-mono text-base text-white/65">
+                        {vetoList.map((a) => (
+                          <li key={a}>{a}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="m-0 text-base text-white/38">none assigned</p>
+                    )}
+                  </div>
+                </>
+              ) : null}
 
               <p className="mt-10 font-mono text-xs leading-relaxed tracking-wide text-white/28 break-all">
                 {space._id}

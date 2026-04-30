@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useChromeBackdropWhileOpen } from '../context/ChromeBackdropContext'
 import { GLOSSARY } from '../lib/glossary'
 import { AnchoredGlassDropdownPanel } from './AnchoredGlassDropdownPanel'
 
@@ -31,6 +32,7 @@ const HELP_KEYS: Array<{ term: string; label: string }> = [
 export function HelpButton({ className }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  useChromeBackdropWhileOpen(open)
 
   useEffect(() => {
     if (!open) return
