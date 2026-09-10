@@ -100,8 +100,11 @@ NPM_CONFIG_PRODUCTION=false npm install && npm run build
 
 ## 4. Smoke test after deploy
 
-- Browser: `https://<your-service>.onrender.com/health` → JSON `{ "status": "ok", ... }`
-- Browser: `https://<your-service>.onrender.com/demo.html` → run **Register → Space → Project → Trace**
+- Browser: `https://<your-service>.onrender.com/health` → JSON `{ "status": "ok", ... }` (may briefly say `"starting"` while Mongo connects)
+- Browser: `https://<your-service>.onrender.com/` → React SPA
+- Browser: `https://<your-service>.onrender.com/robots.txt` → plain text Allow rules
+- Browser: `https://<your-service>.onrender.com/sitemap.xml` → XML urls
+- Browser: `https://<your-service>.onrender.com/demo.html` → run **Register → Space → Project → Trace** (legacy)
 
 Or from your laptop (PowerShell):
 
@@ -110,6 +113,22 @@ $env:BASE_URL="https://<your-service>.onrender.com"
 npx ts-node test-full.ts
 ```
 
+### Free-tier cold starts
+
+After ~15 minutes idle, Render sleeps the service. The **first** visitor waits while the process boots. Mitigations:
+
+1. Open the URL yourself 1–2 minutes before a live demo.
+2. Optional: an external uptime ping every 10–14 minutes to `/health` (keeps free instances awake within monthly limits).
+3. Upgrade to a paid always-on instance if instant load matters.
+
+The server now **listens before Mongo finishes** so HTML/JS can download while the DB connects.
+
+### SEO after deploy
+
+1. Confirm `/robots.txt` and `/sitemap.xml` are **not** the SPA HTML shell.
+2. Submit the sitemap in [Google Search Console](https://search.google.com/search-console): `https://<your-service>.onrender.com/sitemap.xml`
+3. Request indexing for the homepage.
+4. Share the URL (LinkedIn, AU page, GitHub README) — crawlers need **external links** to discover a new `onrender.com` site.
 ---
 
 ## 5. Optional: custom domain

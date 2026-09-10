@@ -1,22 +1,27 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import LandingLayout from './pages/LandingLayout'
 const Landing = lazy(() => import('./pages/Landing'))
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import RecoverPage from './pages/RecoverPage'
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const RecoverPage = lazy(() => import('./pages/RecoverPage'))
 import { getToken } from './lib/session'
 import { DefinitionsProvider } from './context/DefinitionsContext'
 import { ThemeProvider } from './context/ThemeContext'
 import './styles/theme-modes.css'
 import { AppAtmosphere } from './components/AppAtmosphere'
-import { AppAmbientDotField } from './components/AppAmbientDotField'
 import { initFontInspect } from './lib/fontInspect'
-import TargetCursor from './components/TargetCursor/TargetCursor'
 import { PageTransitionLayout } from './components/PageTransitionLayout'
 import { MicroChainFlash } from './components/MicroChainFlash'
 import { DotFieldBurstProvider } from './context/DotFieldBurstContext'
 import { ToastProvider } from './context/ToastContext'
+
+const TargetCursor = lazy(() => import('./components/TargetCursor/TargetCursor'))
+const AppAmbientDotField = lazy(() =>
+  import('./components/AppAmbientDotField').then((m) => ({
+    default: m.AppAmbientDotField,
+  })),
+)
 
 // Everything below ships as its own JS chunk and is only downloaded when the
 // user navigates to that route. WelcomeLanding in particular carries Theatre +
@@ -61,6 +66,41 @@ function RouteFallback() {
   )
 }
 
+/** Defer gsap cursor + canvas dots so the landing shell paints first. */
+function DeferredChrome() {
+  const { pathname } = useLocation()
+  const [show, setShow] = useState(pathname !== '/')
+
+  useEffect(() => {
+    if (pathname !== '/') {
+      setShow(true)
+      return
+    }
+    let idleId: number | undefined
+    let timeoutId: number | undefined
+    const enable = () => setShow(true)
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(enable, { timeout: 2500 })
+    } else {
+      timeoutId = window.setTimeout(enable, 1200)
+    }
+    return () => {
+      if (idleId !== undefined && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+    }
+  }, [pathname])
+
+  if (!show) return null
+  return (
+    <Suspense fallback={null}>
+      <TargetCursor spinDuration={2} hideDefaultCursor />
+      <AppAmbientDotField />
+    </Suspense>
+  )
+}
+
 export default function App() {
   useEffect(() => {
     initFontInspect()
@@ -71,10 +111,9 @@ export default function App() {
       <ToastProvider>
         <DefinitionsProvider>
           <DotFieldBurstProvider>
-            <TargetCursor spinDuration={2} hideDefaultCursor />
+            <DeferredChrome />
             <MicroChainFlash />
             <AppAtmosphere />
-            <AppAmbientDotField />
             <div className="relative z-[1] flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-visible">
               <Suspense fallback={<RouteFallback />}>
                 <Routes>

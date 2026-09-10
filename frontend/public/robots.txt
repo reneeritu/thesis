@@ -1,0 +1,21 @@
+# https://whodunnit-etch-app.onrender.com/
+User-agent: *
+Allow: /
+
+# Prefer public marketing + discovery surfaces
+Allow: /$
+Allow: /discover
+Allow: /login
+Allow: /register
+Allow: /welcome
+
+Disallow: /api/
+Disallow: /sim
+Disallow: /api/admin
+Disallow: /dashboard
+Disallow: /me
+Disallow: /messages
+Disallow: /upload
+Disallow: /media/
+
+Sitemap: https://whodunnit-etch-app.onrender.com/sitemap.xml

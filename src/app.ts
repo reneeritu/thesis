@@ -2,6 +2,7 @@ import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
 import { config } from './config';
@@ -36,7 +37,22 @@ import adminRoutes from './routes/admin';
 
 const app = express();
 
-app.use(helmet());
+/** False until Mongo + genesis finish — API routes return 503 until then. */
+let ready = false;
+
+export function setReady(value: boolean): void {
+  ready = value;
+}
+
+export function isReady(): boolean {
+  return ready;
+}
+
+app.use(helmet({
+  // Allow Google Fonts + Vite-built assets; keep sensible defaults otherwise.
+  contentSecurityPolicy: false,
+}));
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 
@@ -48,7 +64,42 @@ app.use('/js', express.static(path.join(publicDir, 'js')));
 app.use('/css', express.static(path.join(publicDir, 'css')));
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  // Always 200 so Render/free-tier probes succeed during Mongo connect.
+  res.json({
+    status: ready ? 'ok' : 'starting',
+    ready,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Gate mutating / JSON API traffic until the DB is up. Static assets still serve.
+app.use((req, res, next) => {
+  if (ready) return next();
+  const p = req.path;
+  if (
+    p === '/health' ||
+    p.startsWith('/legacy') ||
+    p.startsWith('/js') ||
+    p.startsWith('/css') ||
+    p === '/robots.txt' ||
+    p === '/sitemap.xml' ||
+    p === '/og.png' ||
+    p === '/favicon.svg' ||
+    p.startsWith('/assets/')
+  ) {
+    return next();
+  }
+  // Allow HTML shell so the SPA can download while DB connects.
+  const accept = req.headers.accept ?? '';
+  if (req.method === 'GET' && accept.includes('text/html')) {
+    return next();
+  }
+  if (req.method === 'GET' && !accept.includes('application/json')) {
+    return next();
+  }
+  res.status(503).json({
+    error: 'Service starting — database not ready yet. Retry in a few seconds.',
+  });
 });
 
 if (config.nodeEnv === 'production') {
@@ -100,7 +151,37 @@ app.use('/api/admin', adminRoutes);
 
 // React SPA (frontend/dist) at root
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
-app.use(express.static(frontendDist));
+
+// Hashed Vite assets — long cache. HTML stays short-lived via SPA fallback.
+app.use(
+  '/assets',
+  express.static(path.join(frontendDist, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+    etag: true,
+  }),
+);
+
+app.use(
+  express.static(frontendDist, {
+    maxAge: config.nodeEnv === 'production' ? '1h' : 0,
+    index: false,
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+      if (
+        filePath.endsWith('robots.txt') ||
+        filePath.endsWith('sitemap.xml')
+      ) {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Content-Type', filePath.endsWith('xml')
+          ? 'application/xml; charset=utf-8'
+          : 'text/plain; charset=utf-8');
+      }
+    },
+  }),
+);
 
 // SPA fallback for non-API GET requests.
 //
@@ -108,10 +189,6 @@ app.use(express.static(frontendDist));
 // text/html), always serve index.html and let React Router handle the path.
 // API calls from the SPA always include "application/json" in Accept so they
 // correctly pass through to the Express routes above.
-//
-// This replaces the old blocklist approach which caused "Cannot GET /:spa-path"
-// errors whenever a new SPA route shared a prefix with an API route (e.g.
-// /nfts/:id navigating to /nfts/:id/artwork in the browser).
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   const accept = req.headers.accept ?? '';
@@ -119,12 +196,21 @@ app.use((req, res, next) => {
   if (accept.includes('application/json') && !accept.includes('text/html')) {
     return next();
   }
-  // Let static assets pass through to errorHandler (they'll 404 gracefully).
   const p = req.path;
-  if (p.startsWith('/health') || p.startsWith('/upload') || p.startsWith('/media')) {
+  // Never soft-404 SEO / health / binary paths as the SPA shell.
+  if (
+    p.startsWith('/health') ||
+    p.startsWith('/upload') ||
+    p.startsWith('/media') ||
+    p === '/robots.txt' ||
+    p === '/sitemap.xml' ||
+    p === '/og.png' ||
+    p === '/favicon.svg' ||
+    p.startsWith('/assets/')
+  ) {
     return next();
   }
-  // Everything else (browser navigation) → SPA entry point.
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 

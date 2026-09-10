@@ -101,6 +101,18 @@ export default defineConfig(({ mode }) => {
     build: {
       /* three.module alone is ~700kB minified; warning is informational */
       chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return
+            if (id.includes('three') || id.includes('@react-three') || id.includes('@theatre')) {
+              return 'vendor-3d'
+            }
+            if (id.includes('gsap')) return 'vendor-gsap'
+            if (id.includes('framer-motion')) return 'vendor-motion'
+          },
+        },
+      },
     },
     server: {
       port: 5173,

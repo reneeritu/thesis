@@ -5,7 +5,60 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="aura-api-base" content="" />
-    <title>Etch</title>
+    <title>Etch — Process documentation with integrity</title>
+    <meta
+      name="description"
+      content="Etch makes invisible creative labour visible. Log traces, references, and credit on a tamper-evident chain — for studios, classes, and collectives. Trust without money."
+    />
+    <meta
+      name="keywords"
+      content="Etch, creative attribution, provenance, process documentation, design credit, collaborative art, tamper-evident ledger"
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://whodunnit-etch-app.onrender.com/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Etch" />
+    <meta property="og:title" content="Etch — Invisible labour made visible" />
+    <meta
+      property="og:description"
+      content="Process documentation with integrity, not finance. Trace work, share credit, keep a tamper-evident record."
+    />
+    <meta property="og:url" content="https://whodunnit-etch-app.onrender.com/" />
+    <meta
+      property="og:image"
+      content="https://whodunnit-etch-app.onrender.com/og.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Etch — Invisible labour made visible" />
+    <meta
+      name="twitter:description"
+      content="Process documentation with integrity, not finance. Trace work, share credit, keep a tamper-evident record."
+    />
+    <meta
+      name="twitter:image"
+      content="https://whodunnit-etch-app.onrender.com/og.png"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Etch",
+        "url": "https://whodunnit-etch-app.onrender.com/",
+        "description": "Process documentation and creative attribution with a tamper-evident log — for studios, classes, and collectives.",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
     <script>
       /* Mirror `applyThemeToDocument` in `src/lib/themePreference.ts` — runs before first paint. */
       (function () {
@@ -28,7 +81,15 @@
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
   <body>
     <!-- Referenced by welcome grain: filter: url(#noiseFilter) contrast(1.5) brightness(0.9) -->
@@ -116,6 +177,22 @@
       </defs>
     </svg>
     <div id="root"></div>
+    <noscript>
+      <main style="max-width:40rem;margin:4rem auto;padding:1.5rem;font-family:system-ui,sans-serif;color:#fff;background:#000">
+        <h1>Etch</h1>
+        <p>
+          Invisible labour made visible. Etch is a process-documentation system for
+          creative teams — log traces, references, and credit on a tamper-evident chain.
+          Trust without money.
+        </p>
+        <p>
+          Enable JavaScript to use the full app, or visit
+          <a href="https://whodunnit-etch-app.onrender.com/discover" style="color:#ffff00"
+            >Discover</a
+          >.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

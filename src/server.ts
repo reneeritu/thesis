@@ -1,8 +1,8 @@
 /**
  * Startup order matters on PaaS (e.g. Render):
- * - Do NOT static-import `./app` at the top: it pulls in all routes → `sharp` native bindings
- *   can crash the process on some Node versions before any logs run.
- * - Connect DB and run genesis first; then dynamic-import `app` and listen.
+ * - Listen early so /health + static HTML/JS can respond while Mongo connects
+ *   (cuts perceived cold-start wait on free tier).
+ * - Dynamic-import `./app` so native deps (sharp) do not crash before logs.
  */
 import { config } from './config';
 import { connectDatabase } from './config/database';
@@ -50,18 +50,23 @@ async function start() {
 
   assertProductionEnv();
 
+  const { default: app, setReady } = await import('./app');
+
+  await new Promise<void>((resolve) => {
+    app.listen(config.port, '0.0.0.0', () => {
+      console.log(
+        `aura2 listening on 0.0.0.0:${config.port} [${config.nodeEnv}] (warming database…)`,
+      );
+      resolve();
+    });
+  });
+
   await connectDatabase();
   await ensureGenesis();
   ensureUploadDir();
   startScheduler();
-
-  const { default: app } = await import('./app');
-
-  app.listen(config.port, '0.0.0.0', () => {
-    console.log(
-      `aura2 backend listening on 0.0.0.0:${config.port} [${config.nodeEnv}]`,
-    );
-  });
+  setReady(true);
+  console.log('aura2 ready — database connected, genesis OK');
 }
 
 start().catch((err) => {
