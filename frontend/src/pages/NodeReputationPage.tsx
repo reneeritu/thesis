@@ -94,6 +94,17 @@ const CATEGORY_COPY: Record<ReputationCategory, CategoryCopy> = {
   },
 }
 
+/** Same demo used by scripts/boost-node-mandala-demo.ts. Aggregate is round(sum / 6) = 580. */
+const EXAMPLE_CATEGORIES: Record<ReputationCategory, number> = {
+  craft: 940,
+  research: 720,
+  collaboration: 520,
+  pedagogy: 280,
+  consistency: 120,
+  community: 900,
+}
+const EXAMPLE_SCORE = 580
+
 function slidersFromCategories(cats: Partial<Record<ReputationCategory, number>>) {
   const o = {} as Record<ReputationCategory, number>
   for (const k of REPUTATION_CATEGORY_ORDER) {
@@ -157,21 +168,27 @@ function RepSlider({
   )
 }
 
-export default function NodeReputationPage() {
+const EMPTY_SLIDERS = Object.fromEntries(REPUTATION_CATEGORY_ORDER.map((k) => [k, 0])) as Record<
+  ReputationCategory,
+  number
+>
+
+export default function NodeReputationPage({ example = false }: { example?: boolean }) {
   const { alias: aliasParam } = useParams<{ alias: string }>()
-  const alias = aliasParam?.trim() ?? ''
+  const alias = example ? '' : (aliasParam?.trim() ?? '')
   const { theme } = useTheme()
 
-  const [profile, setProfile] = useState<HubProfile | null>(null)
+  const [profile, setProfile] = useState<HubProfile | null>(() =>
+    example
+      ? { alias: '', reputationCategories: EXAMPLE_CATEGORIES, reputationScore: EXAMPLE_SCORE }
+      : null,
+  )
   const [error, setError] = useState<string | null>(null)
   const [sliders, setSliders] = useState<Record<ReputationCategory, number>>(() =>
-    Object.fromEntries(REPUTATION_CATEGORY_ORDER.map((k) => [k, 0])) as Record<
-      ReputationCategory,
-      number
-    >,
+    example ? slidersFromCategories(EXAMPLE_CATEGORIES) : { ...EMPTY_SLIDERS },
   )
   const [baselineSliders, setBaselineSliders] = useState<Record<ReputationCategory, number> | null>(
-    null,
+    () => (example ? slidersFromCategories(EXAMPLE_CATEGORIES) : null),
   )
 
   const load = useCallback(async () => {
@@ -194,8 +211,9 @@ export default function NodeReputationPage() {
   }, [alias])
 
   useEffect(() => {
+    if (example) return
     void load()
-  }, [load])
+  }, [load, example])
 
   const hubCats = useMemo(
     () => (profile ? clampReputationCategories(profile.reputationCategories) : {}),
@@ -232,12 +250,21 @@ export default function NodeReputationPage() {
         {/* SECTION 1 — HERO */}
         <section className="relative flex min-h-[70vh] flex-col pb-10">
           <div className="mb-6 flex justify-start">
-            <Link
-              to={`/nodes/${encodeURIComponent(alias)}`}
-              className="font-mono text-sm text-[var(--text-muted)] transition hover:text-white [html.light-mode_&]:hover:text-[var(--text-primary)]"
-            >
-              ← {alias || 'profile'}
-            </Link>
+            {example ? (
+              <Link
+                to="/"
+                className="font-mono text-sm text-[var(--text-muted)] transition hover:text-white [html.light-mode_&]:hover:text-[var(--text-primary)]"
+              >
+                ← back
+              </Link>
+            ) : (
+              <Link
+                to={`/nodes/${encodeURIComponent(alias)}`}
+                className="font-mono text-sm text-[var(--text-muted)] transition hover:text-white [html.light-mode_&]:hover:text-[var(--text-primary)]"
+              >
+                ← {alias || 'profile'}
+              </Link>
+            )}
           </div>
 
           <div className="flex flex-1 flex-col items-center justify-center">
@@ -272,6 +299,11 @@ export default function NodeReputationPage() {
                   / 1000
                 </span>
               </p>
+              {example ? (
+                <p className="mt-1.5 font-mono text-xs leading-snug tracking-[0.02em] text-[#c4c4c4] [html.light-mode_&]:text-[var(--text-secondary)]">
+                  this is an example score
+                </p>
+              ) : null}
               <p className="mt-2 max-w-xl font-mono text-sm leading-relaxed text-[#777777] [html.light-mode_&]:text-[var(--text-muted)]">
                 soft power signal · not a ranking · recomputed on each new documented contribution
               </p>
@@ -421,7 +453,7 @@ export default function NodeReputationPage() {
                 className="self-start border-0 bg-transparent p-0 font-mono text-sm tracking-[0.04em] text-[#555555] underline-offset-2 transition hover:text-[#888888] hover:underline [html.light-mode_&]:text-[var(--text-muted)]"
                 onClick={() => baselineSliders && setSliders({ ...baselineSliders })}
               >
-                RESET TO MY ACTUAL SCORES
+                {example ? 'RESET TO EXAMPLE SCORES' : 'RESET TO MY ACTUAL SCORES'}
               </button>
             </div>
 

@@ -130,6 +130,7 @@ export default function App() {
                     <Route path="/nfts/:id" element={<NftPage />} />
                     <Route path="/provenance/:id" element={<NftPage />} />
                     <Route path="/discover" element={<DiscoverPage />} />
+                    <Route path="/reputation" element={<NodeReputationPage example />} />
                     <Route path="/node/:alias/reputation" element={<NodeReputationPage />} />
                     <Route path="/nodes/:alias/reputation" element={<NodeReputationPage />} />
                     <Route element={<RequireAuth />}>

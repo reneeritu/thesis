@@ -249,7 +249,7 @@ export default function Landing() {
           <div className="absolute left-6 top-5 z-20 flex items-center gap-3">
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-ghost)]">ETCH</span>
             <span className="text-[var(--text-ghost)] opacity-40">·</span>
-            <Link to="/discover" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)] hover:text-[var(--text-primary)]">EXPLORE</Link>
+            <Link to="/reputation" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)] hover:text-[var(--text-primary)]">EXPLORE</Link>
             <Link to="/login" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)] hover:text-[var(--text-primary)]">LOGIN</Link>
           </div>
 
@@ -711,7 +711,7 @@ export default function Landing() {
                   REGISTER AS A NODE →
                 </Link>
                 <Link
-                  to="/discover"
+                  to="/reputation"
                   className="border bg-transparent px-8 py-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-ghost)] transition-colors hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]"
                   style={{ borderColor: BORDER }}
                 >
