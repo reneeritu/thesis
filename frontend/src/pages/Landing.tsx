@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from 'react'
 import { Link } from 'react-router-dom'
-import DecryptedText from '../components/landing/DecryptedText'
+import { api } from '../lib/api'
 
 const FaultyTerminal = lazy(() => import('../components/landing/FaultyTerminal'))
 
@@ -62,7 +62,7 @@ export default function Landing() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const section1Progress = useSectionProgress(heroSectionRef, containerRef)
   const [s2Visible, setS2Visible] = useState<Record<string, boolean>>({})
-  const [statValue, setStatValue] = useState(0)
+  const [liveStats, setLiveStats] = useState<{ nodes: number; spaces: number; projects: number; blocks: number } | null>(null)
 
   useLayoutEffect(() => {
     const html = document.documentElement
@@ -118,8 +118,6 @@ export default function Landing() {
     const target = section2Ref.current
     if (!target) return
     const timers: ReturnType<typeof setTimeout>[] = []
-    let countId: ReturnType<typeof setInterval> | null = null
-
     const obs = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -143,19 +141,6 @@ export default function Landing() {
             timers.push(
               setTimeout(() => {
                 setS2Visible((prev) => ({ ...prev, [key]: true }))
-                if (key === 'm8') {
-                  const start = performance.now()
-                  const duration = 1200
-                  const final = 50.1
-                  countId = setInterval(() => {
-                    const t = Math.min(1, (performance.now() - start) / duration)
-                    setStatValue(t * final)
-                    if (t >= 1 && countId) {
-                      clearInterval(countId)
-                      countId = null
-                    }
-                  }, 16)
-                }
               }, delay),
             )
           }
@@ -168,7 +153,20 @@ export default function Landing() {
     return () => {
       obs.disconnect()
       timers.forEach((t) => clearTimeout(t))
-      if (countId) clearInterval(countId)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    api<{ nodes: number; spaces: number; projects: number; blocks: number }>('/stats')
+      .then((data) => {
+        if (!cancelled) setLiveStats(data)
+      })
+      .catch(() => {
+        /* keep the line quiet if the API is down */
+      })
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -249,7 +247,7 @@ export default function Landing() {
           <div className="absolute left-6 top-5 z-20 flex items-center gap-3">
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-ghost)]">ETCH</span>
             <span className="text-[var(--text-ghost)] opacity-40">·</span>
-            <Link to="/reputation" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)] hover:text-[var(--text-primary)]">EXPLORE</Link>
+            <Link to="/discover" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)] hover:text-[var(--text-primary)]">EXPLORE</Link>
             <Link to="/login" className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-ghost)] hover:text-[var(--text-primary)]">LOGIN</Link>
           </div>
 
@@ -303,17 +301,12 @@ export default function Landing() {
             }}
           >
             {/* Top label */}
-            <DecryptedText
-              text="A CHAIN FOR DOCUMENTING MAKING"
-              animateOn="view"
-              sequential
-              revealDirection="start"
-              speed={50}
-              maxIterations={2}
-              characters="ABCDEFGHIJKLMNOPQRSTUVWXYZ_/·"
+            <p
               className="font-mono uppercase text-[var(--text-ghost)]"
               style={{ fontSize: 11, letterSpacing: '0.22em' }}
-            />
+            >
+              A CHAIN FOR DOCUMENTING MAKING
+            </p>
 
             {/* ETCH wordmark — instant, large */}
             <h1
@@ -333,15 +326,7 @@ export default function Landing() {
               className="font-mono font-normal leading-[1.3] text-[var(--text-secondary)]"
               style={{ fontSize: 'clamp(18px, 2.2vw, 28px)', marginTop: 12 }}
             >
-              <DecryptedText
-                text="Document what making actually looks like."
-                animateOn="view"
-                sequential
-                revealDirection="start"
-                speed={50}
-                maxIterations={2}
-                characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz. "
-              />
+              Document what making actually looks like.
             </p>
 
             {/* Body — blur-in after 800ms */}
@@ -393,7 +378,9 @@ export default function Landing() {
                 opacity: 0,
               }}
             >
-              156 BLOCKS ON CHAIN · 14 TRACES TODAY · OPEN PROTOCOL
+              {liveStats
+                ? `${liveStats.blocks} BLOCKS ON CHAIN · ${liveStats.nodes} NODES · OPEN PROTOCOL`
+                : 'OPEN PROTOCOL'}
             </p>
           </div>
 
@@ -512,24 +499,6 @@ export default function Landing() {
               Because no one wrote it down.
             </p>
 
-            <div style={{ marginTop: 56 }}>
-              <div
-                className={`s2-reveal font-mono font-bold ${s2Visible.m8 ? 'show' : ''}`}
-                style={{
-                  fontSize: 'clamp(48px, 6vw, 72px)',
-                  lineHeight: 1,
-                  color: 'var(--accent-red)',
-                }}
-              >
-                {statValue.toFixed(1)}%
-              </div>
-              <p
-                className={`s2-reveal font-mono text-[var(--text-muted)] ${s2Visible.m8label ? 'show' : ''}`}
-                style={{ fontSize: 'var(--text-sm)', marginTop: 14 }}
-              >
-                of creative labor leaves no record.
-              </p>
-            </div>
 
             <p
               className={`s2-reveal font-mono uppercase ${s2Visible.m9 ? 'show' : ''}`}
@@ -711,7 +680,7 @@ export default function Landing() {
                   REGISTER AS A NODE →
                 </Link>
                 <Link
-                  to="/reputation"
+                  to="/discover"
                   className="border bg-transparent px-8 py-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--text-ghost)] transition-colors hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]"
                   style={{ borderColor: BORDER }}
                 >
@@ -720,7 +689,9 @@ export default function Landing() {
               </div>
 
               <p className="mt-12 font-mono text-[10px] text-[var(--text-ghost)] opacity-50">
-                ALREADY RUNNING — 1588 nodes · 47 spaces · 203 projects
+                {liveStats
+                  ? `ALREADY RUNNING — ${liveStats.nodes} nodes · ${liveStats.spaces} spaces · ${liveStats.projects} projects`
+                  : 'ALREADY RUNNING'}
               </p>
             </div>
           </div>

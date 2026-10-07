@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
+import { ExploreSectionNav } from '../components/ExploreSectionNav'
 import { GenerativeAvatar } from '../components/GenerativeAvatar'
 import { api } from '../lib/api'
 import { activityLabel } from '../lib/activityLabels'
@@ -388,7 +389,9 @@ export default function DiscoverPage() {
 
   return (
     <AppShell title="Discover">
-      <div className="flex w-full min-w-0 flex-col gap-8 lg:flex-row lg:gap-10">
+      <div className="flex w-full min-w-0 flex-col gap-8">
+        <ExploreSectionNav current="browse" />
+        <div className="flex w-full min-w-0 flex-col gap-8 lg:flex-row lg:gap-10">
         <aside data-discover-sidebar className="w-full shrink-0 space-y-8 lg:w-[280px]">
           <div>
             <label htmlFor="discover-search" className={sectionLabel}>
@@ -623,6 +626,7 @@ export default function DiscoverPage() {
             </div>
           )}
         </main>
+        </div>
       </div>
     </AppShell>
   )

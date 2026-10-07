@@ -103,7 +103,7 @@ function DeferredChrome() {
 
 export default function App() {
   useEffect(() => {
-    initFontInspect()
+    if (import.meta.env.DEV) initFontInspect()
   }, [])
 
   return (
@@ -130,7 +130,8 @@ export default function App() {
                     <Route path="/nfts/:id" element={<NftPage />} />
                     <Route path="/provenance/:id" element={<NftPage />} />
                     <Route path="/discover" element={<DiscoverPage />} />
-                    <Route path="/reputation" element={<NodeReputationPage example />} />
+                    <Route path="/discover/crystal" element={<NodeReputationPage example />} />
+                    <Route path="/reputation" element={<Navigate to="/discover/crystal" replace />} />
                     <Route path="/node/:alias/reputation" element={<NodeReputationPage />} />
                     <Route path="/nodes/:alias/reputation" element={<NodeReputationPage />} />
                     <Route element={<RequireAuth />}>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { Link, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { CrystalRadar3DLazy } from '../components/CrystalRadar3DLazy'
+import { ExploreSectionNav } from '../components/ExploreSectionNav'
 import { useTheme } from '../context/ThemeContext'
 import { api } from '../lib/api'
 import {
@@ -104,6 +105,8 @@ const EXAMPLE_CATEGORIES: Record<ReputationCategory, number> = {
   community: 900,
 }
 const EXAMPLE_SCORE = 580
+/** Default camera (z=3.75) clips the outer arms of this demo. */
+const EXAMPLE_CAMERA_Z = 5.05
 
 function slidersFromCategories(cats: Partial<Record<ReputationCategory, number>>) {
   const o = {} as Record<ReputationCategory, number>
@@ -232,14 +235,16 @@ export default function NodeReputationPage({ example = false }: { example?: bool
 
   const simScore = simulatedAggregateScore(sliders)
 
-  const heroViewport =
-    'mx-auto aspect-auto h-[min(70vh,500px)] w-[min(100%,520px)] shrink-0 overflow-visible bg-transparent [html.light-mode_&]:bg-[var(--bg-primary)]'
+  const heroViewport = example
+    ? 'mx-auto aspect-square w-full max-w-[min(100%,40rem)] shrink-0 overflow-visible bg-transparent [html.light-mode_&]:bg-[var(--bg-primary)]'
+    : 'mx-auto aspect-auto h-[min(70vh,500px)] w-[min(100%,520px)] shrink-0 overflow-visible bg-transparent [html.light-mode_&]:bg-[var(--bg-primary)]'
 
-  const simViewport =
-    'mx-auto aspect-auto h-[min(42vh,320px)] w-[min(100%,340px)] shrink-0 overflow-visible bg-transparent [html.light-mode_&]:bg-[var(--bg-primary)]'
+  const simViewport = example
+    ? 'mx-auto aspect-square w-full max-w-[min(100%,26rem)] shrink-0 overflow-visible bg-transparent [html.light-mode_&]:bg-[var(--bg-primary)]'
+    : 'mx-auto aspect-auto h-[min(42vh,320px)] w-[min(100%,340px)] shrink-0 overflow-visible bg-transparent [html.light-mode_&]:bg-[var(--bg-primary)]'
 
   return (
-    <AppShell title={alias ? `Reputation · ${alias}` : 'Reputation'} scrollMain>
+    <AppShell title={example ? 'Discover' : alias ? `Reputation · ${alias}` : 'Reputation'} scrollMain>
       <div className="mx-auto flex w-full max-w-[1100px] flex-col font-mono text-white [html.light-mode_&]:text-[var(--text-primary)]">
         {error ? (
           <p className="mb-6 border border-white/15 px-3 py-2 text-sm text-white [html.light-mode_&]:border-[var(--border-default)] [html.light-mode_&]:text-[var(--text-primary)]" role="alert">
@@ -251,12 +256,7 @@ export default function NodeReputationPage({ example = false }: { example?: bool
         <section className="relative flex min-h-[70vh] flex-col pb-10">
           <div className="mb-6 flex justify-start">
             {example ? (
-              <Link
-                to="/"
-                className="font-mono text-sm text-[var(--text-muted)] transition hover:text-white [html.light-mode_&]:hover:text-[var(--text-primary)]"
-              >
-                ← back
-              </Link>
+              <ExploreSectionNav current="crystal" />
             ) : (
               <Link
                 to={`/nodes/${encodeURIComponent(alias)}`}
@@ -279,6 +279,7 @@ export default function NodeReputationPage({ example = false }: { example?: bool
                 hideLegendPanels
                 theme={theme}
                 mandalaRotateYSpeed={0.024}
+                cameraZ={example ? EXAMPLE_CAMERA_Z : undefined}
                 crystalViewportClassName={heroViewport}
               />
             ) : (
@@ -464,6 +465,7 @@ export default function NodeReputationPage({ example = false }: { example?: bool
                 hideLegendPanels
                 theme={theme}
                 mandalaRotateYSpeed={0.035}
+                cameraZ={example ? EXAMPLE_CAMERA_Z : undefined}
                 crystalViewportClassName={simViewport}
               />
               <p className="mt-3 text-center font-mono text-xs uppercase tracking-[0.12em] text-[#555555] [html.light-mode_&]:text-[var(--text-muted)]">

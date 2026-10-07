@@ -2529,6 +2529,11 @@ export type CrystalRadarProps = {
   crystalViewportClassName?: string
   /** Mandala Y rotation speed (rad/s × time); default ~0.065 */
   mandalaRotateYSpeed?: number
+  /**
+   * Camera distance along Z. Default 3.75 fits a typical profile crystal.
+   * High example scores need a larger value so the outer arms stay inside the frame.
+   */
+  cameraZ?: number
   /** e.g. profile → full reputation view; double-click on the crystal viewport only (not legend). */
   onCrystalViewportDoubleClick?: (e: MouseEvent) => void
 }
@@ -2548,6 +2553,7 @@ export function CrystalRadar3D({
   crystalViewportClassName,
   mandalaRotateYSpeed,
   onCrystalViewportDoubleClick,
+  cameraZ = 3.75,
 }: CrystalRadarProps) {
   const viewRootRef = useRef<HTMLDivElement>(null)
   /** Don't even mount the Canvas until it's near the viewport — keeps initial page paint fast. */
@@ -2640,7 +2646,7 @@ export function CrystalRadar3D({
           className="!h-full !w-full touch-none"
           frameloop={runLoop ? 'always' : 'never'}
           style={{ display: 'block', overflow: 'visible' }}
-          camera={{ position: [0, 0.42, 3.75], fov: 48 }}
+          camera={{ position: [0, 0.42, cameraZ], fov: 48 }}
           dpr={1}
           gl={{
             antialias: false,
