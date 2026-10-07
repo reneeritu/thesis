@@ -1,5 +1,5 @@
 import { beginLoading, endLoading } from './cursor'
-import { getToken } from './session'
+import { clearSession, safeReturnPath } from './session'
 
 function apiBase(): string {
   const m = document.querySelector('meta[name="aura-api-base"]')
@@ -21,12 +21,10 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     if (opts.body != null) {
       headers['Content-Type'] = 'application/json'
     }
-    const tok = opts.token !== undefined ? opts.token : getToken()
-    if (tok) headers['Authorization'] = 'Bearer ' + tok
-
     const res = await fetch(apiBase() + path, {
       method: opts.method || 'GET',
       headers,
+      credentials: 'include',
       body: opts.body != null ? JSON.stringify(opts.body) : undefined,
     })
 
@@ -41,9 +39,17 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     }
 
     if (!res.ok) {
+      if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/recover') && !path.startsWith('/auth/register')) {
+        clearSession()
+        const here = window.location.pathname
+        if (here !== '/login' && here !== '/register' && here !== '/recover') {
+          const ret = encodeURIComponent(safeReturnPath(here + window.location.search) || '/dashboard')
+          window.location.assign('/login?reason=expired&return=' + ret)
+        }
+      }
       if (res.status === 502 || res.status === 503) {
         throw new Error(
-          'Could not reach the API (bad gateway). On local dev, start the backend from the repo root with npm run dev (Express must match PORT in root .env; default 3000). Vite proxies /auth there.',
+          'The server is starting or temporarily unavailable. Wait a moment and try again.',
         )
       }
       const d = data as { error?: unknown; message?: unknown } | null

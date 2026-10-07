@@ -4,6 +4,7 @@
  * 
  * Use this to run the migration on production without shell access
  */
+import crypto from 'crypto'
 import { Router, Response } from 'express'
 import { AuthRequest } from '../types'
 import { ChainNode } from '../models/Node'
@@ -19,11 +20,14 @@ const SAMPLE_INTERESTS = ['Open source', 'Systems design', 'Teaching / pedagogy'
 router.post('/migrate-interests', async (req: AuthRequest, res: Response) => {
   try {
     // Optional: Check for a migration key (add to .env: MIGRATION_KEY=your-secret-key)
-    const migrationKey = req.headers['x-migration-key']
-    const expectedKey = process.env.MIGRATION_KEY
-    
-    if (expectedKey && migrationKey !== expectedKey) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid migration key' })
+    const migrationKey = String(req.headers['x-migration-key'] ?? '')
+    const expectedKey = process.env.MIGRATION_KEY ?? ''
+    const keyOk =
+      expectedKey.length >= 32 &&
+      migrationKey.length === expectedKey.length &&
+      crypto.timingSafeEqual(Buffer.from(migrationKey), Buffer.from(expectedKey))
+    if (!keyOk) {
+      return res.status(401).json({ error: 'Unauthorized' })
     }
 
     console.log('[Migration] Starting interests migration...')
@@ -55,7 +59,7 @@ router.post('/migrate-interests', async (req: AuthRequest, res: Response) => {
     console.error('[Migration] Error:', err)
     res.status(500).json({
       success: false,
-      error: err instanceof Error ? err.message : 'Migration failed',
+      error: 'Migration failed',
     })
   }
 })

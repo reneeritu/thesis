@@ -9,6 +9,7 @@ import { addBlock } from '../services/chain';
 import { onForkCreated } from '../services/reputationEngine';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertFullProcessLogReadable, getProjectProcessLogScope, loadProjectWithSpace } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -107,11 +108,17 @@ router.get(
   '/parent/:parentProjectId',
   requireAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertFullProcessLogReadable(req.params.parentProjectId, req);
     const forks = await Project.find({
       parentProjectId: req.params.parentProjectId,
     }).sort({ createdAt: -1 });
 
-    res.json(forks);
+    const visible = [];
+    for (const fork of forks) {
+      const { project, space } = await loadProjectWithSpace(fork._id);
+      if (getProjectProcessLogScope(project, space, req) === 'full') visible.push(fork);
+    }
+    res.json(visible);
   },
 );
 

@@ -52,7 +52,7 @@ export const GLOSSARY: Record<string, string> = {
   endorsement: 'A peer-signed mark on a trace: I was there, I co-authored, I reviewed, I mentored.',
   alias: 'Your handle on the chain — public, permanent, not your legal name unless you chose it.',
   seed_phrase: 'A list of words that is the only way to recover your account — keep it safe, keep it offline.',
-  trustees: 'People you trust to help restore your account if you lose the seed phrase. Optional at signup.',
+  trustees: 'People you can save for a future recovery vote. That vote is not available yet. Optional at signup.',
 
   // Form labels / dashboard
   flag_category: 'High-level bucket for your report.',

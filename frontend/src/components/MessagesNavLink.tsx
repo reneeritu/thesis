@@ -19,8 +19,17 @@ export function MessagesNavLink() {
       }
     }
     void poll()
-    const t = window.setInterval(() => void poll(), 5000)
-    return () => window.clearInterval(t)
+    const t = window.setInterval(() => {
+      if (!document.hidden) void poll()
+    }, 5000)
+    const onVis = () => {
+      if (!document.hidden) void poll()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.clearInterval(t)
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [])
 
   return (

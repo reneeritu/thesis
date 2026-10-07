@@ -282,7 +282,6 @@ router.get(
     const filtered = projects.filter((p) => {
       if (isSelf) return true;
       if (p.visibility === 'fully_public' || p.visibility === 'process_visible') return true;
-      if (p.visibility === 'space_only') return true;
       return allowedSpaceIds.has(String(p.spaceId));
     });
 

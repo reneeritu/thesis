@@ -6,7 +6,7 @@ import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
 import { redirectToDashboard, setSession } from '../lib/session'
 
-type RecoverResponse = { token: string; alias: string }
+type RecoverResponse = { alias: string }
 
 const fieldLabel = 'block text-small font-mono uppercase tracking-[0.18em] text-white mb-1'
 const fieldInput =
@@ -28,7 +28,7 @@ export default function RecoverPage() {
         method: 'POST',
         body: { alias, seedPhrase, newPassword },
       })
-      setSession(data.token, data.alias)
+      setSession(data.alias)
       flashDone()
       redirectToDashboard()
     } catch (err) {

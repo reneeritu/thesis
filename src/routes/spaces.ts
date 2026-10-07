@@ -498,7 +498,7 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response) => {
 
   res.json({
     ...space.toObject(),
-    inviteCodes: isMember ? space.inviteCodes : undefined,
+    inviteCodes: isAdmin ? space.inviteCodes : undefined,
     pendingVeto: isAdmin ? space.pendingVeto : undefined,
     projectCount,
     publicBrowseLevel: 'full',
@@ -514,7 +514,7 @@ router.post(
   requireAuth,
   validate(joinSpaceSchema),
   async (req: AuthRequest, res: Response) => {
-    const space = await Space.findById(req.params.id);
+    let space = await Space.findById(req.params.id);
     if (!space) throw new NotFoundError('Space');
     if (space.status === 'dormant') throw new AppError('Space is dormant');
 
@@ -538,9 +538,28 @@ router.post(
       if (!codeEntry) throw new AppError('Invalid, used, or expired invite code');
 
       if (codeEntry.mode === 'single_use') {
-        codeEntry.used = true;
+        const claimed = await Space.findOneAndUpdate(
+          {
+            _id: space._id,
+            inviteCodes: {
+              $elemMatch: {
+                code: inviteCode,
+                used: false,
+                $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+              },
+            },
+          },
+          {
+            $set: { 'inviteCodes.$.used': true },
+            $inc: { 'inviteCodes.$.usedCount': 1 },
+          },
+          { new: true },
+        );
+        if (!claimed) throw new AppError('Invalid, used, or expired invite code');
+        space = claimed;
+      } else {
+        codeEntry.usedCount = (codeEntry.usedCount || 0) + 1;
       }
-      codeEntry.usedCount = (codeEntry.usedCount || 0) + 1;
     } else if (space.settings.projectAccess === 'application') {
       const message = req.body.message ?? '';
       const existing = await Application.findOne({

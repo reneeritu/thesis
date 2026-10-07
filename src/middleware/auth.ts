@@ -4,18 +4,17 @@ import { config } from '../config';
 import { ChainNode } from '../models/Node';
 import { AuthPayload, AuthRequest } from '../types';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
+import { readSessionToken } from '../utils/sessionCookie';
 
 export async function requireAuth(
   req: AuthRequest,
   _res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
+  const token = readSessionToken(req);
+  if (!token) {
     throw new UnauthorizedError('Missing or malformed token');
   }
-
-  const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload;
 

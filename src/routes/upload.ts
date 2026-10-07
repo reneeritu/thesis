@@ -17,6 +17,34 @@ import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
 import { loadProjectWithSpace, getProjectProcessLogScope } from '../utils/projectAccess';
 
+const GENERAL_UPLOADS: { mime: string; ext: string; sniff: (buf: Buffer) => boolean }[] = [
+  { mime: 'image/png', ext: '.png', sniff: (b) => b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
+  { mime: 'image/jpeg', ext: '.jpg', sniff: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { mime: 'image/gif', ext: '.gif', sniff: (b) => b.length >= 4 && b.subarray(0, 4).toString() === 'GIF8' },
+  { mime: 'image/webp', ext: '.webp', sniff: (b) => b.length >= 12 && b.subarray(0, 4).toString() === 'RIFF' && b.subarray(8, 12).toString() === 'WEBP' },
+  { mime: 'application/pdf', ext: '.pdf', sniff: (b) => b.length >= 5 && b.subarray(0, 5).toString() === '%PDF-' },
+];
+
+/** Reject HTML/SVG/other types. Rename the stored file to a sniffed extension. */
+async function lockGeneralUpload(file: Express.Multer.File): Promise<void> {
+  const fh = await fs.promises.open(file.path, 'r');
+  const buf = Buffer.alloc(16);
+  await fh.read(buf, 0, 16, 0);
+  await fh.close();
+  const match = GENERAL_UPLOADS.find((entry) => entry.sniff(buf));
+  if (!match) {
+    fs.unlink(file.path, () => undefined);
+    throw new AppError('Unsupported file type. Allowed: PNG, JPEG, WebP, GIF, PDF.');
+  }
+  const dest = path.join(path.dirname(file.path), `${path.basename(file.path, path.extname(file.path))}${match.ext}`);
+  if (dest !== file.path) {
+    await fs.promises.rename(file.path, dest);
+    file.path = dest;
+    file.filename = path.basename(dest);
+  }
+  file.mimetype = match.mime;
+}
+
 const ARTWORK_IMAGE_MIME = new Set([
   'image/png',
   'image/jpeg',
@@ -57,6 +85,7 @@ router.post(
   upload.single('file'),
   async (req: AuthRequest, res: Response) => {
     if (!req.file) throw new AppError('No file provided');
+    await lockGeneralUpload(req.file);
 
     const { projectId, traceId } = req.body;
     if (!projectId) throw new AppError('projectId is required');
@@ -119,6 +148,7 @@ router.post(
   upload.single('file'),
   async (req: AuthRequest, res: Response) => {
     if (!req.file) throw new AppError('No file provided');
+    await lockGeneralUpload(req.file);
 
     const spaceId = String(req.body.spaceId || '').trim();
     if (!spaceId) throw new AppError('spaceId is required');
@@ -232,26 +262,53 @@ router.get(
     const media = await Media.findById(mediaId);
     if (!media || media.status === 'removed') throw new NotFoundError('Media');
 
-    // Public request: only block removed content
-    if (!req.node) {
-      if (!fs.existsSync(media.path)) throw new NotFoundError('Media');
-      return res.sendFile(media.path);
-    }
-
-    // Authenticated request: enforce hidden + hiddenInSpaces
     if (media.status === 'hidden') {
       throw new ForbiddenError('Media is hidden');
     }
 
-    if (media.hiddenInSpaces?.length) {
+    if (!media.projectId) {
+      if (req.node?.alias !== media.uploaderAlias) {
+        throw new ForbiddenError('You cannot view this file');
+      }
+    } else {
+      const { project, space } = await loadProjectWithSpace(media.projectId);
+      if (getProjectProcessLogScope(project, space, req) !== 'full') {
+        throw new ForbiddenError('You cannot view this file');
+      }
+    }
+
+    if (req.node && media.hiddenInSpaces?.length) {
       const node = await ChainNode.findById(req.node.nodeId).select('spaces').lean();
-      const nodeSpaceIds = (node?.spaces ?? []).map((s: any) => s.toString());
+      const nodeSpaceIds = (node?.spaces ?? []).map((s: { toString(): string }) => s.toString());
       const hiddenSpaceIds = media.hiddenInSpaces.map((s) => s.toString());
-      const overlaps = nodeSpaceIds.some((s) => hiddenSpaceIds.includes(s));
-      if (overlaps) throw new ForbiddenError('Media is not visible in your space');
+      if (nodeSpaceIds.some((s) => hiddenSpaceIds.includes(s))) {
+        throw new ForbiddenError('Media is not visible in your space');
+      }
     }
 
     if (!fs.existsSync(media.path)) throw new NotFoundError('Media');
+
+    const safeTypes: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.pdf': 'application/pdf',
+      '.svg': 'image/svg+xml',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+    };
+    const ext = path.extname(media.path).toLowerCase();
+    const safeType = safeTypes[ext];
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    if (!safeType || safeType === 'application/pdf') {
+      res.setHeader('Content-Type', safeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'attachment');
+    } else {
+      res.setHeader('Content-Type', safeType);
+    }
     return res.sendFile(media.path);
   },
 );
@@ -361,7 +418,7 @@ router.post(
     } catch (err) {
       fs.unlink(req.file.path, () => undefined);
       if (err instanceof AppError) throw err;
-      throw new AppError(err instanceof Error ? err.message : 'Failed to process upload');
+      throw new AppError('Failed to process upload');
     }
 
     const fileHash = await hashFile(req.file.path);

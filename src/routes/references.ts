@@ -90,6 +90,7 @@ router.get(
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const ref = await Reference.findById(req.params.id);
   if (!ref) throw new NotFoundError('Reference');
+  await assertFullProcessLogReadable(ref.projectId, req);
   res.json(ref);
 });
 

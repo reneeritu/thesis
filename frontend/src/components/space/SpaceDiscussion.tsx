@@ -84,10 +84,17 @@ export function SpaceDiscussion({ spaceId, isMember, isAdmin, meAlias, className
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => void load())
-    const t = window.setInterval(() => void load(), 5000)
+    const t = window.setInterval(() => {
+      if (!document.hidden) void load()
+    }, 5000)
+    const onVis = () => {
+      if (!document.hidden) void load()
+    }
+    document.addEventListener('visibilitychange', onVis)
     return () => {
       cancelAnimationFrame(raf)
       window.clearInterval(t)
+      document.removeEventListener('visibilitychange', onVis)
     }
   }, [load])
 

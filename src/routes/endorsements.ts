@@ -7,6 +7,7 @@ import { Trace } from '../models/Trace';
 import { Project } from '../models/Project';
 import { AuthRequest } from '../types';
 import { AppError, NotFoundError } from '../utils/errors';
+import { assertFullProcessLogReadable } from '../utils/projectAccess';
 
 const router = Router();
 
@@ -69,6 +70,9 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
  * List endorsements on a trace.
  */
 router.get('/trace/:traceId', requireAuth, async (req: AuthRequest, res: Response) => {
+  const trace = await Trace.findById(req.params.traceId).select('projectId');
+  if (!trace) throw new NotFoundError('Trace');
+  await assertFullProcessLogReadable(trace.projectId, req);
   const list = await Endorsement.find({ traceId: req.params.traceId }).sort({ createdAt: -1 });
   res.json(list);
 });
@@ -78,8 +82,7 @@ router.get('/trace/:traceId', requireAuth, async (req: AuthRequest, res: Respons
  * List endorsements for every trace in a project (for timeline summary).
  */
 router.get('/project/:projectId', requireAuth, async (req: AuthRequest, res: Response) => {
-  const p = await Project.findById(req.params.projectId).select('_id').lean();
-  if (!p) throw new NotFoundError('Project');
+  await assertFullProcessLogReadable(req.params.projectId, req);
   const list = await Endorsement.find({ projectId: req.params.projectId }).sort({ createdAt: -1 });
   res.json(list);
 });

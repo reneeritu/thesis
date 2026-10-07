@@ -17,6 +17,7 @@ import { assignPanel, recordFlagBlock } from '../services/moderation';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { assertFullProcessLogReadable } from '../utils/projectAccess';
 import mongoose from 'mongoose';
 
 const router = Router();
@@ -526,7 +527,9 @@ router.get(
  */
 router.get(
   '/project/:projectId',
+  requireAuth,
   async (req: AuthRequest, res: Response) => {
+    await assertFullProcessLogReadable(req.params.projectId, req);
     const mediations = await Mediation.find({ projectId: req.params.projectId }).sort({
       createdAt: -1,
     });
@@ -539,9 +542,15 @@ router.get(
  */
 router.get(
   '/:id',
+  requireAuth,
   async (req: AuthRequest, res: Response) => {
     const mediation = await Mediation.findById(req.params.id);
     if (!mediation) throw new NotFoundError('Mediation');
+    const alias = req.node!.alias;
+    const isParty = mediation.triggeredBy === alias || mediation.parties.includes(alias);
+    if (!isParty) {
+      await assertFullProcessLogReadable(mediation.projectId, req);
+    }
     res.json(mediation);
   },
 );

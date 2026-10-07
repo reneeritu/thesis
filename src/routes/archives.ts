@@ -253,6 +253,11 @@ router.get(
   '/space/:spaceId',
   requireAuth,
   async (req: AuthRequest, res: Response) => {
+    const space = await Space.findById(req.params.spaceId);
+    if (!space) throw new NotFoundError('Space');
+    if (!space.members.includes(req.node!.alias)) {
+      throw new ForbiddenError('Members only');
+    }
     const projects = await Project.find({
       spaceId: req.params.spaceId,
       status: 'archived',
@@ -271,6 +276,16 @@ router.get(
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const archive = await Archive.findById(req.params.id);
   if (!archive) throw new NotFoundError('Archive');
+  const alias = req.node!.alias;
+  const isCreator = archive.creatorAlias === alias;
+  const isAttester = archive.attestations.some((a) => a.attestingAlias === alias);
+  if (!isCreator && !isAttester) {
+    const project = await Project.findById(archive.projectId).select('spaceId');
+    const space = project ? await Space.findById(project.spaceId).select('members') : null;
+    if (!space?.members.includes(alias)) {
+      throw new ForbiddenError('You cannot view this archive');
+    }
+  }
   res.json(archive);
 });
 

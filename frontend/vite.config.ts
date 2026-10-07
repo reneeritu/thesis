@@ -41,6 +41,7 @@ const API_PREFIXES = [
   '/upload',
   '/media',
   '/health',
+  '/stats',
 ] as const
 
 function isApiRequest(method?: string, accept?: string): boolean {

@@ -26,8 +26,9 @@ export function requireSimAdmin(req: AuthRequest, _res: Response, next: NextFunc
     throw new AppError('Simulation mode is disabled', 403);
   }
   const allow = getSimAdminAllowlist();
-  // If allowlist is empty in dev, accept any authed user (still requires SIM_MODE=on).
-  if (allow.length === 0) return next();
+  if (allow.length === 0) {
+    throw new ForbiddenError('Simulation admin allow-list is empty');
+  }
   const alias = req.node?.alias?.toLowerCase();
   if (!alias || !allow.includes(alias)) {
     throw new ForbiddenError('Not a simulation admin');

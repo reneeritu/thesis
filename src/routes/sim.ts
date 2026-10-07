@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import crypto from 'crypto';
 import { AuthRequest } from '../types';
 import { requireAuth } from '../middleware/auth';
-import { requireSimMode, requireSimAdmin } from '../services/simulation/guards';
+import { requireSimAdmin } from '../services/simulation/guards';
 import { issueTokenForAlias } from '../services/simulation/tokenIssuer';
 import { runScenario } from '../services/simulation/orchestrator';
 import { buildScenario } from '../services/simulation/world';
@@ -49,7 +49,7 @@ router.post('/run', requireAuth, requireSimAdmin, async (req: AuthRequest, res: 
 });
 
 /** GET /sim/status/:simRunId */
-router.get('/status/:simRunId', requireSimMode, async (req: AuthRequest, res: Response) => {
+router.get('/status/:simRunId', requireAuth, requireSimAdmin, async (req: AuthRequest, res: Response) => {
   const simRunId = routeParamSimRunId(req.params.simRunId);
   const state = getRun(simRunId);
   if (!state) {

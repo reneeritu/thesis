@@ -1,28 +1,36 @@
 const LS_TOKEN = 'aura2_token'
 const LS_ALIAS = 'aura2_alias'
 
-let didMigrate = false
-
-/** sessionStorage is per browser tab; localStorage was shared across tabs. */
-function migrateLegacyLocalStorage(): void {
-  if (didMigrate) return
-  didMigrate = true
+/** Session lives in an httpOnly cookie. Alias is only a UI hint. */
+export function getAlias(): string {
   try {
-    if (sessionStorage.getItem(LS_TOKEN)) return
-    const t = localStorage.getItem(LS_TOKEN)
-    if (!t) return
-    const a = localStorage.getItem(LS_ALIAS) || ''
-    sessionStorage.setItem(LS_TOKEN, t)
-    if (a) sessionStorage.setItem(LS_ALIAS, a)
+    return sessionStorage.getItem(LS_ALIAS) || ''
+  } catch {
+    return ''
+  }
+}
+
+/** True when this tab believes a cookie session exists. Not a JWT. */
+export function getToken(): string {
+  return getAlias() ? '1' : ''
+}
+
+export function setSession(alias: string): void {
+  try {
+    sessionStorage.removeItem(LS_TOKEN)
     localStorage.removeItem(LS_TOKEN)
     localStorage.removeItem(LS_ALIAS)
+    if (alias) sessionStorage.setItem(LS_ALIAS, alias)
+    else sessionStorage.removeItem(LS_ALIAS)
   } catch {
     // private mode / quota
   }
 }
 
-function clearLegacyLocalStorage(): void {
+export function clearSession(): void {
   try {
+    sessionStorage.removeItem(LS_TOKEN)
+    sessionStorage.removeItem(LS_ALIAS)
     localStorage.removeItem(LS_TOKEN)
     localStorage.removeItem(LS_ALIAS)
   } catch {
@@ -30,22 +38,22 @@ function clearLegacyLocalStorage(): void {
   }
 }
 
-export function getToken(): string {
-  migrateLegacyLocalStorage()
-  return sessionStorage.getItem(LS_TOKEN) || ''
+export async function logout(): Promise<void> {
+  try {
+    await fetch('/auth/logout', { method: 'POST', credentials: 'include' })
+  } catch {
+    // still drop the local hint
+  }
+  clearSession()
 }
 
-export function getAlias(): string {
-  migrateLegacyLocalStorage()
-  return sessionStorage.getItem(LS_ALIAS) || ''
-}
-
-export function setSession(token: string, alias: string): void {
-  clearLegacyLocalStorage()
-  if (token) sessionStorage.setItem(LS_TOKEN, token)
-  else sessionStorage.removeItem(LS_TOKEN)
-  if (alias) sessionStorage.setItem(LS_ALIAS, alias)
-  else sessionStorage.removeItem(LS_ALIAS)
+/** Reject protocol-relative and backslash paths that browsers treat as off-site. */
+export function safeReturnPath(raw: string | null): string | null {
+  if (!raw) return null
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\') || raw.includes('://')) {
+    return null
+  }
+  return raw
 }
 
 export function redirectToDashboard(): void {
@@ -56,8 +64,8 @@ export function redirectToDashboard(): void {
 export function redirectAfterAuth(): void {
   try {
     const params = new URLSearchParams(window.location.search)
-    const ret = params.get('return')
-    if (ret && ret.startsWith('/') && !ret.startsWith('//')) {
+    const ret = safeReturnPath(params.get('return'))
+    if (ret) {
       window.location.assign(ret)
       return
     }
@@ -66,10 +74,3 @@ export function redirectAfterAuth(): void {
   }
   window.location.href = '/dashboard'
 }
-
-export function clearSession(): void {
-  clearLegacyLocalStorage()
-  sessionStorage.removeItem(LS_TOKEN)
-  sessionStorage.removeItem(LS_ALIAS)
-}
-

@@ -11,7 +11,6 @@ import {
   categoryForActivity,
 } from '../../lib/reputationColours'
 import { mixBlack } from '../../lib/colorMix'
-import { getToken } from '../../lib/session'
 import { Button } from '../Button'
 import { useToast } from '../../context/ToastContext'
 
@@ -94,10 +93,9 @@ export function TraceForm({ projectId, onDone }: Props) {
       const fd = new FormData()
       fd.append('file', file)
       fd.append('projectId', projectId)
-      const tok = getToken()
       const res = await fetch(apiBase() + '/upload', {
         method: 'POST',
-        headers: tok ? { Authorization: 'Bearer ' + tok } : undefined,
+        credentials: 'include',
         body: fd,
       })
       const text = await res.text()

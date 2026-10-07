@@ -42,10 +42,17 @@ export function optionalViewerMayReadProject(
   return getProjectProcessLogScope(project, space, req) === 'full';
 }
 
+type ProjectIdInput = string | string[] | { toString(): string };
+
+function projectIdString(projectId: ProjectIdInput): string {
+  if (Array.isArray(projectId)) return String(projectId[0] ?? '');
+  return String(projectId);
+}
+
 export async function loadProjectWithSpace(
-  projectId: string | string[],
+  projectId: ProjectIdInput,
 ): Promise<{ project: InstanceType<typeof Project>; space: InstanceType<typeof Space> }> {
-  const id = (Array.isArray(projectId) ? projectId[0] : projectId) as string;
+  const id = projectIdString(projectId);
   const project = await Project.findById(id);
   if (!project) throw new NotFoundError('Project');
   const space = await Space.findById(project.spaceId);
@@ -76,7 +83,7 @@ export function toPublicSummaryProject(project: InstanceType<typeof Project>): R
 }
 
 export async function assertFullProcessLogReadable(
-  projectId: string | string[],
+  projectId: ProjectIdInput,
   req: AuthRequest,
 ): Promise<InstanceType<typeof Project>> {
   const { project, space } = await loadProjectWithSpace(projectId);

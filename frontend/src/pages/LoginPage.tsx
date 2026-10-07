@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 import { flashDone } from '../lib/cursor'
 import { redirectAfterAuth, setSession } from '../lib/session'
 
-type LoginResponse = { token: string; alias: string }
+type LoginResponse = { alias: string }
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -34,7 +34,7 @@ export default function LoginPage() {
         method: 'POST',
         body: { alias: trimmedAlias, password },
       })
-      setSession(data.token, data.alias)
+      setSession(data.alias)
       flashDone()
       redirectAfterAuth()
     } catch (err) {

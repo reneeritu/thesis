@@ -22,6 +22,18 @@ function normalizeAlias(a: string): string {
   return a.trim().toLowerCase();
 }
 
+async function assertNotBlocked(aliasA: string, aliasB: string): Promise<void> {
+  const nodes = await ChainNode.find({ alias: { $in: [aliasA, aliasB] } })
+    .select('alias blockedNodes')
+    .lean();
+  for (const node of nodes) {
+    const other = node.alias === aliasA ? aliasB : aliasA;
+    if ((node.blockedNodes ?? []).includes(other)) {
+      throw new ForbiddenError('Messaging is not available between these nodes');
+    }
+  }
+}
+
 function sortedPair(aliasA: string, aliasB: string): [string, string] {
   const a = normalizeAlias(aliasA);
   const b = normalizeAlias(aliasB);
@@ -91,6 +103,7 @@ router.post(
     if (!recipientNode) {
       throw new NotFoundError('Node');
     }
+    await assertNotBlocked(initiator, recipient);
 
     const participants = sortedPair(initiator, recipient);
 
@@ -314,6 +327,8 @@ router.post(
     if (conv.status !== 'accepted') {
       throw new ForbiddenError('You can only message after the request is accepted');
     }
+    const otherAlias = conv.participants[0] === me ? conv.participants[1] : conv.participants[0];
+    await assertNotBlocked(me, otherAlias);
 
     const msg = await DmMessage.create({
       conversationId: conv._id,

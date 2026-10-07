@@ -43,8 +43,17 @@ export function NotificationBell() {
 
   useEffect(() => {
     load()
-    const id = window.setInterval(load, 30_000)
-    return () => window.clearInterval(id)
+    const id = window.setInterval(() => {
+      if (!document.hidden) load()
+    }, 30_000)
+    const onVis = () => {
+      if (!document.hidden) load()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [load])
 
   useEffect(() => {

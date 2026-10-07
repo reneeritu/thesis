@@ -40,8 +40,17 @@ export function ConversationView({ conversationId, meAlias, onRefreshList }: Pro
 
   useEffect(() => {
     void load()
-    const t = window.setInterval(() => void load(), 5000)
-    return () => window.clearInterval(t)
+    const t = window.setInterval(() => {
+      if (!document.hidden) void load()
+    }, 5000)
+    const onVis = () => {
+      if (!document.hidden) void load()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.clearInterval(t)
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [load])
 
   useEffect(() => {

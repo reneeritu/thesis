@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { ChainNode } from '../models/Node';
 import { AuthPayload, AuthRequest } from '../types';
+import { readSessionToken } from '../utils/sessionCookie';
 
 /**
  * If a Bearer token is present and valid (including tokenVersion), attaches req.node.
@@ -13,17 +14,16 @@ export async function optionalAuth(
   _res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
+  const token = readSessionToken(req);
+  if (!token) {
     next();
     return;
   }
-
-  const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload;
-    const node = await ChainNode.findById(decoded.nodeId).select('tokenVersion').lean();
-    if (node && node.tokenVersion === (decoded.tokenVersion ?? 0)) {
+    const node = await ChainNode.findById(decoded.nodeId).select('tokenVersion status').lean();
+    const blocked = node?.status === 'suspended' || node?.status === 'removed';
+    if (node && !blocked && node.tokenVersion === (decoded.tokenVersion ?? 0)) {
       req.node = { alias: decoded.alias, nodeId: decoded.nodeId, tokenVersion: decoded.tokenVersion };
     }
   } catch {

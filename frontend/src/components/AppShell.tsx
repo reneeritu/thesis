@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ChromeBackdropProvider } from '../context/ChromeBackdropContext'
-import { clearSession, getToken } from '../lib/session'
+import { getToken, logout } from '../lib/session'
 import { isSimMode } from '../lib/simApi'
 import { layoutDebugZoneClass, useLayoutDebug } from '../lib/layoutDebug'
 import { NotificationBell } from './NotificationBell'
@@ -176,8 +176,9 @@ export function AppShell({ children, title, scrollMain = true, gridOverlay = tru
                   type="button"
                   className={navBtn}
                   onClick={() => {
-                    clearSession()
-                    window.location.href = '/'
+                    void logout().finally(() => {
+                      window.location.href = '/'
+                    })
                   }}
                 >
                   Sign out

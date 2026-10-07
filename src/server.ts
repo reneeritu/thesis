@@ -13,14 +13,13 @@ import { startScheduler } from './services/scheduler';
 function assertProductionEnv(): void {
   const isProdLike =
     config.nodeEnv === 'production' || process.env.RENDER === 'true';
-  if (!isProdLike) return;
 
   const fatal = (msg: string) => {
     console.error(`\n[FATAL] ${msg}\n`);
     process.exit(1);
   };
 
-  if (!process.env.MONGODB_URI?.trim()) {
+  if (isProdLike && !process.env.MONGODB_URI?.trim()) {
     fatal(
       'MONGODB_URI is not set. On Render: Environment → add MONGODB_URI with your MongoDB Atlas connection string (not localhost).',
     );
@@ -40,6 +39,17 @@ function assertProductionEnv(): void {
     fatal(
       'ENCRYPTION_KEY must be exactly 64 hexadecimal characters (32 bytes). Generate: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
     );
+  }
+
+  const simOn = ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.SIM_MODE ?? '').trim().toLowerCase(),
+  );
+  const simAdmins = String(process.env.SIM_ADMIN_ALIASES ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (isProdLike && simOn && simAdmins.length === 0) {
+    fatal('SIM_MODE is on but SIM_ADMIN_ALIASES is empty. Set an allow-list or turn SIM_MODE off.');
   }
 }
 

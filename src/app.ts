@@ -1,11 +1,13 @@
 import path from 'path';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
 import { config } from './config';
+import { allowedOrigins } from './config/origins';
 import { errorHandler } from './middleware/errorHandler';
 import notificationRoutes from './routes/notifications';
 import authRoutes from './routes/auth';
@@ -29,6 +31,7 @@ import endorsementRoutes from './routes/endorsements';
 import simRoutes from './routes/sim';
 import conversationRoutes from './routes/conversations';
 import adminRoutes from './routes/admin';
+import statsRoutes from './routes/stats';
 
 // TODO: All list endpoints (e.g. /traces/project/:id, /vetos/project/:id,
 // /references/project/:id, /forks/parent/:id, etc.) currently return every
@@ -53,8 +56,35 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(compression());
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
+  credentials: true,
+}));
 app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    next();
+    return;
+  }
+  const origin = req.headers.origin;
+  if (typeof origin === 'string' && !allowedOrigins.includes(origin)) {
+    res.status(403).json({ error: 'Cross-origin request blocked' });
+    return;
+  }
+  if (!origin && req.headers['sec-fetch-site'] === 'cross-site') {
+    res.status(403).json({ error: 'Cross-origin request blocked' });
+    return;
+  }
+  next();
+});
 
 const publicDir = path.join(__dirname, '..', 'public');
 /** Legacy static UI (original site) */
@@ -102,28 +132,45 @@ app.use((req, res, next) => {
   });
 });
 
-if (config.nodeEnv === 'production') {
-  app.use(
-    '/auth/login',
-    rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 10,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Too many login attempts, try again later' },
-    }),
-  );
-  app.use(
-    '/auth/register',
-    rateLimit({
-      windowMs: 60 * 60 * 1000,
-      max: 5,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Too many accounts created, try again later' },
-    }),
-  );
-}
+const authLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, try again later' },
+});
+app.use('/auth/login', authLimit);
+app.use('/auth/recover', authLimit);
+app.use(
+  '/auth/register',
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many accounts created, try again later' },
+  }),
+);
+app.use(
+  '/upload',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many uploads, try again later' },
+  }),
+);
+app.use(
+  '/api/admin',
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests' },
+  }),
+);
 
 app.use('/auth', authRoutes);
 app.use('/nodes', nodeRoutes);
@@ -142,6 +189,7 @@ app.use('/mediations', mediationRoutes);
 app.use('/flags', flagRoutes);
 app.use('/governance', governanceRoutes);
 app.use('/discover', discoverRoutes);
+app.use('/stats', statsRoutes);
 app.use('/endorsements', endorsementRoutes);
 app.use('/conversations', conversationRoutes);
 

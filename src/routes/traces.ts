@@ -117,9 +117,11 @@ router.post(
       if (media.uploaderAlias !== alias) {
         throw new ForbiddenError('You can only attach your own uploads as proof');
       }
+      if (media.projectId && String(media.projectId) !== String(projectId)) {
+        throw new ForbiddenError('This upload belongs to a different project');
+      }
       resolvedMediaId = media._id as mongoose.Types.ObjectId;
       resolvedMediaHash = media.hash;
-      // Bind the media to this project if not already
       if (!media.projectId) {
         await Media.findByIdAndUpdate(mediaId, { projectId });
       }
@@ -200,6 +202,8 @@ router.get(
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const trace = await Trace.findById(req.params.id);
   if (!trace) throw new NotFoundError('Trace');
+
+  await assertFullProcessLogReadable(trace.projectId, req);
 
   const callerAlias = req.node!.alias;
 

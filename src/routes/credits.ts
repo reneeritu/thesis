@@ -13,6 +13,7 @@ import { onProjectCompleted } from '../services/reputationEngine';
 import { chainDefaults } from '../config/defaults';
 import { AuthRequest } from '../types';
 import { NotFoundError, ForbiddenError, AppError } from '../utils/errors';
+import { getProjectProcessLogScope, loadProjectWithSpace } from '../utils/projectAccess';
 
 function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
@@ -302,6 +303,10 @@ router.get(
   '/project/:projectId',
   optionalAuth,
   async (req: AuthRequest, res: Response) => {
+    const { project, space } = await loadProjectWithSpace(req.params.projectId);
+    if (getProjectProcessLogScope(project, space, req) !== 'full') {
+      return res.json({ restricted: true });
+    }
     const nft = await NFT.findOne({ projectId: req.params.projectId });
     if (!nft) throw new NotFoundError('No credit found for this project');
 

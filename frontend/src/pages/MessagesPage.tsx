@@ -29,10 +29,17 @@ export default function MessagesPage() {
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => void refresh())
-    const t = window.setInterval(() => void refresh(), 5000)
+    const t = window.setInterval(() => {
+      if (!document.hidden) void refresh()
+    }, 5000)
+    const onVis = () => {
+      if (!document.hidden) void refresh()
+    }
+    document.addEventListener('visibilitychange', onVis)
     return () => {
       cancelAnimationFrame(raf)
       window.clearInterval(t)
+      document.removeEventListener('visibilitychange', onVis)
     }
   }, [refresh])
 

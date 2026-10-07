@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { DefTerm } from '../components/DefTerm'
@@ -9,7 +9,6 @@ import { INTEREST_PRESETS, MIN_PROFILE_INTERESTS } from '../lib/interestPresets'
 
 type RegisterResponse = {
   alias: string
-  token: string
   seedPhrase: string
 }
 
@@ -19,6 +18,7 @@ const fieldInput =
   'etch-field-input w-full border border-white/25 bg-zinc-900/55 px-3 py-2 text-body font-mono focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-grey-50'
 
 const MIN_TRUSTEES = 3
+const PENDING_SEED_KEY = 'etch_pending_seed'
 const MAX_TRUSTEES = 5
 
 /** Outlined monospace CTA — dark fill, 1px white border, hover inverts. */
@@ -87,6 +87,31 @@ export default function RegisterPage() {
   const [step1Busy, setStep1Busy] = useState(false)
   const [pulseInterest, setPulseInterest] = useState<string | null>(null)
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(PENDING_SEED_KEY)
+      if (!raw) return
+      const saved = JSON.parse(raw) as { alias?: string; phrase?: string }
+      const words = String(saved.phrase || '').split(/\s+/).filter(Boolean)
+      if (!words.length) return
+      if (saved.alias) setAlias(saved.alias)
+      setSeedWords(words)
+      setStep(2)
+    } catch {
+      sessionStorage.removeItem(PENDING_SEED_KEY)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!seedWords.length || seedAck) return
+    const onLeave = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onLeave)
+    return () => window.removeEventListener('beforeunload', onLeave)
+  }, [seedWords, seedAck])
+
   async function onStep1(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
@@ -103,9 +128,16 @@ export default function RegisterPage() {
         method: 'POST',
         body: { alias: a, password },
       })
-      setAlias(data.alias || a)
-      setSession(data.token, data.alias || a)
-      setSeedWords((data.seedPhrase || '').split(/\s+/).filter(Boolean))
+      const nextAlias = data.alias || a
+      const phrase = data.seedPhrase || ''
+      setAlias(nextAlias)
+      setSession(nextAlias)
+      setSeedWords(phrase.split(/\s+/).filter(Boolean))
+      try {
+        sessionStorage.setItem(PENDING_SEED_KEY, JSON.stringify({ alias: nextAlias, phrase }))
+      } catch {
+        /* private mode */
+      }
       setStep(2)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
@@ -117,6 +149,11 @@ export default function RegisterPage() {
   function onStep2(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!seedAck) return
+    try {
+      sessionStorage.removeItem(PENDING_SEED_KEY)
+    } catch {
+      /* ignore */
+    }
     setStep(3)
     setError(null)
   }
@@ -361,7 +398,7 @@ export default function RegisterPage() {
                       TRUSTEES
                     </div>
                     <div className="font-mono text-sm text-[var(--text-muted)]">
-                      optional recovery contacts you set after registration.
+                      optional contacts you can save. Trustee recovery is not available yet.
                     </div>
                   </div>
                 </div>
@@ -536,13 +573,12 @@ export default function RegisterPage() {
                       Pick your trustees (optional)
                     </h2>
                     <p className="text-base text-white">
-                      <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes who can help
-                      you recover this account if you lose your seed phrase. A majority of them must agree before any
-                      recovery happens. Pick people who know you.
+                      <DefTerm term="trustees">Trustees</DefTerm> are {MIN_TRUSTEES}–{MAX_TRUSTEES} nodes you can save for a
+                      future recovery vote. That vote is not available yet. Your seed phrase is the only way to reset
+                      this password today.
                     </p>
                     <p className="text-base text-white">
-                      You can skip this now and set it up from your settings later — but without trustees, losing your
-                      seed phrase means losing the account.
+                      You can skip this and save trustees later. Losing the seed phrase means losing the account.
                     </p>
                   </div>
 
@@ -615,8 +651,8 @@ export default function RegisterPage() {
                   </form>
                 </div>
                 <aside className="border-t border-white/10 pt-6 font-mono text-small normal-case leading-relaxed tracking-normal text-[var(--text-muted)] lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-                  Without trustees, losing your seed phrase means permanent loss of the account. No email recovery
-                  exists.
+                  Trustee recovery is not available yet. Losing your seed phrase means permanent loss of the account.
+                  No email recovery exists.
                 </aside>
               </div>
             </div>

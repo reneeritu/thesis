@@ -8,10 +8,11 @@ import './styles/layout-debug.css'
 import './black-page.css'
 import './styles/app-atmosphere.css'
 import App from './App.tsx'
-import { initEtchStudio } from './theatre/initEtchStudio'
 
-/** Dev-only: single Studio bundle + R3F extension (see `initEtchStudio.ts`). */
-initEtchStudio()
+/** Dev-only: keep Theatre and Three out of the production homepage graph. */
+if (import.meta.env.DEV) {
+  void import('./theatre/initEtchStudio').then((m) => m.initEtchStudio())
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

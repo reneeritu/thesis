@@ -1,5 +1,4 @@
 import { beginLoading, endLoading } from './cursor'
-import { getToken } from './session'
 
 function apiBase(): string {
   const m = document.querySelector('meta[name="aura-api-base"]')
@@ -40,10 +39,9 @@ export async function uploadCertArtwork(
     const fd = new FormData()
     fd.append('file', file)
     fd.append('nftId', nftId)
-    const tok = getToken()
     const res = await fetch(apiBase() + '/upload/cert-artwork', {
       method: 'POST',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : undefined,
+      credentials: 'include',
       body: fd,
     })
     const text = await res.text()
@@ -76,10 +74,9 @@ export async function uploadArchiveEvidence(
     const fd = new FormData()
     fd.append('file', file)
     fd.append('spaceId', spaceId)
-    const tok = getToken()
     const res = await fetch(apiBase() + '/upload/archive-evidence', {
       method: 'POST',
-      headers: tok ? { Authorization: 'Bearer ' + tok } : undefined,
+      credentials: 'include',
       body: fd,
     })
     const text = await res.text()
