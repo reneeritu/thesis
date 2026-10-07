@@ -80,48 +80,6 @@ function AuthSiteNavDropdown({
   )
 }
 
-function ThemeTogglePill() {
-  const { theme, toggleTheme } = useTheme()
-  const isDark = theme === 'dark'
-  const track = isDark ? 'border-[1.5px] border-white bg-black hover:border-white' : ''
-  const thumbPos = isDark ? 'left-[calc(100%-18px)]' : 'left-[2px]'
-  const thumbFill = isDark ? 'bg-white' : 'bg-[#111110]'
-  return (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
-      title={`Theme: ${theme}`}
-      className={`etch-shell-theme-toggle relative inline-flex h-[20px] w-[calc(3.75rem-10px)] shrink-0 items-center overflow-hidden rounded-none p-0 transition-etch [touch-action:manipulation] ${track}`}
-    >
-      <span
-        className={`etch-shell-toggle-thumb pointer-events-none absolute top-[2px] bottom-[2px] flex w-[16px] items-center justify-center rounded-none transition-[left] duration-300 ease-out ${thumbFill} ${thumbPos}`}
-        aria-hidden
-      >
-        {isDark ? (
-          <svg viewBox="0 0 16 16" className="h-[10px] w-[10px] text-black" fill="currentColor" aria-hidden>
-            <path d="M13.5 10.5A6 6 0 0 1 5.5 2.5a6 6 0 1 0 8 8z" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 16 16" className="h-[10px] w-[10px] text-[#f0f0ee]" aria-hidden>
-            <circle cx="8" cy="8" r="3.25" fill="currentColor" />
-            <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <line x1="8" y1="1" x2="8" y2="2.6" />
-              <line x1="8" y1="13.4" x2="8" y2="15" />
-              <line x1="1" y1="8" x2="2.6" y2="8" />
-              <line x1="13.4" y1="8" x2="15" y2="8" />
-              <line x1="3.05" y1="3.05" x2="4.15" y2="4.15" />
-              <line x1="11.85" y1="11.85" x2="12.95" y2="12.95" />
-              <line x1="3.05" y1="12.95" x2="4.15" y2="11.85" />
-              <line x1="11.85" y1="4.15" x2="12.95" y2="3.05" />
-            </g>
-          </svg>
-        )}
-      </span>
-    </button>
-  )
-}
-
 function HintsTogglePill() {
   const { definitionsOn, setDefinitionsOn } = useDefinitions()
   const { theme } = useTheme()
@@ -264,14 +222,13 @@ export function AppShell({ children, title, scrollMain = true, gridOverlay = tru
         </div>
       </header>
 
-      {/* Hints + theme: fixed bottom-right on every shell page — header stays for route + comms */}
+      {/* Hints: fixed bottom-right on every shell page — header stays for route + comms */}
       <div
         className="pointer-events-none fixed z-[180] flex flex-col items-end gap-2 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
         aria-label="Display controls"
       >
         <div className="etch-shell-display-controls pointer-events-auto flex flex-col items-end gap-2 rounded px-2 py-2 floating-glass-panel contour-border-cool shadow-lg">
           <HintsTogglePill />
-          <ThemeTogglePill />
         </div>
       </div>
 
